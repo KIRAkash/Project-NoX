@@ -10,7 +10,7 @@ from .connectors.base import IngestionAuthError, IngestionError, IngestionRateLi
 from .core.config import cors_origins, settings, validate_required_settings
 from .core.logging import RequestIdMiddleware, configure_logging
 from .db.database import engine, init_db
-from .routers import cli, integrations, jira, kb, me, missions, orgs, sources, webhooks
+from .routers import cli, integrations, jira, kb, me, media, missions, orgs, sources, webhooks
 from .services.sse import get_sse_manager
 
 configure_logging()
@@ -63,6 +63,8 @@ app.include_router(me.router)
 app.include_router(sources.router)
 app.include_router(missions.asset_router)  # before the {key} routes
 app.include_router(missions.router)
+app.include_router(media.router)
+app.include_router(media.mission_router)
 app.include_router(jira.router)
 app.include_router(cli.router)
 
