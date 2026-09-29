@@ -342,3 +342,23 @@ class MissionEvent(Base):
     type = Column(String, nullable=False)
     payload = Column(JSON, nullable=False, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+# ── NoX Shield (CP14) ─────────────────────────────────────────────────────────
+
+
+class ShieldFinding(Base):
+    """Something Model Armor or Sensitive Data Protection flagged. Stores a hash of the text, never the text."""
+
+    __tablename__ = "shield_findings"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=True, index=True)
+    kb_id = Column(UUID(as_uuid=True), ForeignKey("knowledge_bases.id", ondelete="CASCADE"), nullable=True, index=True)
+    mission_id = Column(UUID(as_uuid=True), ForeignKey("missions.id", ondelete="CASCADE"), nullable=True, index=True)
+    where = Column(String, nullable=False)       # ingest, ask, cowrite, mission_prompt, mcp, a2a, kb_commit
+    source = Column(String, nullable=True)       # the document or file it came from
+    category = Column(String, nullable=False)    # pi_and_jailbreak, malicious_uris, rai, sdp:<infoType>, …
+    confidence = Column(String, nullable=True)
+    excerpt_sha = Column(String, nullable=True)
+    action = Column(String, nullable=False)      # withheld | refused | blocked_commit | monitored
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)

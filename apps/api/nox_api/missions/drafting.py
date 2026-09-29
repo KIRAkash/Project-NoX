@@ -8,6 +8,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from ..ai import telemetry
 from ..db.database import AsyncSessionLocal
 from ..db.models import Mission, MissionApp, Role, SpecFileVersion, SpecStatus
 from .context import jira_context, kb_context, mission_apps
@@ -16,6 +17,7 @@ from .personas import checklist_brief, persona_brief
 from .templates import ROLE_NAME, ROLE_ORDER, SECTIONS, TITLE, VERIFY_HEADING
 
 logger = logging.getLogger(__name__)
+_CITATION = re.compile(r"\[\[kb:[^\]]+\]\]")  # counted per drafted file for the flight recorder's grounding share
 
 SYSTEM = (
     "You are NoX, an AI co-author inside a spec-driven development platform. Each software change (a mission) has "
@@ -121,7 +123,8 @@ async def draft_mission_files(mission_id: str) -> None:
             if f.status == SpecStatus.drafting:
                 await record(db, mission, "file.drafting", {"role": role.value})
                 try:
-                    md = await generate_file(mission, role, upstream, context, apps=apps)
+                    with telemetry.usage_scope(f"draft-file:{role.value}", org_id=mission.org_id, mission_id=mission.id) as usage:
+                        md = await generate_file(mission, role, upstream, context, apps=apps)
                 except Exception as e:
                     logger.exception(f"drafting {mission.key}/{role.value} failed")
                     f.status = SpecStatus.empty if role != mission.created_as_role else SpecStatus.draft
@@ -135,7 +138,8 @@ async def draft_mission_files(mission_id: str) -> None:
                 if role == Role.business and mission.title == mission.prompt[:120]:
                     mission.title = title_from(md, mission.title)
                 await db.commit()
-                await record(db, mission, "file.drafted", {"role": role.value, "version": f.version})
+                await record(db, mission, "file.drafted", {"role": role.value, "version": f.version,
+                                                           "citations": len(_CITATION.findall(md)), "tokens": usage.tokens()})
                 from .gitsync import schedule_sync
 
                 schedule_sync(mission.id, role, f"{mission.key}: NoX drafts the {TITLE[role].lower()}")

@@ -47,7 +47,9 @@ apps/api/                 FastAPI, Python 3.12, uv
   nox_api/integrations/   Atlassian and Jira write clients
   nox_api/missions/       templates, personas, drafting, co-writing, verification, Git sync, Jira sync, PRs
   nox_api/routers/        orgs, kb, missions, jira, cli, webhooks, integrations, me, sources
-  nox_api/services/       search, SSE, GitOps, storage, pins, discovery
+  nox_api/services/       search, SSE, GitOps, storage, pins, discovery, shield (Model Armor + DLP),
+                          analytics (BigQuery flight recorder), scope (token → visible applications)
+  nox_api/interop/        the MCP server and the A2A Ask agent
   nox_api/workers/        Celery tasks and the dispatcher
   nox_api/local.py        NoX Local's entry point
   alembic/                database migrations
@@ -100,7 +102,8 @@ Builds save checkpoints after every stage, which is what lets **Retry** resume a
 
 - **Identity**: Firebase ID tokens on every web request, verified server-side; hashed personal tokens for the CLI, issued through a browser-approved device flow.
 - **Authorization**: the access matrix is checked on every route; membership decides which organizations and applications are visible; spec files are writable only by their own seat.
-- **Agent scope**: tools read the caller's permissions from session state set by NoX, so model output can't widen what an agent can see.
+- **Agent scope**: tools read the caller's permissions from session state set by NoX, so model output can't widen what an agent can see. MCP and A2A callers get their scope from their token the same way.
+- **Untrusted text**: NoX Shield screens sources, questions and chat with Model Armor, and knowledge-base pages with Sensitive Data Protection.
 - **Webhooks**: GitHub requests are verified by HMAC signature and Jira requests by a shared secret. `WEBHOOK_SECRET` must be a strong random value of at least 16 characters, or the API won't start. (Signature checks for the Slack and Confluence webhooks are on the [roadmap](/docs/roadmap).)
 - **Network**: CORS allows only the web origin, and in production the web app proxies API calls on the same origin.
 - **Secrets**: kept in Secret Manager in production, never in images, and blocked from ever being committed to a knowledge base.
@@ -124,12 +127,12 @@ Other targets: `make api`, `make web`, `make worker`, `make migrate`, `make test
 
 ```bash
 scripts/deploy_gcp.sh secrets      # copy secrets from .env into Secret Manager
-scripts/deploy_gcp.sh ai-access    # let the runtime service account call Gemini
+scripts/deploy_gcp.sh ai-access    # let the runtime service account call Gemini, Model Armor, DLP and BigQuery
 scripts/deploy_gcp.sh all          # enable APIs, build with Cloud Build, deploy nox-api, nox-worker, nox-web
 DRY_RUN=1 scripts/deploy_gcp.sh all   # print every gcloud command instead of running it
 ```
 
-It enables the services it needs, creates the Artifact Registry repository and Cloud Storage bucket, builds images with Cloud Build, and deploys three Cloud Run services: `nox-api` (public), `nox-worker` (private) and `nox-web`. They connect to Cloud SQL for PostgreSQL, where the `vector` extension is enabled by a migration, and to Memorystore for Redis over Direct VPC egress, so no serverless VPC connector is needed.
+It enables the services it needs, creates the Artifact Registry repository and Cloud Storage bucket, builds images with Cloud Build, and deploys three Cloud Run services: `nox-api` (public), `nox-worker` (private) and `nox-web`. They connect to Cloud SQL for PostgreSQL, where the `vector` extension is enabled by a migration, and to Memorystore for Redis over Direct VPC egress, so no serverless VPC connector is needed. `ai-access` also creates the `nox-shield` Model Armor template and the `nox_analytics` BigQuery dataset with its views, and the API is deployed with Shield in `enforce` mode and the flight recorder on.
 
 ## Quality
 

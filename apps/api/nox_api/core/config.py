@@ -117,6 +117,19 @@ class Settings(BaseSettings):
     NOX_COMMIT_SPECS: bool = True
     NOX_DEMO_ORG_SLUGS: str = ""                       # New users auto-join these orgs (e.g. "apex")
     NOX_DEV_AUTH: bool = False                         # Accept `Authorization: Dev <email>`; local dev only
+    NOX_PUBLIC_API_URL: str = ""                       # The API as agents reach it (MCP, A2A card); empty = WEBHOOK_BASE_URL
+
+    # ── NoX Shield (Model Armor + Sensitive Data Protection) ──────────────────
+    NOX_SHIELD: str = "off"                            # "off" | "monitor" (record only) | "enforce" (withhold / refuse)
+    NOX_SHIELD_TEMPLATE: str = "nox-shield"            # Model Armor template id, or its full resource name
+    NOX_SHIELD_LOCATION: str = "us-central1"           # Model Armor region (regional endpoint)
+
+    # ── Flight recorder (BigQuery) ────────────────────────────────────────────
+    NOX_ANALYTICS: str = "off"                         # "off" | "bigquery"
+    NOX_BQ_DATASET: str = "nox_analytics"
+
+    # ── Agents calling NoX (MCP, A2A) ─────────────────────────────────────────
+    NOX_MCP_RATE_LIMIT: int = 60                       # tool calls per minute per API token
 
     # ── Local Mode Tuning ─────────────────────────────────────────────────────
     LOCAL_MAX_FILES: int = 150

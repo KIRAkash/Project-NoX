@@ -113,9 +113,40 @@ Enterprise AI has to be checkable. NoX's rules:
 - **Nothing is approved by AI.** Approval, verification and send-back are always a person's action.
 - **Pages are checked before they're committed.** The linter, the secret gate and the pull-request review stand between any model output and the knowledge base.
 
+## NoX Shield: Model Armor and Sensitive Data Protection
+
+NoX reads documents it didn't write: Confluence pages, Slack threads, Jira comments, uploads. Any of them could carry an instruction aimed at an AI. **NoX Shield** screens that text with **Model Armor** before an agent sees it, and screens what NoX writes with **Sensitive Data Protection** before it is committed.
+
+| Where | What happens when Shield flags it |
+| --- | --- |
+| Documents read while building or syncing a knowledge base, and the prose files in code sources | The document is replaced with a one-line "withheld" note. The build carries on without it, and the flight log shows what was withheld. |
+| Ask questions, MCP `ask_nox` and A2A messages | NoX answers with a short refusal and makes no model call. |
+| Co-writer chat and refine instructions | NoX keeps the message but replies "I can't act on that message" and changes nothing. |
+| A new mission's first sentence | NoX asks you to rephrase it. |
+| Knowledge-base pages before they are committed | Sensitive Data Protection looks for keys, tokens, passwords, emails and card numbers, as well as NoX's own secret patterns. Nothing is committed if it finds one. |
+
+- **Modes.** `NOX_SHIELD=off` (the default locally and in tests), `monitor` (record findings, block nothing) or `enforce` (production). NoX Local always runs with Shield off, because nothing leaves the laptop.
+- **Nothing sensitive is stored.** Each finding is recorded with its category, confidence and a hash of the text, never the text itself.
+- **Availability wins.** If Model Armor or Sensitive Data Protection can't be reached, NoX carries on and says so: the flight log reads "not screened".
+- **Where you see it.** A **Shielded** chip on each application's sources panel, the withheld sources listed for the engineering lead and developer, and refusals on the mission timeline.
+
+`NOX_SHIELD` · `NOX_SHIELD_TEMPLATE` · `NOX_SHIELD_LOCATION`
+
+## The flight recorder: BigQuery
+
+Every mission event and every AI unit of work is streamed into **BigQuery** (dataset `nox_analytics`). Views on top of it answer the questions a delivery leader asks: how long each stage takes, where work gets sent back, how much of what NoX drafted cites a source, what the AI costs per mission, and how quickly a knowledge base catches up with a push.
+
+The **Impact** page shows those numbers for an organization over the last 7, 30 or 90 days, and each mission shows its own flight strip above the timeline. The AI cost is an estimate at Gemini's list prices. With `NOX_ANALYTICS=off`, the same numbers are computed from the database, so the page works in development too.
+
+`NOX_ANALYTICS` · `NOX_BQ_DATASET`
+
+## Agents that call NoX: MCP and A2A
+
+NoX's knowledge tools are an **MCP** server, and its Ask agent is an **A2A** server built with ADK, so other agents can use NoX without the CLI. Both take their scope from a NoX token, never from the request. See [Integrations](/docs/integrations#mcp-nox-s-tools-inside-any-agent).
+
 ## Measuring it
 
-- **Usage per unit of work.** Every build, Ask turn and co-writer turn runs inside a telemetry scope that adds up model calls, input, cached, output and thinking tokens, tool calls and wall time across all its agents, including parallel ones. Each scope ends in one structured log line that **Cloud Logging** indexes.
+- **Usage per unit of work.** Every build, Ask turn and co-writer turn runs inside a telemetry scope that adds up model calls, input, cached, output and thinking tokens, tool calls and wall time across all its agents, including parallel ones. Each scope ends in one structured log line that **Cloud Logging** indexes, and a row in the BigQuery flight recorder.
 - **Ask eval.** `scripts/eval_ask.py` asks golden questions about the demo applications and scores each answer on whether it cited the right pages, contained the expected facts, and how fast it was.
 - **Build benchmark.** `scripts/bench_kb.py` compares build strategies on the same snapshot: wall time, calls, tokens and cache share.
 
@@ -131,7 +162,10 @@ Enterprise AI has to be checkable. NoX's rules:
 | **Memorystore for Redis** | The Celery job queue and live event fan-out, reached by Direct VPC egress |
 | **Cloud Storage** | Source snapshots, build checkpoints, uploads and spec-file images |
 | **Secret Manager** | Every credential, mounted into Cloud Run at deploy time |
+| **Model Armor** | Screens sources, questions and chat for prompt injection, malicious links and unsafe content |
+| **Sensitive Data Protection** | Checks knowledge-base pages for credentials and personal data before they are committed |
+| **BigQuery** | The flight recorder: mission events, AI usage and Shield findings, with views for the Impact page |
 | **Cloud Logging** | Request logs with request IDs, and per-job AI usage lines |
 | **Firebase Authentication** | Google sign-in for people; ID tokens verified on every request |
 
-On the developer's side, **Google Antigravity** is one of the coding agents `/nox` installs into, and **Gemma** powers NoX Local.
+On the developer's side, **Google Antigravity** is one of the coding agents `/nox` installs into and can call NoX's tools over MCP, and **Gemma** powers NoX Local.

@@ -5,11 +5,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
+from starlette.routing import Route
 
 from .connectors.base import IngestionAuthError, IngestionError, IngestionRateLimitError
 from .core.config import cors_origins, settings, validate_required_settings
 from .core.logging import RequestIdMiddleware, configure_logging
 from .db.database import engine, init_db
+from .interop import a2a, mcp_server
 from .routers import cli, integrations, jira, kb, me, missions, orgs, sources, webhooks
 from .services.sse import get_sse_manager
 
@@ -22,7 +24,9 @@ async def lifespan(app: FastAPI):
     validate_required_settings()
     await init_db()
     app.state.sse_manager = get_sse_manager()
-    yield
+    # Agents calling NoX: the MCP session manager and ADK's A2A routes start with the API.
+    async with mcp_server.lifespan(), a2a.lifespan():
+        yield
 
 
 app = FastAPI(title="NoX API", version="0.1.0", lifespan=lifespan)
@@ -65,6 +69,11 @@ app.include_router(missions.asset_router)  # before the {key} routes
 app.include_router(missions.router)
 app.include_router(jira.router)
 app.include_router(cli.router)
+
+# MCP at exactly /mcp and A2A under /a2a/ask; both refuse requests without a NoX token (interop/).
+app.router.routes.append(Route("/mcp", mcp_server.gate, methods=["GET", "POST", "DELETE"]))
+app.router.routes.append(Route(a2a.PATH, a2a.gate, methods=["GET", "POST"]))
+app.router.routes.append(Route(a2a.CARD_PATH, a2a.gate, methods=["GET"]))
 
 
 @app.get("/healthz", tags=["Health"])

@@ -51,6 +51,10 @@ async def log_event(db: AsyncSession, kb_id: str, sse: SSEManager, event_type: s
     db.add(event)
     await db.commit()
     await sse.broadcast(str(kb_id), {"type": event_type, "payload": payload})
+    from ..services import analytics
+
+    if analytics.enabled() and (kb := await db.get(KnowledgeBase, kb_uuid)) is not None:
+        analytics.emit("kb_events", analytics.kb_event_row(kb, event))
 
 _log_event = log_event
 

@@ -1,4 +1,9 @@
-"""Mission timeline events: stored for the activity feed and pushed live to open mission pages."""
+"""Mission timeline events: stored for the activity feed, pushed live to open mission pages, and streamed to
+the flight recorder (`services/analytics.py`).
+
+Every payload carries `stage`, the stage the mission is in after the event, so stage durations and
+send-backs can be read straight off the event log (the Impact page and the BigQuery views do exactly that).
+"""
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +17,10 @@ def channel(mission: Mission | str) -> str:
 
 async def record(db: AsyncSession, mission: Mission, type_: str, payload: dict | None = None,
                  actor: User | None = None, role: str | None = None, commit: bool = True) -> MissionEvent:
-    ev = MissionEvent(mission_id=mission.id, type=type_, payload=payload or {}, actor_id=actor.id if actor else None,
+    payload = {**(payload or {})}
+    if mission.stage is not None:
+        payload.setdefault("stage", getattr(mission.stage, "value", mission.stage))
+    ev = MissionEvent(mission_id=mission.id, type=type_, payload=payload, actor_id=actor.id if actor else None,
                       actor_name=(actor.name or actor.email) if actor else "NoX", acting_role=role)
     db.add(ev)
     if commit:
@@ -20,6 +28,9 @@ async def record(db: AsyncSession, mission: Mission, type_: str, payload: dict |
     from ..services.tickets import sync_pipeline_quietly
 
     await sync_pipeline_quietly(mission, type_, ev.actor_name)  # keep the Firestore ticket's pipeline in step
+    from ..services import analytics
+
+    analytics.emit("mission_events", analytics.mission_event_row(mission, ev))
     await get_sse_manager().broadcast(channel(mission), {"type": type_, "payload": {**(payload or {}), "actor": ev.actor_name, "actingRole": role}})
     return ev
 
