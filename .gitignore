@@ -1,0 +1,31 @@
+node_modules
+.next
+out
+.env*.local
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# env + secrets
+.env
+.env.*
+!.env.example
+*.pem
+*-key.json
+firebase-admin.json
+gcp-key.json
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+logdir/
+celerybeat-schedule*
+
+# local tooling and personal files
+.claude/
+CLAUDE.md
+Claude.pdf

@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  market-data-gateway:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - KAFKA_BROKERS=kafka1.nte.internal:9092
+      - ORDERBOOK_TOPIC=nte.orderbook.snapshots
+      - TRADES_TOPIC=nte.trades.matched
+    depends_on:
+      - redis
+      - kafka
+  redis:
+    image: redis:alpine
+  kafka:
+    image: confluentinc/cp-kafka:latest

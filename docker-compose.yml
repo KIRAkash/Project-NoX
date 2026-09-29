@@ -1,0 +1,65 @@
+# Local stack. `make infra` starts only postgres + redis; `docker compose up` runs everything.
+services:
+  postgres:
+    image: pgvector/pgvector:pg16   # Postgres 16 + pgvector (KB search)
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nox
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["local-ai"]
+    ports: ["11434:11434"]
+    volumes: [ollama:/root/.ollama]
+
+  api:
+    build: ./apps/api
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/nox
+      REDIS_URL: redis://redis:6379/0
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+
+  worker:
+    build: ./apps/api
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/nox
+      REDIS_URL: redis://redis:6379/0
+    command: celery -A nox_api.workers.tasks worker -l info
+    depends_on: [api]
+
+  beat:
+    build: ./apps/api
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    command: celery -A nox_api.workers.tasks beat -l info
+    depends_on: [worker]
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports: ["3000:3000"]
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  ollama:

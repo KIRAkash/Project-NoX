@@ -1,0 +1,199 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --nox: #f7b542;
+  --ember: #e9713c;
+  --ice: #86b9ee;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: #05060b;
+}
+
+body {
+  background: #05060b;
+  color: #eceff8;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(247, 181, 66, 0.28);
+  color: #fff;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--nox);
+  outline-offset: 3px;
+}
+
+/* --- ambient starfield -------------------------------------------------- */
+.starfield {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 24px 42px, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 132px 180px, rgba(255, 255, 255, 0.32), transparent),
+    radial-gradient(1.6px 1.6px at 290px 96px, rgba(214, 230, 255, 0.42), transparent),
+    radial-gradient(1px 1px at 380px 300px, rgba(255, 255, 255, 0.22), transparent),
+    radial-gradient(1.2px 1.2px at 204px 344px, rgba(255, 240, 214, 0.38), transparent);
+  background-size: 460px 400px;
+  animation: twinkle 7s ease-in-out infinite;
+}
+
+.starfield--far {
+  background-image:
+    radial-gradient(1px 1px at 70px 110px, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(1.4px 1.4px at 246px 38px, rgba(196, 216, 255, 0.34), transparent),
+    radial-gradient(1px 1px at 330px 226px, rgba(255, 255, 255, 0.2), transparent);
+  background-size: 720px 620px;
+  animation: twinkle 11s ease-in-out infinite reverse;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 0.38; }
+}
+
+/* Elements GSAP will reveal start hidden, but only once GSAP has confirmed it
+   can run. Without JS the `js-ready` class never lands and nothing is hidden. */
+.js-ready [data-reveal] {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .starfield, .starfield--far { animation: none; }
+  .js-ready [data-reveal] { opacity: 1; }
+  /* product pages: pulses and pings hold still */
+  .animate-pulse, .animate-ping, .animate-spin { animation: none !important; }
+}
+
+/* --- KB prose (code wiki pages) ----------------------------------------- */
+.kb-prose { color: #c9cfe0; font-size: 14.5px; line-height: 1.7; }
+.kb-prose h1 { font-family: var(--font-display); font-size: 32px; line-height: 1.15; color: #eceff8; margin: 0 0 16px; }
+.kb-prose h2 { font-size: 19px; font-weight: 600; color: #eceff8; margin: 28px 0 10px; }
+.kb-prose h3 { font-size: 16px; font-weight: 600; color: #eceff8; margin: 22px 0 8px; }
+.kb-prose p, .kb-prose ul, .kb-prose ol, .kb-prose table, .kb-prose pre, .kb-prose blockquote { margin: 0 0 14px; }
+.kb-prose ul { list-style: disc; padding-left: 22px; }
+.kb-prose ol { list-style: decimal; padding-left: 22px; }
+.kb-prose code { font-family: var(--font-mono); font-size: 12.5px; background: rgba(143,160,204,.1); padding: 1px 5px; border-radius: 3px; color: #eceff8; }
+.kb-prose pre { background: #090b13; border: 1px solid rgba(143,160,204,.14); border-radius: 10px; padding: 12px 14px; overflow-x: auto; }
+.kb-prose pre code { background: none; padding: 0; }
+.kb-prose table { width: 100%; border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; }
+.kb-prose th, .kb-prose td { border: 1px solid rgba(143,160,204,.16); padding: 6px 10px; text-align: left; }
+.kb-prose th { color: #eceff8; background: rgba(143,160,204,.05); }
+.kb-prose blockquote { border-left: 2px solid var(--role, #f7b542); padding: 4px 0 4px 14px; color: #eceff8; background: rgba(143,160,204,.04); }
+.kb-prose a, .kb-prose .wikilink { color: var(--role, #86b9ee); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(143,160,204,.4); }
+.kb-prose .wikilink-cross { font-style: italic; }
+.kb-prose .wikilink-cross::after { content: " ↗"; font-style: normal; }
+
+/* --- seat textures ---------------------------------------------------------
+   Every seat shares the tokens; each gets its own feel behind the content.
+   business: warm and airy · product: board · engineering: blueprint · developer: terminal */
+.seat-main > * {
+  position: relative;
+  z-index: 1;
+}
+
+.seat-main::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-seat="business"] .seat-main::before {
+  background:
+    radial-gradient(900px 340px at 50% -80px, rgba(232, 201, 122, 0.13), transparent 70%),
+    radial-gradient(600px 260px at 90% 0, rgba(233, 113, 60, 0.06), transparent 70%);
+}
+
+[data-seat="business"] .seat-main {
+  font-size: 15px;
+}
+
+[data-seat="product"] .seat-main::before {
+  background:
+    radial-gradient(800px 320px at 20% -60px, rgba(168, 151, 240, 0.12), transparent 70%),
+    repeating-linear-gradient(90deg, transparent 0 279px, rgba(168, 151, 240, 0.045) 279px 280px);
+  mask-image: linear-gradient(180deg, #000, transparent 70%);
+}
+
+[data-seat="engineering"] .seat-main::before {
+  background-image:
+    linear-gradient(rgba(95, 203, 216, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(95, 203, 216, 0.07) 1px, transparent 1px),
+    linear-gradient(rgba(95, 203, 216, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(95, 203, 216, 0.035) 1px, transparent 1px);
+  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+  mask-image: linear-gradient(180deg, #000 0, rgba(0, 0, 0, 0.5) 50%, transparent 100%);
+}
+
+[data-seat="developer"] .seat-main::before {
+  background:
+    repeating-linear-gradient(180deg, rgba(134, 185, 238, 0.035) 0 1px, transparent 1px 4px),
+    radial-gradient(700px 300px at 85% -60px, rgba(134, 185, 238, 0.1), transparent 70%);
+  mask-image: linear-gradient(180deg, #000, transparent 75%);
+}
+
+[data-seat="developer"] .seat-main h1 {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  letter-spacing: -0.02em;
+}
+
+/* Liquid metal calls to action (components/liquid-metal). The plate and its
+   shadows follow ThreeUI's LiquidMetalButton; the canvas sits between the
+   plate and the label, and reaches past the button to hold the bloom. */
+@layer components {
+  .lm {
+    position: relative;
+    isolation: isolate;
+    background: #0b0c0e;
+    color: var(--lm-hue);
+    box-shadow:
+      0 4px 10px rgba(0, 0, 0, 0.72),
+      0 13px 29px rgba(0, 0, 0, 0.62),
+      0 27px 57px rgba(0, 0, 0, 0.42);
+    transition: box-shadow 0.38s cubic-bezier(0.22, 0.61, 0.36, 1), background 0.38s cubic-bezier(0.22, 0.61, 0.36, 1), color 0.38s cubic-bezier(0.22, 0.61, 0.36, 1);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .lm[data-metal="hot"],
+  .lm[data-metal="press"] {
+    color: #fff;
+  }
+  .lm[data-metal="hot"] {
+    background: #08090a;
+    box-shadow:
+      0 5px 11px rgba(0, 0, 0, 0.8),
+      0 17px 38px rgba(0, 0, 0, 0.72),
+      0 38px 79px rgba(0, 0, 0, 0.55);
+  }
+  .lm[data-metal="press"] {
+    background: #070809;
+    box-shadow:
+      0 2px 6px rgba(0, 0, 0, 0.82),
+      0 7px 18px rgba(0, 0, 0, 0.7),
+      0 15px 35px rgba(0, 0, 0, 0.5);
+    transition-duration: 0.1s;
+  }
+  .lm:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--lm-hue) 70%, white);
+    outline-offset: 4px;
+  }
+  /* no WebGL 2 (or before it starts): a thin outline in the hue */
+  .lm:not([data-metal]) {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lm-hue) 70%, transparent);
+  }
+  .lm-fx {
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+    display: block;
+  }
+}

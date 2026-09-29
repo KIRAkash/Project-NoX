@@ -1,0 +1,24 @@
+{
+    "version": "1.0",
+    "last_updated": "2026-08-17T00:00:00Z",
+    "organization": "Apex",
+    "rules": [
+        {
+            "id": "AML_001",
+            "name": "High Velocity Structuring",
+            "description": "Detects multiple sub-threshold transactions within a 24-hour period.",
+            "thresholds": {
+                "max_amount_usd": 9999.00,
+                "count_limit": 5,
+                "time_window_hours": 24
+            },
+            "topics_required": ["scfs.settlement.status"]
+        },
+        {
+            "id": "AML_002",
+            "name": "Sanctioned Entity Interaction",
+            "description": "Cross-references buyer_id and seller_id with OFAC lists.",
+            "topics_required": ["nte.trades.matched"]
+        }
+    ]
+}

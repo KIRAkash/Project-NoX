@@ -1,0 +1,11 @@
+{
+  "name": "@nox/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "nox — missions and knowledge bases from NoX, in your terminal and your coding agent",
+  "type": "module",
+  "bin": { "nox": "bin/nox.mjs" },
+  "files": ["bin", "integrations"],
+  "engines": { "node": ">=18" },
+  "scripts": { "test": "node --test test/*.test.mjs" }
+}

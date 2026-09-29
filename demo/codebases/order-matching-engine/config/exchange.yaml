@@ -1,0 +1,25 @@
+exchange:
+  id: "NTE-PROD-01"
+  region: "ny4"
+  operating_hours:
+    start: "09:30:00"
+    end: "16:00:00"
+
+matching:
+  algorithm: "PRICE_TIME_PRIORITY"
+  max_order_size: 1000000
+  tick_size_bps: 1
+
+kafka:
+  brokers: "kafka-cluster.nte.gfmg.internal:9092"
+  topics:
+    inbound_orders: "nte.orders.inbound"
+    matched_trades: "nte.trades.matched"
+    snapshots: "nte.orderbook.snapshots"
+    rejected_orders: "nte.orders.rejected"
+  producer_acks: "all"
+  linger_ms: 1
+
+logging:
+  level: "info"
+  format: "json"

@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: trade-settlement-system
+  kafka:
+    bootstrap-servers: kafka.internal.gfmg.com:9092
+    consumer:
+      group-id: scfs-settlement-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.scfs.settlement.models,com.gfmg.apex.shared.*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+  datasource:
+    url: jdbc:postgresql://db.internal.gfmg.com:5432/settlement_db
+    username: ${DB_USER:tss_app_user}
+    password: ${DB_PASS:secret}
+
+gfmg:
+  scfs:
+    topics:
+      inbound:
+        trade-matched: nte.trades.matched
+      outbound:
+        settlement-status: scfs.settlement.status
+    external:
+      bank-api-url: https://api.api.swift.gfmg.com/v1/transfers

@@ -1,0 +1,61 @@
+openapi: 3.0.3
+info:
+  title: Market Data Gateway API
+  description: High-throughput low-latency trading and market depth API
+  version: 2.1.0
+paths:
+  /api/v1/orders:
+    post:
+      summary: Submit a new limit or market order
+      parameters:
+        - in: header
+          name: X-Idempotency-Key
+          schema:
+            type: string
+          required: true
+          description: Client-generated unique UUID for idempotent execution
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [instrument, side, price, quantity]
+              properties:
+                instrument:
+                  type: string
+                  example: "BTC-USD"
+                side:
+                  type: string
+                  enum: [BUY, SELL]
+                price:
+                  type: number
+                  example: 65420.50
+                quantity:
+                  type: number
+                  example: 1.25
+      responses:
+        '200':
+          description: Order accepted by matching engine
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order_id:
+                    type: string
+                  status:
+                    type: string
+                    example: "PLACED"
+  /api/v1/orderbook/{instrument}:
+    get:
+      summary: Retrieve L2 orderbook snapshot
+      parameters:
+        - in: path
+          name: instrument
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Top 25 bids and asks

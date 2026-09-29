@@ -1,0 +1,175 @@
+/**
+ * The landing's spec book: one mission, NOX-1 on mini-auth-service, written
+ * page by page by the four seats with NoX beside each, then locked, sent for
+ * development and returned verified. Pages are realistic, detailed spec
+ * files in Markdown; blocks marked `nox` are the ones NoX drafted.
+ */
+
+import type { RoleId } from "@/lib/app/roles";
+
+export const BOOK_KEY = "NOX-1";
+export const BOOK_TITLE = "Lock accounts after failed logins";
+export const BOOK_APP = "mini-auth-service";
+
+/** `meta` is a front-matter line; `code` a fenced block (lines split on \n). */
+export type BlockKind = "meta" | "h1" | "h2" | "p" | "li" | "check" | "code";
+
+/** One Markdown block. Inline `code` and [[kb:…]] citations are styled when drawn. */
+export type Block = { kind: BlockKind; text: string; by: "person" | "nox" };
+
+export type BookPage = { role: RoleId; file: string; blocks: Block[] };
+
+const person = (kind: BlockKind, text: string): Block => ({ kind, text, by: "person" });
+const nox = (kind: BlockKind, text: string): Block => ({ kind, text, by: "nox" });
+
+export const BOOK_PAGES: BookPage[] = [
+  {
+    role: "business",
+    file: "01-business.md",
+    blocks: [
+      person("meta", "status: approved · seat: business user · mission: NOX-1 · version 3"),
+      person("h1", BOOK_TITLE),
+      person("h2", "The ask"),
+      person("p", "Block brute-force logins: lock an account for 15 minutes after 5 failed password attempts."),
+      person("h2", "Why now"),
+      person("p", "Support logged 212 hijacked-account tickets last quarter. Most began with thousands of guessed passwords from a handful of addresses, and each one cost a customer their trust and us about 40 minutes of support time."),
+      nox("h2", "What changes for customers"),
+      nox("p", "After five wrong passwords in a row, the account pauses for 15 minutes. People who sign in normally notice nothing. [[kb:overview]]"),
+      nox("p", "The sign-in page shows the same message whether the account is locked or the password is wrong, so an attacker learns nothing from it. After 15 minutes the customer can simply try again."),
+      nox("h2", "Who is affected"),
+      nox("li", "Customers signing in on web and mobile, one rule everywhere [[kb:login-api]]"),
+      nox("li", "Support agents, who see a new locked badge and the unlock time in the admin tool"),
+      nox("li", "Partner integrations that sign in on a customer's behalf, through the same endpoint"),
+      nox("li", "Nobody using single sign-on: their sign-in never reaches this service"),
+      person("h2", "Stakeholders"),
+      person("li", "Customer support: owns the help-centre article and the macro for locked accounts"),
+      person("li", "Security: wants the lock rate on the weekly risk review"),
+      person("li", "Legal: no customer data leaves the sign-in service"),
+      nox("h2", "Done when"),
+      nox("li", "Password-guessing attacks stop getting in"),
+      nox("li", "Nobody who signs in normally is slowed down"),
+      nox("li", "Support can explain a lock to a customer in one sentence"),
+      nox("li", "Hijacked-account tickets fall by half within a quarter"),
+      person("h2", "Out of scope"),
+      person("li", "Two-factor sign-in, which is its own request"),
+      person("li", "Unlocking an account early from the support tool"),
+      person("li", "Blocking whole networks or countries"),
+      nox("h2", "Open questions"),
+      nox("li", "Should a customer get an email when their account locks?"),
+      nox("li", "Do partner integrations need advance notice of the change?"),
+    ],
+  },
+  {
+    role: "product",
+    file: "02-product.md",
+    blocks: [
+      person("meta", "status: approved · seat: product owner · builds on: 01-business.md · version 4"),
+      person("h1", "Product spec"),
+      person("h2", "Goal"),
+      person("p", "Stop credential stuffing without adding friction for real customers, and give support a clear answer when a lock does happen."),
+      nox("h2", "User stories"),
+      nox("li", "As a customer, I keep my account even when someone guesses at my password."),
+      nox("li", "As an attacker, I learn nothing useful from repeated failures."),
+      nox("li", "As a support agent, I can see why an account is locked and until when."),
+      nox("li", "As a partner, my integration keeps working for customers who sign in correctly."),
+      nox("h2", "Acceptance criteria"),
+      nox("check", "AC-1 Given 5 failed attempts within 15 minutes, the 6th is refused"),
+      nox("check", "AC-2 A successful sign-in resets the counter"),
+      nox("check", "AC-3 The lock lifts on its own after 15 minutes [[kb:session]]"),
+      nox("check", "AC-4 Locked and wrong-password responses are identical"),
+      nox("check", "AC-5 The admin tool shows a locked badge with the unlock time"),
+      nox("check", "AC-6 Every lock and unlock is written to the audit log"),
+      person("h2", "Edge cases"),
+      person("li", "Locking never reveals whether the username exists"),
+      person("li", "Attempts from two devices count toward the same limit"),
+      person("li", "Clock drift between servers can't shorten a lock"),
+      person("li", "A password reset during a lock does not lift it early"),
+      nox("h2", "Copy"),
+      nox("p", "Sign-in failed. Check your details and try again, or reset your password. (Unchanged: the same words show for a lock.)"),
+      nox("h2", "Analytics"),
+      nox("li", "`auth.lockout.triggered` with account age and client type"),
+      nox("li", "`auth.lockout.lifted` with how long the lock lasted"),
+      nox("h2", "Success metric"),
+      nox("p", "Brute-force sign-ins blocked per day, from baseline to target. Hijacked-account tickets down by half within a quarter."),
+      nox("h2", "Rollout"),
+      nox("li", "Behind a flag for 5% of sign-ins for one week"),
+      nox("li", "Everyone once locks stay under 0.1% of sign-ins"),
+      person("h2", "Non-goals"),
+      person("li", "Changing password rules or the reset flow"),
+    ],
+  },
+  {
+    role: "engineering",
+    file: "03-engineering.md",
+    blocks: [
+      person("meta", "status: approved · seat: engineering lead · builds on: 02-product.md · version 2"),
+      person("h1", "Engineering design"),
+      nox("h2", "Scope"),
+      nox("p", "`mini-auth-service` only. No other application changes. [[kb:overview]]"),
+      nox("h2", "Contracts"),
+      nox("p", "`POST /api/v1/auth/login` stays unchanged for both of its callers. [[kb:login-callers]]"),
+      nox("li", "`market-data-gateway` retries on 401 and must not read a lock as an outage"),
+      nox("li", "`order-matching-engine` signs in as a service account, never locked"),
+      nox("li", "Admin API gains one read-only field: `locked_until`"),
+      nox("h2", "Sequence"),
+      nox("code", "1. check lock:{account}      → refuse with 401 if set\n2. verify password          → on failure, INCR attempts\n3. attempts ≥ 5 in 15 min   → SET lock:{account} EX 900\n4. on success               → DEL attempts:{account}"),
+      nox("h2", "Data"),
+      nox("code", "attempts:{account_id}  → count, first_at   (TTL 900s)\nlock:{account_id}      → until              (TTL 900s)"),
+      person("h2", "Guardrails"),
+      person("li", "Lock state lives in the session store, so a restart can't clear it"),
+      person("li", "Locked and unknown users get the same `401` in the same time"),
+      person("li", "Service accounts are exempt, by role, not by name"),
+      nox("h2", "Failure modes"),
+      nox("li", "Session store down: fail open and page on-call [[kb:session]]"),
+      nox("li", "Spike in locks: alert when over 1% of sign-ins"),
+      nox("li", "Slow store: 50 ms budget, then skip the check and log it"),
+      nox("h2", "Observability"),
+      nox("li", "Counter `auth_lockouts_total` by client type"),
+      nox("li", "Dashboard panel beside sign-in success rate"),
+      nox("h2", "Risks"),
+      nox("li", "Shared office IPs: count per account, never per address"),
+      nox("li", "Targeted lockouts of a known user: capped by the 15-minute window"),
+      person("h2", "Rollback"),
+      person("p", "Turn the flag off. Lock keys expire on their own within 15 minutes; nothing to migrate back."),
+      person("h2", "Decision"),
+      person("p", "ADR-014: the lock lives in the auth service, not the gateway, so every client gets it."),
+    ],
+  },
+  {
+    role: "developer",
+    file: "04-developer.md",
+    blocks: [
+      person("meta", "status: approved · seat: developer · builds on: 03-engineering.md · version 2"),
+      person("h1", "Build plan"),
+      nox("h2", "Files"),
+      nox("li", "`src/auth.py`: count failures and check the lock"),
+      nox("li", "`src/config.py`: `LOCKOUT_ATTEMPTS = 5`, `LOCKOUT_SECONDS = 900`"),
+      nox("li", "`src/main.py`: map a lock to the existing `401`"),
+      nox("li", "`src/admin.py`: expose `locked_until` read-only"),
+      person("h2", "Tasks"),
+      person("check", "Count failures per account in the session store"),
+      person("check", "Refuse sign-in while locked, same error and timing"),
+      person("check", "Reset the count on success"),
+      person("check", "Exempt service accounts by role"),
+      person("check", "Add the locked badge to the admin API"),
+      person("check", "Emit the two analytics events and the counter"),
+      nox("h2", "Config"),
+      nox("code", "LOCKOUT_ATTEMPTS = 5\nLOCKOUT_SECONDS = 900\nLOCKOUT_ENABLED = flag(\"auth.lockout\", default=False)"),
+      nox("h2", "Sketch"),
+      nox("code", "def check_lock(account):\n    until = store.get(f\"lock:{account.id}\")\n    if until and until > now():\n        raise InvalidCredentials()"),
+      nox("h2", "Tests"),
+      nox("check", "`test_lockout_after_five`"),
+      nox("check", "`test_reset_on_success`"),
+      nox("check", "`test_unlock_after_15m`"),
+      nox("check", "`test_no_username_leak`"),
+      nox("check", "`test_same_timing_for_unknown_user`"),
+      nox("check", "`test_service_accounts_never_lock`"),
+      nox("check", "`test_store_down_fails_open`"),
+      nox("p", "The 12 existing contract tests for `POST /api/v1/auth/login` still pass. [[kb:login-api]]"),
+      person("h2", "Rollout steps"),
+      person("check", "Merge behind the flag, off"),
+      person("check", "Enable for 5% and watch the dashboard for a week"),
+      person("check", "Enable for everyone"),
+    ],
+  },
+];

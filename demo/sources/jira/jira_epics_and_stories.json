@@ -1,0 +1,102 @@
+{
+  "project_key": "APEX",
+  "project_name": "Apex Institutional Platform",
+  "issues": [
+    {
+      "key": "APEX-101",
+      "summary": "Core Order Matching Engine Latency & Throughput Optimization",
+      "issuetype": "Task",
+      "status": "In Progress",
+      "priority": "Highest",
+      "description": "Architectural overhaul of the in-memory matching core in order-matching-engine to achieve P99 latency < 35 microseconds under 250,000 orders/second sustained throughput. Includes B-Tree index optimization, lock-free ring buffer ingestion, and NVMe write-ahead journaling."
+    },
+    {
+      "key": "APEX-102",
+      "summary": "Implement Lock-Free Ring Buffer Ingestion Queue (Disruptor Pattern)",
+      "issuetype": "Task",
+      "status": "In Progress",
+      "priority": "High",
+      "description": "Replace Go standard channel queue in order-matching-engine with a pre-allocated 65,536-slot lock-free circular ring buffer to eliminate heap memory allocation and garbage collection pauses during high-frequency volatility spikes."
+    },
+    {
+      "key": "APEX-103",
+      "summary": "Implement Idempotency Middleware for Order Ingestion",
+      "issuetype": "Task",
+      "status": "Done",
+      "priority": "Critical",
+      "description": "Intercept incoming order placement requests, validate client X-Idempotency-Key headers, and store execution tokens in Redis Cluster with 60-minute TTL to prevent duplicate execution during network retries."
+    },
+    {
+      "key": "APEX-104",
+      "summary": "Fix Race Condition on Simultaneous Partial Fill and Order Cancellation",
+      "issuetype": "Task",
+      "status": "In Progress",
+      "priority": "High",
+      "description": "Resolve race condition where an order cancellation packet arriving concurrently with a partial execution match could cause an internal order state desynchronization between memory and WAL journal."
+    },
+    {
+      "key": "APEX-105",
+      "summary": "Real-Time Trade Settlement Ledger & Audit Log Overhaul",
+      "issuetype": "Task",
+      "status": "In Progress",
+      "priority": "High",
+      "description": "Migrate settlement ledger in trade-settlement-system from single PostgreSQL transactions to an event-sourced double-entry accounting ledger consuming Kafka trades.matched topic with strict zero-sum balance invariant validation."
+    },
+    {
+      "key": "APEX-106",
+      "summary": "Implement Double-Entry Ledger Validation Worker in Java Spring Boot",
+      "issuetype": "Task",
+      "status": "Done",
+      "priority": "High",
+      "description": "Build high-throughput Kafka consumer in trade-settlement-system that verifies debit/credit parity on every matched execution and records immutable postings in PostgreSQL with cryptographic sequence hashes."
+    },
+    {
+      "key": "APEX-107",
+      "summary": "Configure TimescaleDB Range Partitioning & Automated Columnar Compression",
+      "issuetype": "Task",
+      "status": "To Do",
+      "priority": "Medium",
+      "description": "Setup automated 1-day range partitioning on trade_records hyper-table and configure background job to apply columnar compression on chunks older than 7 days to reduce storage footprint by 85%."
+    },
+    {
+      "key": "APEX-108",
+      "summary": "Market Data Gateway Low-Latency Streaming & Protobuf Broadcast",
+      "issuetype": "Task",
+      "status": "In Progress",
+      "priority": "High",
+      "description": "Overhaul market-data-gateway WebSocket streaming architecture to use Protocol Buffers v3 binary framing and Level 2 / Level 3 incremental delta diffing over Redis Cluster Pub/Sub backplane."
+    },
+    {
+      "key": "APEX-109",
+      "summary": "Implement L2/L3 Order Book Snapshot & Incremental Delta Broadcaster",
+      "issuetype": "Task",
+      "status": "In Progress",
+      "priority": "High",
+      "description": "Broadcast 100ms incremental order book deltas with sequence numbers and provide gRPC unary endpoints for fast out-of-band snapshot resynchronization when client packet loss occurs."
+    },
+    {
+      "key": "APEX-110",
+      "summary": "Regulatory Compliance & Trade Surveillance Monitoring Engine",
+      "issuetype": "Task",
+      "status": "In Progress",
+      "priority": "Highest",
+      "description": "Implement automated compliance surveillance in compliance-surveillance-monitor for real-time market abuse detection, including spoofing, layering, and wash trade anomaly identification under SEC Rule 15c3-5."
+    },
+    {
+      "key": "APEX-111",
+      "summary": "Implement Real-Time Spoofing & Layering Detection Pipeline",
+      "issuetype": "Task",
+      "status": "In Progress",
+      "priority": "High",
+      "description": "Calculate rolling 30-second cancel-to-fill ratios per trader account and trigger automated risk flags when cancellation volume exceeds 85% of placed orders near top of book."
+    },
+    {
+      "key": "APEX-112",
+      "summary": "Implement Distributed Token Bucket Rate Limiting in Mini Auth Service",
+      "issuetype": "Task",
+      "status": "Done",
+      "priority": "Medium",
+      "description": "Enforce tier-based rate limits (5,000 req/min Standard, 50,000 req/min VIP Institutional) using Redis sliding window log algorithm with sub-50 microsecond execution overhead."
+    }
+  ]
+}

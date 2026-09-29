@@ -1,0 +1,25 @@
+asyncapi: 2.6.0
+info:
+  title: Trade Settlement Event Stream
+  version: 1.0.0
+channels:
+  trades.matched:
+    publish:
+      message:
+        name: TradeExecutedEvent
+        payload:
+          type: object
+          properties:
+            trade_id:
+              type: string
+            buy_order_id:
+              type: string
+            sell_order_id:
+              type: string
+            price:
+              type: number
+            quantity:
+              type: number
+            executed_at:
+              type: string
+              format: date-time

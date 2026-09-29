@@ -1,0 +1,18 @@
+{
+  "name": "@apex/market-data-gateway",
+  "version": "1.0.0",
+  "description": "GFMG NTE Market Data Gateway",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4",
+    "ws": "^8.13.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.4",
+    "@types/ws": "^8.5.4"
+  }
+}
