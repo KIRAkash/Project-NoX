@@ -26,8 +26,13 @@ def _parse[T: BaseModel](schema: type[T], output, text: str) -> T:
 
 async def ask[T: BaseModel](schema: type[T], prompt: str, *, name: str, instruction: str = "",
               tier: config.Tier = config.Tier.DEFAULT, local: bool = False, tools: list | None = None,
-              state: dict | None = None, parts: list | None = None, static_instruction: str | None = None) -> T:
-    """Run a single-turn agent constrained to `schema` and return the validated value."""
+              state: dict | None = None, parts: list | None = None, static_instruction: str | None = None,
+              generate_config=None) -> T:
+    """Run a single-turn agent constrained to `schema` and return the validated value.
+
+    `parts` go with the prompt (images, video, audio); `generate_config` is a `types.GenerateContentConfig`
+    for the call, e.g. the media resolution a video is watched at.
+    """
     from google.adk.agents import LlmAgent
 
     agent = LlmAgent(
@@ -38,6 +43,7 @@ async def ask[T: BaseModel](schema: type[T], prompt: str, *, name: str, instruct
         output_schema=schema,  # constrains Gemini; the final text is validated here (tolerant of local models)
         include_contents="none",
         static_instruction=static_instruction,
+        generate_content_config=generate_config,
     )
     result = await runtime.run(agent, prompt, state=state, parts=parts)
     try:

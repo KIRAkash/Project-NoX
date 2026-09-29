@@ -118,6 +118,16 @@ class Settings(BaseSettings):
     NOX_DEMO_ORG_SLUGS: str = ""                       # New users auto-join these orgs (e.g. "apex")
     NOX_DEV_AUTH: bool = False                         # Accept `Authorization: Dev <email>`; local dev only
 
+    # ── Show NoX (CP15): screenshots, recordings, video and voice ─────────────
+    NOX_MEDIA_MAX_VIDEO_MB: int = 200
+    NOX_MEDIA_MAX_AUDIO_MB: int = 50
+    NOX_MEDIA_MAX_IMAGE_MB: int = 10
+    NOX_MEDIA_MAX_VIDEO_S: int = 300                   # uploads; recordings made in NoX stop at 3 minutes
+    NOX_MEDIA_MAX_AUDIO_S: int = 600
+    NOX_MEDIA_PER_MISSION: int = 12
+    NOX_MEDIA_STAGE_TIMEOUT_S: int = 90                # a stage that runs longer marks the capture failed (Retry)
+    NOX_SHIELD: str = "off"                            # off | monitor | enforce (CP14); media captures are screened too
+
     # ── Local Mode Tuning ─────────────────────────────────────────────────────
     LOCAL_MAX_FILES: int = 150
     LOCAL_CHUNK_SIZE: int = 6000

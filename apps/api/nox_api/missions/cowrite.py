@@ -65,7 +65,7 @@ def line_ops(old: str, new: str) -> list[dict]:
     return ops
 
 
-async def _load(db, mission_id: str, role: Role) -> tuple[Mission, SpecFile, dict[Role, str], str, dict[str, str]]:
+async def _load(db, mission_id: str, role: Role, attached: list[str] | None = None) -> tuple[Mission, SpecFile, dict[Role, str], str, dict[str, str], list]:
     mission = (
         await db.execute(select(Mission).options(selectinload(Mission.files), selectinload(Mission.links)).where(Mission.id == uuid.UUID(mission_id)))
     ).scalars().first()
@@ -74,7 +74,10 @@ async def _load(db, mission_id: str, role: Role) -> tuple[Mission, SpecFile, dic
     kb_ids = (await db.execute(select(MissionApp.kb_id).where(MissionApp.mission_id == mission.id))).scalars().all()
     # A starting point only: the agent looks up anything else it needs, so the context can stay small.
     context = jira_context(mission) + await kb_context(db, list(kb_ids), f"{mission.prompt}\n{f.markdown[:2000]}", budget=10000)
-    return mission, f, upstream, context, await mission_apps(db, list(kb_ids))
+    from .media import mission_evidence
+
+    evidence = await mission_evidence(db, mission.id, attached)  # captures, as text: the video isn't re-sent each turn
+    return mission, f, upstream, context, await mission_apps(db, list(kb_ids)), evidence
 
 
 async def _apply(db, mission: Mission, f: SpecFile, new_md: str, reason: str, extra: dict | None = None) -> bool:
@@ -112,11 +115,11 @@ async def refine_file(mission_id: str, role: Role, instruction: str | None = Non
     _busy.add(key)
     try:
         async with AsyncSessionLocal() as db:
-            mission, f, upstream, context, apps = await _load(db, mission_id, role)
+            mission, f, upstream, context, apps, evidence = await _load(db, mission_id, role)
             await record(db, mission, "nox.thinking", {"role": role.value, "reason": "refine"})
             try:
                 turn = await cowriter.edit_turn(mission, role, current=f.markdown or "", base_version=f.version, upstream=upstream,
-                                                context=context, apps=apps, instruction=instruction or REFINE)
+                                                context=context, apps=apps, instruction=instruction or REFINE, evidence=evidence)
             except Exception as e:
                 logger.exception("refine failed")
                 await record(db, mission, "nox.error", {"role": role.value, "error": str(e)[:200]})
@@ -131,12 +134,19 @@ async def refine_file(mission_id: str, role: Role, instruction: str | None = Non
         _busy.discard(key)
 
 
-async def chat(mission_id: str, role: Role, message: str, user_id: uuid.UUID | None) -> None:
+async def chat(mission_id: str, role: Role, message: str, user_id: uuid.UUID | None, media_ids: list[str] | None = None) -> None:
     from ..ai.agents import cowriter
 
     key = (mission_id, role.value)
+    if media_ids:  # the turn starts once NoX has watched what was attached
+        from .events import broadcast_transient
+        from .media import wait_ready
+
+        await broadcast_transient(mission_id, "nox.thinking", {"role": role.value, "reason": "chat"})
+        await broadcast_transient(mission_id, "nox.step", {"role": role.value, "label": "NoX is watching your recording"})
+        await wait_ready(media_ids)
     async with AsyncSessionLocal() as db:
-        mission, f, upstream, context, apps = await _load(db, mission_id, role)
+        mission, f, upstream, context, apps, evidence = await _load(db, mission_id, role, media_ids)
         history = (
             await db.execute(select(SpecChatMessage).where(SpecChatMessage.spec_file_id == f.id).order_by(SpecChatMessage.created_at.desc()).limit(6))
         ).scalars().all()
@@ -148,6 +158,7 @@ async def chat(mission_id: str, role: Role, message: str, user_id: uuid.UUID | N
             turn = await cowriter.edit_turn(
                 mission, role, current=f.markdown or "", base_version=f.version, upstream=upstream, context=context, apps=apps,
                 instruction=f"Recent chat:\n{convo}\n\nThe author now says: {message}", can_edit=not busy, stream_reply=True,
+                evidence=evidence,
             )
             reply = turn.reply or ("Done." if turn.edits or turn.questions else "I couldn't find anything to change.")
             reply = _with_questions(reply, turn.questions)

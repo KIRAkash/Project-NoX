@@ -106,20 +106,24 @@ def gcs_blob_exists(kb_id: str, filename: str) -> bool:
         return False
 
 
-def generate_gcs_presigned_url(filename: str, content_type: str = "application/octet-stream", expires_in_minutes: int = 15) -> str:
-    """Generate a presigned PUT URL for direct client-side upload to GCS."""
+def generate_gcs_presigned_url(filename: str, content_type: str = "application/octet-stream", expires_in_minutes: int = 15,
+                               object_path: str | None = None, method: str = "PUT") -> str:
+    """A V4 signed URL for a direct browser upload (PUT, content type locked) or a short-lived read (GET).
+
+    `object_path` names the object exactly; without it the object is `uploads/<filename>`.
+    """
     client = get_gcs_client()
     if not client:
         return "/api/upload/local"
 
     try:
         bucket = client.bucket(settings.GCS_BUCKET_NAME)
-        blob = bucket.blob(f"uploads/{filename}")
+        blob = bucket.blob(object_path or f"uploads/{filename}")
         url = blob.generate_signed_url(
             version="v4",
             expiration=timedelta(minutes=expires_in_minutes),
-            method="PUT",
-            content_type=content_type,
+            method=method,
+            content_type=content_type if method == "PUT" else None,
         )
         return url
     except Exception as e:
