@@ -267,13 +267,23 @@ Build `kb_builder_graph.py` beside the current builder with a two-page fake plan
 
 ## 10. Done when
 
-- [ ] The spike's result is recorded, and the builder runs as an ADK workflow (graph, or the composite fallback).
-- [ ] Every test in section 6 passes, and `make test` and `make lint` pass.
+- [x] The spike's result is recorded, and the builder runs as an ADK workflow (graph, or the composite fallback).
+- [x] Every test in section 6 passes, and `make test` and `make lint` pass.
 - [ ] The bench comparison is recorded in Resume notes, and the default is switched to `graph`.
 - [ ] Live: two demo apps built on Cloud Run, OKF check passes, and cross-app links, contracts, Ask and Flow B all work.
 - [ ] Ask shows a cached share above 0% from the second turn, on the deployed app.
-- [ ] The docs tell the truth.
+- [x] The docs tell the truth.
 
 ## Resume notes
 
-_Not started._
+**2026-09-29: code done; the bench and live checks are still to do.**
+
+- **Spike: go with `Workflow`.** All five criteria passed with `google-adk` 2.10.0. A parallel worker with `max_parallel_workers=2` ran 4 items with at most 2 in flight. The `lint_gate → review → synthesize → lint_gate` loop ran two rounds and stopped on "done". `telemetry.usage_scope` counted every fake call made inside nodes: `ctx.run_node` events reach the outer runner, where `runtime._account` counts them, so nothing needed capturing in `BuildRun`. `use_fake` works unchanged. The local path runs with a fake local model (`test_local_mode_runs_one_at_a_time`); Ollama isn't available in CI, so a real Gemma smoke test is still to do.
+- **ADK details worth knowing.** Any node that calls `ctx.run_node` must have `rerun_on_resume=True`, or ADK raises. `Runner` takes a `Workflow` through `node=`, not `agent=` (`runtime._runner`). A node's exception surfaces as the build's exception, as before. The writer runs as a child node with `ctx.run_node(writer, node_input=message)`, and its output is the page text.
+- **Event order kept.** The cartographer node emits no `node_started`, so the flight log still opens with `cartographer_started`, `plan_ready`. Its `node_finished` comes when `warm_cache` starts. `review_started` is still round 1's event; `review_round` is added for round 2 onward, and `quality_gate` after every gate.
+- **Synthesis is now idempotent.** Link repair runs before cross-app weaving (so an unknown link to a contract identifier is woven in the same pass, not the next), and weaving skips identifiers inside any `[[…]]`. `test_cross_app_links_survive_review` fails on `linear` and passes on `graph`, which is the gap this closes.
+- **Default is `graph`** (`NOX_KB_WORKFLOW`). The fake-model tests show both orchestrations return the same bundle when review passes in one round. The bench below is the real gate: if it misses the bar, set `NOX_KB_WORKFLOW=linear` until it's fixed.
+- **Context caching.** `runtime.stream` (Ask and the co-writer) runs with `App(context_cache_config=ContextCacheConfig(min_tokens=4096, ttl_seconds=600, cache_intervals=10))` when `NOX_CONTEXT_CACHE` is on and the backend isn't local. `run` (pipelines) never does. The Ask footer shows "N lookups · X% cached"; the app page shows the build's usage line under the graph panel.
+- **Graph panel.** Checked in the browser at 1280px and 390px (no horizontal scroll; the nodes stack at phone width), on a finished build and one stopped mid-review.
+- **Not done here.** BigQuery `ai_usage.cached_tokens` and the Impact page's cache share wait on CP14 Part C, which doesn't exist yet.
+- **Still to do (needs Gemini and the deploy):** `scripts/bench_kb.py <kb-id> --compare linear graph` on order-matching-engine and trade-settlement-system; `okf check --all`; onboard both apps on Cloud Run and check cross-app links, contracts, Ask and Flow B; confirm Ask shows a cached share above 0% from the second turn.

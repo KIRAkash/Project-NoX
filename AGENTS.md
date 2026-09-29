@@ -69,12 +69,12 @@ demo/                             the Apex demo codebases and mock sources
 | File | Role |
 | --- | --- |
 | `config.py` | `NOX_AI_BACKEND` → `enterprise` (Agent Platform via service account), `api_key` (Gemini Developer API) or `local` (Gemma via Ollama/LiteLLM). Tiers `FAST` / `DEFAULT` / `DEEP` map to `NOX_MODEL_FAST` / `GEMINI_MODEL` / `NOX_MODEL_DEEP`. ADK `FallbackModel` to `GEMINI_BACKUP_MODEL`; retry options on every Gemini model. `Gemma3Ollama` for Gemma 3. |
-| `runtime.py` | The only place that touches ADK runners. `run()` for one-shot, `stream()` → step / delta / done events for SSE. `InMemorySessionService` for pipelines, `DatabaseSessionService` in Postgres schema `adk` for Ask and chat. |
+| `runtime.py` | The only place that touches ADK runners. `run()` for one-shot (an agent or a `Workflow` root), `stream()` → step / delta / done events for SSE, with ADK's `ContextCacheConfig` when `NOX_CONTEXT_CACHE` is on. `InMemorySessionService` for pipelines, `DatabaseSessionService` in Postgres schema `adk` for Ask and chat. |
 | `structured.py` | One-shot agents constrained to a Pydantic schema (`schemas.py`: `ArchitectureMap`, `GatekeeperDecision`, `PagePatch`, `CoverageDiff`, `RollupResult`). |
 | `telemetry.py` | `usage_scope()` sums calls, tokens (input, cached, output, thinking), tool calls and time across all agents in one unit of work; logs one structured line. |
 | `tools/knowledge.py` | `search_kb`, `read_kb_page`, `list_pages`, `find_interfaces`, `grep_source`, `read_source_file`, `get_jira_issue`. Scope comes from `ToolContext.state`. |
 | `tools/spec.py` | Section-level spec edits: `read_spec_file`, `replace_section`, `insert_section`, `append_to_section`, `add_open_question`. Each edit broadcasts `nox.edit.partial`; author headings can't be removed. |
-| `agents/kb_builder.py` | Cartographer (DEEP, one call, whole snapshot, images as parts) → page writers in parallel (shared `static_instruction` prefix for implicit caching; first page warms the cache) → reviewer (rewrites only lint failures). Local mode: chunk summaries, sequential writers. |
+| `agents/kb_builder.py` | An ADK 2 `Workflow` graph: cartographer (DEEP, one call, whole snapshot, images as parts) → warm cache (first page alone) → page writers (parallel-worker node, shared `static_instruction` prefix for implicit caching) → synthesize (links, idempotent) → lint gate ⇄ reviewer loop (`NOX_REVIEW_ROUNDS`, rewrites only lint failures) → finish. Snapshot and pages live in a per-build `BuildRun`, not session state; nodes emit `node_started`/`node_finished`. `NOX_KB_WORKFLOW=linear` keeps the old orchestration for the bench. Local mode: chunk summaries, one writer at a time. |
 | `agents/ask.py` | Streaming Ask agent with the knowledge tools; answers pitched per seat; citations collected from pages read. |
 | `agents/cowriter.py` | Co-writer (edit turns via spec tools) and drafter (whole-file first drafts). |
 
