@@ -20,6 +20,8 @@ export type Me = {
   photoUrl: string | null;
   role: RoleId | null;
   capabilities: string[];
+  /** "local" is NoX Local (Gemma): it reads images only, so video and voice capture are hidden. */
+  aiBackend?: "enterprise" | "api_key" | "local";
   orgs: { id: string; name: string; slug: string; parentOrgId: string | null }[];
 };
 

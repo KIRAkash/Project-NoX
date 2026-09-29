@@ -131,7 +131,7 @@ This is a cheap FAST-tier call that is cached per (capture, seat). It is not a r
 
 ## 5. How it works
 
-### 5.1 Data model (Alembic `0008`, after CP14's `0007`)
+### 5.1 Data model (Alembic `0007`; CP15 was built before CP14, so CP14's `shield_findings` moves to `0008`)
 
 `media_assets`:
 
@@ -421,3 +421,17 @@ Record every change with `missions/events.record()`: `media.attached`, `media.an
 ## Resume notes
 
 _Not started. Depends on CP14 Part B (Shield) for Stage 2. If CP14 isn't done first, stub `shield.screen_source` to return `screened: false`._
+
+---
+
+## Resume notes
+
+**Status (2026-09-29): code done on branch `claude/project-thread-muni6k`; the live check on the deployed app is left.**
+
+- Migration is `0007_media_assets` (`media_assets` table, `spec_chat_messages.media_ids`). CP14's `shield_findings` becomes `0008`.
+- CP14 isn't built, so `services/shield.py` is a stub: `screen_source` fails open (`NOX_SHIELD=off`) and `redact()` masks emails, card numbers and phone numbers with regexes. CP14 replaces the stub's insides with Model Armor + DLP; `missions/media.py` already calls it and handles a block as `withheld`.
+- Backend: `routers/media.py` (upload, complete, read per seat, captions, stream, delete, verify-evidence), `missions/media.py` (Perceive → Shield → Ground → seat views, evidence for drafting and chat, Git sidecar, Show it works comparison), `services/media_storage.py` (GCS signed PUT/GET, or local files with an HMAC token). Tests: `tests/test_media.py`.
+- Web: `components/app/media/` (capture bar, recorder hooks, annotator, player, capture card, chips, Evidence tab), wired into New mission, the mission page, the spec editor chat and the verify panel.
+- Demo: `demo/screens/trade-desk.html`; golden captures go in `demo/screens/captures/` (ignored by Git) for `scripts/eval_media.py`, which `make eval` runs and which skips missing files.
+- Still to do, needing the deployed app: record the trade-desk clip and the two other golden captures, run `make eval`, check the Done-when items on Cloud Run (bucket CORS must allow PUT from the web origin), and a Safari smoke test.
+
