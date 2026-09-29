@@ -36,7 +36,7 @@ The build order for Project NoX, split into checkpoints. Each checkpoint ends in
 | CP11 | Manual reverse verification | done (PR hints wait on CP10) | CP8 |
 | CP12 | Deploy, polish, demo rehearsal | scripts + polish done — deploy and rehearsals need approval and the token | all |
 | CP13 | AI upgrade: ADK agents on Agent Platform, hybrid search, streaming Ask, section co-writer, multi-agent KB builder, NoX Local | code done — live Agent Platform check needs `roles/aiplatform.user`; pgvector on Cloud SQL at deploy | CP5, CP8, CP10 |
-| CP14 | Connected, shielded, measured: MCP + A2A, Model Armor + DLP, BigQuery flight recorder ([plan](plans/CP14-tier1-connected-shielded-measured.md)) | planned | CP12, CP13 |
+| CP14 | Connected, shielded, measured: MCP + A2A, Model Armor + DLP, BigQuery flight recorder ([plan](plans/CP14-tier1-connected-shielded-measured.md)) | code done; live checks need the deploy | CP12, CP13 |
 | CP15 | Show NoX: screenshots, screen recordings, video and voice, grounded in the KB ([plan](plans/CP15-show-nox-multimodal-capture.md)) | planned | CP14 (Shield) |
 | CP16 | KB builder as an ADK workflow + explicit context caching ([plan](plans/CP16-adk-workflow-kb-builder.md)) | planned | CP13 |
 

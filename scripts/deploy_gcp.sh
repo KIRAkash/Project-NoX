@@ -2,7 +2,7 @@
 # Deploy NoX to Google Cloud Run: nox-api, nox-worker, nox-web.
 #
 #   scripts/deploy_gcp.sh secrets        copy secret values from .env into Secret Manager
-#   scripts/deploy_gcp.sh ai-access      let the runtime service account call Gemini on the Agent Platform
+#   scripts/deploy_gcp.sh ai-access      let the runtime service account call Gemini, Model Armor, DLP and BigQuery
 #   scripts/deploy_gcp.sh [all|api|worker|web]
 #   DRY_RUN=1 scripts/deploy_gcp.sh all  print the gcloud commands instead of running them
 #
@@ -100,6 +100,42 @@ grant_ai_access() {
     run gcloud firestore databases create --database "(default)" --location "$REGION" --project "$fb" --quiet
   run gcloud projects add-iam-policy-binding "$fb" --member "serviceAccount:$(runtime_sa)" \
     --role roles/datastore.user --condition None --quiet --format none
+  grant_shield
+  grant_analytics
+}
+
+SHIELD_TEMPLATE="${NOX_SHIELD_TEMPLATE:-nox-shield}"
+SHIELD_LOCATION="${NOX_SHIELD_LOCATION:-us-central1}"
+BQ_DATASET="${NOX_BQ_DATASET:-nox_analytics}"
+
+grant_shield() {
+  say "NoX Shield: Model Armor template ${SHIELD_TEMPLATE} and Sensitive Data Protection"
+  run gcloud services enable modelarmor.googleapis.com dlp.googleapis.com --project "$PROJECT"
+  # Model Armor is regional; point gcloud at the regional endpoint for this script only.
+  export CLOUDSDK_API_ENDPOINT_OVERRIDES_MODELARMOR="https://modelarmor.${SHIELD_LOCATION}.rep.googleapis.com/"
+  gcloud model-armor templates describe "$SHIELD_TEMPLATE" --location "$SHIELD_LOCATION" --project "$PROJECT" >/dev/null 2>&1 || \
+    run gcloud model-armor templates create "$SHIELD_TEMPLATE" --location "$SHIELD_LOCATION" --project "$PROJECT" \
+      --pi-and-jailbreak-filter-settings-enforcement=enabled --pi-and-jailbreak-filter-settings-confidence-level=medium-and-above \
+      --malicious-uri-filter-settings-enforcement=enabled --basic-config-filter-enforcement=enabled \
+      --rai-settings-filters='[{"filterType":"DANGEROUS","confidenceLevel":"MEDIUM_AND_ABOVE"},{"filterType":"HARASSMENT","confidenceLevel":"MEDIUM_AND_ABOVE"}]'
+  for role in roles/modelarmor.user roles/dlp.user; do
+    run gcloud projects add-iam-policy-binding "$PROJECT" --member "serviceAccount:$(runtime_sa)" \
+      --role "$role" --condition None --quiet --format none
+  done
+}
+
+grant_analytics() {
+  say "Flight recorder: BigQuery dataset ${BQ_DATASET}"
+  run gcloud services enable bigquery.googleapis.com --project "$PROJECT"
+  bq --project_id "$PROJECT" show --dataset "${PROJECT}:${BQ_DATASET}" >/dev/null 2>&1 || \
+    run bq --project_id "$PROJECT" mk --dataset --location "${NOX_BQ_LOCATION:-US}" "${PROJECT}:${BQ_DATASET}"
+  # Tables and views are CREATE ... IF NOT EXISTS / OR REPLACE, so this is safe to re-run.
+  sed "s/{ds}/${PROJECT}.${BQ_DATASET}/g" apps/api/nox_api/services/analytics_views.sql | \
+    run bq --project_id "$PROJECT" query --use_legacy_sql=false --quiet
+  run gcloud projects add-iam-policy-binding "$PROJECT" --member "serviceAccount:$(runtime_sa)" \
+    --role roles/bigquery.jobUser --condition None --quiet --format none
+  run bq --project_id "$PROJECT" add-iam-policy-binding --member "serviceAccount:$(runtime_sa)" \
+    --role roles/bigquery.dataEditor "${PROJECT}:${BQ_DATASET}"
 }
 
 api_env() {
@@ -112,7 +148,9 @@ GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.7-flash},NOX_DEV_AUTH=${DEV_AUTH},NOX_DEMO
 FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID:-${NEXT_PUBLIC_FIREBASE_PROJECT_ID:-}},NOX_TICKET_STORE=firestore,NOX_WEB_ORIGIN=${web_url},\
 ATLASSIAN_BASE_URL=${ATLASSIAN_BASE_URL:-},ATLASSIAN_EMAIL=${ATLASSIAN_EMAIL:-},JIRA_DEFAULT_PROJECT=${JIRA_DEFAULT_PROJECT:-APEX},\
 JIRA_ALLOWED_PROJECTS=${JIRA_ALLOWED_PROJECTS:-APEX},GITHUB_APP_ID=${GITHUB_APP_ID:-},GITHUB_APP_INSTALLATION_ID=${GITHUB_APP_INSTALLATION_ID:-},\
-GITHUB_DEFAULT_ORG=${GITHUB_DEFAULT_ORG:-},NOX_COMMIT_SPECS=${NOX_COMMIT_SPECS:-true}"
+GITHUB_DEFAULT_ORG=${GITHUB_DEFAULT_ORG:-},NOX_COMMIT_SPECS=${NOX_COMMIT_SPECS:-true},\
+NOX_SHIELD=${NOX_SHIELD:-enforce},NOX_SHIELD_TEMPLATE=${SHIELD_TEMPLATE},NOX_SHIELD_LOCATION=${SHIELD_LOCATION},\
+NOX_ANALYTICS=${NOX_ANALYTICS:-bigquery},NOX_BQ_DATASET=${BQ_DATASET}"
 }
 
 service_url() { gcloud run services describe "$1" --project "$PROJECT" --region "$REGION" --format 'value(status.url)' 2>/dev/null || true; }
@@ -138,7 +176,7 @@ deploy_api() {
     --min-instances 0 --max-instances 3 --memory 1Gi --cpu 1 --timeout 900 $(net_flags) \
     --set-env-vars "$(api_env "$web_url")" --set-secrets "$(secret_flags)"
   local api_url; api_url="$(service_url nox-api)"
-  run gcloud run services update nox-api "${common_flags[@]}" --update-env-vars "WEBHOOK_BASE_URL=${api_url}"
+  run gcloud run services update nox-api "${common_flags[@]}" --update-env-vars "WEBHOOK_BASE_URL=${api_url},NOX_PUBLIC_API_URL=${NOX_PUBLIC_API_URL:-${api_url}}"
 }
 
 deploy_worker() {

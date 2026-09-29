@@ -31,3 +31,21 @@ test("commands needing auth say how to sign in", () => {
 test("unknown commands fail", () => {
   assert.equal(nox("frobnicate").status, 2);
 });
+
+test("nox mcp prints settings and install merges without touching other servers", async () => {
+  const { mkdirSync, readFileSync, writeFileSync } = await import("node:fs");
+  const home = mkdtempSync(join(tmpdir(), "noxhome-"));
+  const e = { ...env, HOME: home, NOX_TOKEN: "nox_test", NOX_API: "https://nox.example.com" };
+  const run = (...a) => spawnSync(process.execPath, [bin, ...a], { env: e, encoding: "utf8" });
+  const shown = JSON.parse(run("mcp", "--json").stdout);
+  assert.equal(shown.antigravity.serverUrl, "https://nox.example.com/mcp");
+  assert.equal(shown.claude.headers.Authorization, "Bearer nox_test");
+  mkdirSync(join(home, ".cursor"), { recursive: true });
+  writeFileSync(join(home, ".cursor", "mcp.json"), JSON.stringify({ mcpServers: { other: { url: "x" } }, theme: "dark" }));
+  assert.equal(run("mcp", "install", "cursor", "--role", "engineering").status, 0);
+  const file = JSON.parse(readFileSync(join(home, ".cursor", "mcp.json"), "utf8"));
+  assert.deepEqual(file.mcpServers.other, { url: "x" });
+  assert.equal(file.theme, "dark");
+  assert.equal(file.mcpServers.nox.headers["X-Nox-Role"], "engineering");
+  assert.equal(run("mcp", "install", "nope").status, 2);
+});

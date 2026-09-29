@@ -298,4 +298,14 @@ In `deploy_gcp.sh`:
 
 ## Resume notes
 
-_Not started._
+**2026-09-29: code done on `claude/project-thread-ymzt5d`.** `make test` and `make lint` pass. Live checks wait on the Cloud Run deploy.
+
+- **A2A spike: in.** ADK's `to_a2a` pieces (a2a-sdk 1.x) are wired by hand in `interop/a2a.py`: a token gate in front, a context var carrying the caller's scope, and a `before_agent_callback` that copies it into session state. Metadata in the request can't change scope (`tests/test_a2a.py`).
+- **MCP** uses `mcp` 2.x (`MCPServer`, the renamed FastMCP), Streamable HTTP, stateless, JSON responses. DNS-rebinding protection is off because the token gate sits in front and Cloud Run hosts vary. The session manager can run once per process, so each app lifespan builds a fresh server.
+- **Shield** calls Model Armor and DLP over REST with `google-auth` (no extra client library). SDP findings from Model Armor are recorded but don't block at input; DLP blocks at commit.
+- **Flight recorder**: every mission event payload now carries `stage` (the stage after the event), which is what the stage-duration numbers use. The impact endpoint reads BigQuery when `NOX_ANALYTICS=bigquery` and falls back to Postgres. Prices in `services/analytics.py` are list prices as of 2026-09-29, labelled as an estimate.
+- **Not verified yet:** the BigQuery SQL in `analytics_views.sql` has not run against BigQuery, and the `gcloud model-armor templates create` flags in `deploy_gcp.sh` were written from memory. Check both on the first deploy (`DRY_RUN=1` first).
+- **Migration numbering:** this branch uses `0007_shield_findings`. CP15 (`claude/project-thread-muni6k`) also takes `0007`. Whichever merges second renumbers to `0008` with `down_revision` pointing at the other.
+- **Demo page:** `demo/sources/confluence/runbook-settlement-reconciliation.md` is created in the APEX space by `seed_sources.py`.
+
+Acceptance: item 1 (tests, lint) and item 6 (docs) are done. Items 2–4 need the deploy. Item 5 holds in code (Shield and analytics are off for `NOX_AI_BACKEND=local`) but hasn't been rerun with Gemma.

@@ -44,6 +44,10 @@ Every AI call is a Google ADK agent (`apps/api/nox_api/ai/`) on Gemini, served f
 - **Co-writer:** edits spec files section by section, live.
 
 Search is hybrid: `gemini-embedding-2` vectors in pgvector, fused with Postgres full-text.
+
+- **Connected.** Any coding agent can use NoX's tools over MCP (`/mcp`, `nox mcp install antigravity`), and other agents can talk to the Ask agent over A2A (`/a2a/ask`). The token decides what they can see (`apps/api/nox_api/interop/`).
+- **Shielded.** NoX Shield screens sources, questions and chat with Model Armor and checks pages with Sensitive Data Protection before they are committed (`services/shield.py`).
+- **Measured.** Mission events and AI usage stream into BigQuery; the Impact page shows time per stage, send-backs, grounding and AI cost (`services/analytics.py`).
 See [docs/02-architecture-and-tech-stack.md](docs/02-architecture-and-tech-stack.md#ai-layer).
 
 **NoX Local** builds and maintains a knowledge base on a developer's machine with Gemma via Ollama. The code never
@@ -76,6 +80,7 @@ Other targets: `make api`, `make web`, `make worker`, `make migrate`, `make test
 packages/nox-cli/install.sh            # links `nox` onto your PATH (Node 18+)
 nox login --api http://localhost:8000  # approve in the browser
 cd your-repo && nox init antigravity   # installs /nox for Google Antigravity (also cursor, codex, copilot, claude)
+nox mcp install antigravity            # adds NoX's MCP tools to Antigravity (also gemini, claude, cursor)
 ```
 
 Then, in the coding agent: `/nox NOX-12`. `nox help` lists the rest (`context`, `search`, `read`, `pr`, `complete`).
@@ -85,7 +90,7 @@ Then, in the coding agent: `/nox NOX-12`. `nox help` lists the rest (`context`, 
 `scripts/deploy_gcp.sh` builds and deploys `nox-api`, `nox-worker` and `nox-web` to Cloud Run, with secrets in
 Secret Manager (`scripts/deploy_gcp.sh secrets` copies them from `.env`). `DRY_RUN=1` prints the commands.
 Gemini runs on the Agent Platform as the runtime service account (`scripts/deploy_gcp.sh ai-access` grants
-`roles/aiplatform.user`), and Memorystore is reached by Direct VPC egress, so no connector is needed.
+`roles/aiplatform.user`, plus Model Armor, DLP and BigQuery for NoX Shield and the flight recorder), and Memorystore is reached by Direct VPC egress, so no connector is needed.
 The header of the script lists the variables it needs (Cloud SQL instance, Memorystore URL, VPC connector).
 The 5-minute demo is in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 

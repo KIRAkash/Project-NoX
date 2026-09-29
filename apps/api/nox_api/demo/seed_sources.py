@@ -45,6 +45,8 @@ async def seed_confluence():
         ("ADR-005: Real-Time Anomaly & Market Abuse Surveillance Architecture", (BASE_DIR / "confluence" / "adr-005-realtime-surveillance.md").read_text()),
         ("ADR-006: Distributed API Key Authentication & HMAC Signatures", (BASE_DIR / "confluence" / "adr-006-hmac-distributed-auth.md").read_text()),
         ("Runbook: Matching Engine Failover & Disaster Recovery Protocol", (BASE_DIR / "confluence" / "runbook-failover-disaster-recovery.md").read_text()),
+        # NoX Shield demo: a normal runbook with one planted prompt-injection line that Shield should withhold.
+        ("Runbook: End-of-Day Settlement Reconciliation", (BASE_DIR / "confluence" / "runbook-settlement-reconciliation.md").read_text()),
     ]
 
     async with httpx.AsyncClient(timeout=30.0) as client:

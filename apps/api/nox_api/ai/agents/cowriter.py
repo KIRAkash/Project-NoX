@@ -80,6 +80,7 @@ class TurnResult:
     edits: list[str] = field(default_factory=list)
     questions: list[dict] = field(default_factory=list)  # decisions NoX needs from the author, for the chat
     usage: str = ""
+    tokens: dict = field(default_factory=dict)
 
 
 def _state(mission, role, current: str, upstream: dict, apps: dict[str, str], base_version: int, can_edit: bool) -> dict:
@@ -114,6 +115,7 @@ async def edit_turn(mission, role, *, current: str, base_version: int, upstream:
                 result.edits = list(final.get("edits") or [])
                 result.questions = list(final.get("questions") or [])
     result.usage = usage.line()
+    result.tokens = usage.tokens()
     return result
 
 
