@@ -5,6 +5,9 @@ Everything that touches `google.adk.runners` goes through here, so the rest of N
   result = await run(agent, "message", state={...})          → final text + parsed output + usage
   async for ev in stream(agent, "message", session=...):     → step / delta / done events for SSE
 
+`run` also takes an ADK 2 `Workflow` as its root (the knowledge-base builder). Conversations (`stream`: Ask and the
+co-writer) get explicit context caching when NOX_CONTEXT_CACHE is on; one-shot pipeline runs rely on implicit caching.
+
 State passed in `state` is where tools read their scope (which knowledge bases the caller may see, which
 mission file is being edited). It is set by NoX, never by the model.
 """
@@ -97,10 +100,37 @@ def _message(text: str, parts: list | None = None) -> types.Content:
     return types.Content(role="user", parts=[types.Part(text=text), *(parts or [])])
 
 
-def _runner(agent, service):
+def _runner(agent, service, *, cache: bool = False):
+    """A runner for an agent or any ADK 2 root node (a `Workflow`). `cache` adds explicit context caching."""
+    from google.adk.agents import BaseAgent
     from google.adk.runners import Runner
 
-    return Runner(app_name=APP_NAME, agent=agent, session_service=service)
+    if cache:
+        from google.adk.apps import App
+
+        return Runner(app=App(name=APP_NAME, root_agent=agent, context_cache_config=context_cache_config()),
+                      session_service=service)
+    if isinstance(agent, BaseAgent):
+        return Runner(app_name=APP_NAME, agent=agent, session_service=service)
+    return Runner(app_name=APP_NAME, node=agent, session_service=service)
+
+
+def context_cache_on() -> bool:
+    from . import config
+
+    return settings.NOX_CONTEXT_CACHE and config.backend() != "local"
+
+
+def context_cache_config():
+    """Explicit Gemini context caches for conversations: ADK caches the stable prefix (instruction, earlier turns,
+    tool results) from a session's second model request on, once it passes the model's minimum size."""
+    import warnings
+
+    from google.adk.agents.context_cache_config import ContextCacheConfig
+
+    with warnings.catch_warnings():  # marked experimental in ADK 2.10
+        warnings.simplefilter("ignore")
+        return ContextCacheConfig(min_tokens=4096, ttl_seconds=600, cache_intervals=10)
 
 
 def _account(event) -> None:
@@ -168,7 +198,7 @@ async def stream(agent, message: str, *, state: dict | None = None, user_id: str
 
     answer = ""      # everything shown to the user, across model turns
     turn = ""        # text streamed in the current model turn
-    async for event in _runner(agent, service).run_async(
+    async for event in _runner(agent, service, cache=context_cache_on()).run_async(
         user_id=user_id, session_id=sid, new_message=_message(message), state_delta=state,
         run_config=RunConfig(streaming_mode=StreamingMode.SSE),
     ):

@@ -50,6 +50,26 @@ class FakeLlm(BaseLlm):
             raise AssertionError("FakeLlm ran out of scripted responses")
 
 
+class SlowFakeLlm(FakeLlm):
+    """A FakeLlm whose calls take a moment, counting how many are in flight at once (for concurrency limits)."""
+
+    delay: float = 0.02
+    in_flight: int = 0
+    peak: int = 0
+
+    async def generate_content_async(self, llm_request: LlmRequest, stream: bool = False) -> AsyncGenerator[LlmResponse, None]:
+        import asyncio
+
+        self.in_flight += 1
+        self.peak = max(self.peak, self.in_flight)
+        try:
+            await asyncio.sleep(self.delay)
+        finally:
+            self.in_flight -= 1
+        async for r in super().generate_content_async(llm_request, stream):
+            yield r
+
+
 def request_text(req: LlmRequest) -> str:
     """Everything the model was shown in one request (for asserting on prompts)."""
     out = [str(req.config.system_instruction or "")] if req.config else []

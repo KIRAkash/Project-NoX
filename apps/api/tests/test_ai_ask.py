@@ -90,3 +90,30 @@ async def test_ask_needs_access_and_chat_wrapper_still_answers(kb, monkeypatch):
     assert r["response"].startswith("Lockout counters") and r["citations"] == ["refunds-service/concepts/login-flow"]
     async with _client("developer", email="outsider@example.com") as other:
         assert (await other.post(f"/api/v1/kb/{kb}/ask", json={"question": "hi"})).status_code in (403, 404)
+
+
+async def test_context_cache_config_applied_to_ask_only(monkeypatch):
+    """Conversations (runtime.stream: Ask, co-writer) get an explicit context cache; one-shot pipeline runs don't."""
+    from google.adk.agents import LlmAgent
+
+    from nox_api.ai import config, runtime
+    from nox_api.core.config import settings
+
+    runners = []
+    real = runtime._runner
+    monkeypatch.setattr(runtime, "_runner", lambda agent, service, **kw: runners.append(real(agent, service, **kw)) or runners[-1])
+    monkeypatch.setattr(config, "backend", lambda: "enterprise")
+    fake = FakeLlm(responder=lambda req: text("Refunds emit `order.refunded`."))
+    agent = LlmAgent(name="ask", model=fake, instruction="Answer.")
+
+    [ev async for ev in runtime.stream(agent, "What does a refund emit?", sessions=runtime.ephemeral_sessions())]
+    await runtime.run(agent, "Summarise the page.")
+    ask, one_shot = (r.context_cache_config for r in runners)
+    assert ask is not None and ask.ttl_seconds == 600 and ask.min_tokens == 4096
+    assert one_shot is None
+
+    monkeypatch.setattr(settings, "NOX_CONTEXT_CACHE", False)
+    assert runtime.context_cache_on() is False
+    monkeypatch.setattr(settings, "NOX_CONTEXT_CACHE", True)
+    monkeypatch.setattr(config, "backend", lambda: "local")
+    assert runtime.context_cache_on() is False  # ignored in NoX Local

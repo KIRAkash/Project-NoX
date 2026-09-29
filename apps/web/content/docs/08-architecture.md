@@ -94,7 +94,7 @@ Everything slow runs as a job: builds, syncs, rollups, drafts, co-writer turns, 
 
 Each job writes events as it goes, and each event is published to Redis, so every browser watching that application or mission gets it over **server-sent events** immediately: flight-log lines, trajectory changes, the co-writer's section edits, timeline entries.
 
-Builds save checkpoints after every stage, which is what lets **Retry** resume a failed build from the step that failed.
+A knowledge-base build is an ADK workflow graph (cartographer, parallel page writers, link synthesis, a quality gate that loops with a reviewer, then the finish; see [Agentic AI on Google](/docs/google-ai)). The graph's nodes share one in-memory build record for the snapshot and pages, and the ADK session holds only small values such as the review round. Builds save checkpoints after every stage and every page, which is what lets **Retry** resume a failed build from the step that failed.
 
 ## Security
 
