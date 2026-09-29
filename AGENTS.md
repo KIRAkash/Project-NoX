@@ -59,6 +59,8 @@ apps/api/nox_api/                 FastAPI, Python 3.12, SQLAlchemy 2 async, Alem
 apps/api/alembic/                 migrations (0005 adds pgvector chunks for search)
 apps/api/tests/                   pytest; tests/ai_fakes.py fakes ADK/Gemini for agent tests
 packages/nox-cli/                 `nox` CLI (bin/nox.mjs, no deps) + integrations/ for antigravity, cursor, codex, copilot, claude
+video/                            Remotion intro film (standalone npm project, not a workspace): scenes/, a synthesised
+                                  soundtrack (scripts/soundtrack.mjs); `npm run dev` / `npm run render`
 scripts/                          deploy_gcp.sh, bench_kb.py, eval_ask.py
 docs/                             design docs and IMPLEMENTATION_PLAN.md (history and decisions)
 demo/                             the Apex demo codebases and mock sources

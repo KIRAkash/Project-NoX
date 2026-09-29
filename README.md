@@ -28,6 +28,7 @@ agent can load a mission, read the knowledge bases it touches, build the change 
 apps/web/          Next.js 15 — landing page + the NoX app
 apps/api/          FastAPI (Python 3.12, uv) — knowledge-base engine, missions, integrations
 packages/nox-cli/  `nox` CLI and the /nox skill for coding agents
+video/             Remotion — the 90-second intro film (its own npm project, see video/README.md)
 scripts/           setup, seeding, checks
 docs/              product, architecture and integration docs + IMPLEMENTATION_PLAN.md
 ```
