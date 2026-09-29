@@ -159,7 +159,7 @@ Screening incremental syncs (Flow B) uses the same hook, because `run_add_source
 
 ### B3. Storage and surfacing
 
-- **New table `shield_findings`** (Alembic `0007`; `0006_kb_built_with` is the latest today):
+- **New table `shield_findings`** (Alembic `0008`; CP15's `0007_media_assets` is the latest today). CP15 added a stub `services/shield.py` (`screen_source`, `redact`, `mode`) that this checkpoint fills in:
   - Columns: `id`, `org_id`, `kb_id?`, `mission_id?`, `where`, `source`, `category`, `confidence`, `excerpt_sha`, `action` (withheld | refused | blocked_commit | monitored), `created_at`.
   - It stores the hash, never the text.
 - **KB build flight log:**

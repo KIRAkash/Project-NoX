@@ -1,14 +1,16 @@
 "use client";
 
-import { Check, CircleDashed, X } from "lucide-react";
+import { Check, CircleDashed, MonitorPlay, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { CaptureBar } from "@/components/app/media/capture-bar";
+import { seekMedia } from "@/components/app/media/media-chip";
 import { Planet } from "@/components/app/planet";
 import { useToast } from "@/components/app/ui";
 import { LiquidMetalButton } from "@/components/liquid-metal/liquid-metal";
 import { api, ApiError } from "@/lib/app/api";
 import { ROLE_BY_ID, type RoleId } from "@/lib/app/roles";
-import type { Mission, SpecFile, VerificationItem } from "@/lib/app/types";
+import { fmtT, type Mission, type SpecFile, type VerificationItem } from "@/lib/app/types";
 
 /** Checklist items are one line of Markdown; show `code` spans and drop bold markers. */
 function ItemText({ text }: { text: string }) {
@@ -20,7 +22,7 @@ function ItemText({ text }: { text: string }) {
             {part.slice(1, -1)}
           </code>
         ) : (
-          part.replace(/\*\*/g, "").replace(/\[\[kb:[^\]|]+\|([^\]]+)\]\]/g, "$1").replace(/\[\[kb:([^\]]+)\]\]/g, (_, p: string) => p.split("/").pop() ?? p)
+          part.replace(/\*\*/g, "").replace(/\[\[media:[^\]]+\]\]/g, "▶").replace(/\[\[kb:[^\]|]+\|([^\]]+)\]\]/g, "$1").replace(/\[\[kb:([^\]]+)\]\]/g, (_, p: string) => p.split("/").pop() ?? p)
         ),
       )}
     </>
@@ -78,6 +80,12 @@ export function VerifyPanel({ m, file, mine, onChanged }: { m: Mission; file: Sp
   const [flagging, setFlagging] = useState(false);
   const [note, setNote] = useState("");
   const [backTo, setBackTo] = useState<RoleId>("developer");
+  const [showing, setShowing] = useState<"closed" | "open" | "comparing">("closed");
+  const hints = file.verification?.hints ?? [];
+  const after = file.verification?.evidence?.after?.at(-1);
+  useEffect(() => {
+    if (hints.length) setShowing("closed");
+  }, [hints.length]);
   useEffect(() => setItems(file.verification?.items ?? []), [file.verification]);
 
   const lit = m.stage === "verifying" && m.verifyRole === file.role;
@@ -110,6 +118,17 @@ export function VerifyPanel({ m, file, mine, onChanged }: { m: Mission; file: Sp
 
   const all = items.length > 0 && items.every((i) => i.checked);
   const editable = lit && mine;
+
+  const compare = async (mediaId: string) => {
+    setShowing("comparing");
+    try {
+      await api(`/api/v1/missions/${m.key}/files/${file.role}/verify-evidence`, { method: "POST", json: { mediaIds: [mediaId] } });
+      toast("NoX is comparing it with the original recording", "info");
+    } catch (e) {
+      setShowing("open");
+      toast(e instanceof ApiError ? e.detail : "Couldn't compare the recordings", "error");
+    }
+  };
 
   return (
     <section
@@ -160,11 +179,43 @@ export function VerifyPanel({ m, file, mine, onChanged }: { m: Mission; file: Sp
             ) : (
               it.note && <p className="mt-1 pl-6 text-[12.5px] text-ink-faint">{it.note}</p>
             )}
+            {hints
+              .filter((h) => h.index === i)
+              .map((h) => (
+                <p key={h.index} className="mt-1 flex flex-wrap items-center gap-1.5 pl-6 text-[12.5px] text-ink-muted">
+                  <Sparkles size={11} className="text-[#A897F0]" aria-hidden />
+                  <span className="text-ink-dim">NoX saw:</span> {h.hint}
+                  {after && h.t != null && (
+                    <button type="button" onClick={() => seekMedia(after, h.t!)} className="font-mono text-[11px] text-[color:var(--role)]">
+                      ▶ {fmtT(h.t)}
+                    </button>
+                  )}
+                </p>
+              ))}
           </li>
         ))}
       </ul>
+      {editable && showing !== "closed" && (
+        <div className="mt-4 rounded-sm border border-hairline p-3">
+          {showing === "comparing" ? (
+            <p className="flex items-center gap-2 text-[13px] text-ink-muted" role="status">
+              <Sparkles size={13} className="animate-pulse text-[#A897F0]" /> NoX is comparing your recording with the original…
+            </p>
+          ) : (
+            <>
+              <p className="mb-2 text-[12.5px] text-ink-faint">Record the change working. NoX compares it with the mission&rsquo;s original capture and notes what it sees beside each item. You still tick every item.</p>
+              <CaptureBar compact missionKey={m.key} role={file.role} onMedia={(c) => void compare(c.id)} />
+            </>
+          )}
+        </div>
+      )}
       {editable && !flagging && (
         <div className="mt-4 flex flex-wrap justify-end gap-2">
+          {showing === "closed" && (
+            <button type="button" onClick={() => setShowing("open")} className="mr-auto flex h-9 items-center gap-1.5 rounded-sm border border-hairline px-3 text-[13px] text-ink-muted hover:text-ink">
+              <MonitorPlay size={14} /> Show it works
+            </button>
+          )}
           <button type="button" onClick={() => setFlagging(true)} className="h-9 rounded-sm border border-[rgba(233,113,60,.45)] px-4 text-[13px] text-[#F3A27E] hover:bg-[rgba(233,113,60,.08)]">
             Not met
           </button>

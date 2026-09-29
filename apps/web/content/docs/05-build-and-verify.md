@@ -101,6 +101,12 @@ The **Coming back** strip on the mission page shows where verification has got t
 
 **Verified** is only available once every item is ticked. If something isn't right, don't tick it: flag it as not met.
 
+### Show it works
+
+Instead of describing what you checked, you can show it. **Show it works** on your checklist opens Show NoX: record the new behaviour or take a screenshot. NoX watches it next to the mission's earlier captures and your checklist, and writes a hint under each item it can speak to, such as *NoX saw: the account locked after the fifth attempt ▶ 0:31*. The capture is added to the mission's Evidence tab.
+
+NoX never ticks an item. The hints are there to help you decide; the tick is yours.
+
 ## When something isn't met
 
 Choose **Not met** on your checklist, then:

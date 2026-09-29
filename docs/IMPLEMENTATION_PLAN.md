@@ -37,7 +37,7 @@ The build order for Project NoX, split into checkpoints. Each checkpoint ends in
 | CP12 | Deploy, polish, demo rehearsal | scripts + polish done — deploy and rehearsals need approval and the token | all |
 | CP13 | AI upgrade: ADK agents on Agent Platform, hybrid search, streaming Ask, section co-writer, multi-agent KB builder, NoX Local | code done — live Agent Platform check needs `roles/aiplatform.user`; pgvector on Cloud SQL at deploy | CP5, CP8, CP10 |
 | CP14 | Connected, shielded, measured: MCP + A2A, Model Armor + DLP, BigQuery flight recorder ([plan](plans/CP14-tier1-connected-shielded-measured.md)) | planned | CP12, CP13 |
-| CP15 | Show NoX: screenshots, screen recordings, video and voice, grounded in the KB ([plan](plans/CP15-show-nox-multimodal-capture.md)) | planned | CP14 (Shield) |
+| CP15 | Show NoX: screenshots, screen recordings, video and voice, grounded in the KB ([plan](plans/CP15-show-nox-multimodal-capture.md)) | code done — Shield is a stub until CP14; live check and golden captures need the deployed app | CP13 (CP14 for real Shield) |
 | CP16 | KB builder as an ADK workflow + explicit context caching ([plan](plans/CP16-adk-workflow-kb-builder.md)) | planned | CP13 |
 
 Critical path: CP0 → CP1 → CP3 → CP4 → CP5 → CP6 → CP7 → CP8 → CP11 → CP12. CP2, CP9 and CP10 can run alongside the others once their dependencies are done.
@@ -307,6 +307,7 @@ Newest first. One line per finished checkpoint or notable stop.
 
 | Date | Checkpoint | Note |
 | --- | --- | --- |
+| 2026-09-29 | CP15 | Show NoX: record screen, screenshot with markup, voice note or upload. Gemini watches it (`Part.from_uri`, media resolution), an ADK agent grounds it in the KBs and code with a post-check, each seat reads it in its own words. Captures feed drafting and chat, ▶ moment chips, Evidence tab, Show it works hints on checklists. Migration `0007`; Shield stubbed |
 | 2026-09-26 | CP13 | All AI through Google ADK (`nox_api/ai/`), Agent Platform backend, typed outputs. Hybrid KB search (gemini-embedding-2 + pgvector + full-text, incremental). Ask agent streams with tool steps and citations. Co-writer edits section by section, live, one version per turn. KB builder is a cartographer, parallel writers and a reviewer: 8.7× faster, ~3× fewer tokens per page on market-data-gateway. NoX Local: `nox kb build/sync/push/watch` on Gemma 4 |
 | 2026-09-24 | CP6 (part) | Demo code PRs opened on the 5 Apex repos (branch `nox/rename-demo`); merge them, then rebuild the KBs |
 | 2026-09-24 | CP12 (part) | Deploy script (dry-run checked), GCS mission images, error/404 pages, mobile fix, demo script, `make demo-reset` |
