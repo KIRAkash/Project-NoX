@@ -10,7 +10,7 @@ help:
 	@echo "make api|web|worker|beat   Run one service"
 	@echo "make migrate     Apply database migrations"
 	@echo "make embed-backfill  Index every compiled knowledge base for search (embeds only what changed)"
-	@echo "make eval        Ask-agent eval: golden questions on the demo KBs (live model, a few cents)"
+	@echo "make eval        AI evals: golden questions and Show NoX captures on the demo KBs (live model, a few cents)"
 	@echo "make seed-demo   Seed Jira/Confluence/Notion/Slack, then the Apex org tree + apps (launches pipelines)"
 	@echo "make demo-reset  Delete the demo orgs' missions before a rehearsal (asks first; KBs stay)"
 	@echo "make test        API tests (no live services)   make test-live  tests that hit real services"
@@ -55,6 +55,7 @@ embed-backfill:
 
 eval:
 	$(UV) python ../../scripts/eval_ask.py
+	$(UV) python ../../scripts/eval_media.py
 
 seed-demo:
 	$(UV) python -m nox_api.demo.seed_sources

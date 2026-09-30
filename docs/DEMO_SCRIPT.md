@@ -93,6 +93,16 @@ Any seat: **Impact**. Show time to verified, time per stage, the send-back that 
 ### 4:50 — Close (10 s)
 *"Four people, four files, one sentence. Every file is in Git, every step is on the Jira ticket, and the check at the end was done by the people who asked."*
 
+### Show NoX beat (≈40 s, for the video)
+A second mission, recorded for the video rather than run in the 5 minutes. Open `demo/screens/trade-desk.html` in a tab first. Keep `demo/screens/captures/trade-desk-pending.webm` as the fallback if live recording fails.
+
+1. Seat: **Business user** → *New mission* → **Record screen** → share the trade-desk tab. Narrate: *"This iceberg order filled in two parts. The first fill settled. The second, T-40816, has been Pending settlement since this morning."* Stop.
+2. NoX's live steps appear on the capture card. Show the key moments, the finding (ADR-002: settlement is event-driven), and the suggested request. **trade-settlement-system** is ticked, marked *seen in your capture*.
+3. **Use this sentence** → *Start mission*. The business requirement drafts with ▶ 0:42 chips; click one to play the capture from that moment. Point out: no code anywhere in this file.
+4. Cut to **Developer**: the mission's **Evidence** tab shows the same capture with code locations (for example `TradeMatchedListener.java`).
+
+Say: *"Nobody had to find the words. NoX watched, looked it up in the knowledge base, and wrote it for each reader."*
+
 ## If something goes wrong
 
 | Symptom | Recovery |
@@ -101,6 +111,7 @@ Any seat: **Impact**. Show time to verified, time per stage, the send-back that 
 | Jira panel says credentials | Skip the ticket beats; the timeline still shows every stage |
 | `/nox` agent stalls | Open the prepared PR; run `nox pr NOX-1 <url>` to link it |
 | Guard comment missing | GitHub PR webhook not reaching the API — show the guard result in NoX's panel instead |
+| Capture card stuck on a step | Retry on the card; or upload the fallback clip from `demo/screens/captures/` |
 | Wrong seat in a browser | Avatar → Switch role (free role picker) |
 
 ## Reset after a rehearsal

@@ -159,7 +159,7 @@ Screening incremental syncs (Flow B) uses the same hook, because `run_add_source
 
 ### B3. Storage and surfacing
 
-- **New table `shield_findings`** (Alembic `0007`; `0006_kb_built_with` is the latest today):
+- **New table `shield_findings`** (Alembic `0007_shield_findings`; CP15's `media_assets` follows as `0008`). CP15 added a stub `services/shield.py` (`screen_source`, `redact`, `mode`) that this checkpoint fills in:
   - Columns: `id`, `org_id`, `kb_id?`, `mission_id?`, `where`, `source`, `category`, `confidence`, `excerpt_sha`, `action` (withheld | refused | blocked_commit | monitored), `created_at`.
   - It stores the hash, never the text.
 - **KB build flight log:**
@@ -305,7 +305,7 @@ In `deploy_gcp.sh`:
 - **Shield** calls Model Armor and DLP over REST with `google-auth` (no extra client library). SDP findings from Model Armor are recorded but don't block at input; DLP blocks at commit.
 - **Flight recorder**: every mission event payload now carries `stage` (the stage after the event), which is what the stage-duration numbers use. The impact endpoint reads BigQuery when `NOX_ANALYTICS=bigquery` and falls back to Postgres. Prices in `services/analytics.py` are list prices as of 2026-09-29, labelled as an estimate.
 - **Not verified yet:** the BigQuery SQL in `analytics_views.sql` has not run against BigQuery, and the `gcloud model-armor templates create` flags in `deploy_gcp.sh` were written from memory. Check both on the first deploy (`DRY_RUN=1` first).
-- **Migration numbering:** this branch uses `0007_shield_findings`. CP15 (`claude/project-thread-muni6k`) also takes `0007`. Whichever merges second renumbers to `0008` with `down_revision` pointing at the other.
+- **Migration numbering:** `0007_shield_findings` (CP14), then `0008_media_assets` (CP15, `down_revision` `0007`), settled when the two branches were combined.
 - **Demo page:** `demo/sources/confluence/runbook-settlement-reconciliation.md` is created in the APEX space by `seed_sources.py`.
 
 Acceptance: item 1 (tests, lint) and item 6 (docs) are done. Items 2–4 need the deploy. Item 5 holds in code (Shield and analytics are off for `NOX_AI_BACKEND=local`) but hasn't been rerun with Gemma.

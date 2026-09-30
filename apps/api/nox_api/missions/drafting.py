@@ -55,7 +55,8 @@ def change_signals(mission: Mission, role: Role) -> str:
 
 
 def build_prompt(mission: Mission, role: Role, upstream: dict[Role, str], context: str, current: str | None = None,
-                 instruction: str | None = None, editing: bool = False) -> str:
+                 instruction: str | None = None, editing: bool = False, evidence: list | None = None) -> str:
+    """The writer's request. `evidence` is the mission's analysed captures (missions/media.py `MediaEvidence`)."""
     parts = [
         f"Mission {mission.key}: {mission.title}",
         f'Original request (verbatim): "{mission.prompt}"',
@@ -69,6 +70,10 @@ def build_prompt(mission: Mission, role: Role, upstream: dict[Role, str], contex
     ]
     for r, md in upstream.items():
         parts.append(f"\n===== Upstream file: {TITLE[r]} ({ROLE_NAME[r]}) =====\n{md}")
+    if evidence:
+        from .media import render_evidence
+
+        parts.append("\n" + render_evidence(evidence, role))
     parts.append(f"\n===== Knowledge base context =====\n{context}")
     if current:
         parts.append(
@@ -95,12 +100,13 @@ def title_from(markdown: str, fallback: str) -> str:
 
 
 async def generate_file(mission: Mission, role: Role, upstream: dict[Role, str], context: str,
-                        current: str | None = None, instruction: str | None = None, apps: dict[str, str] | None = None) -> str:
+                        current: str | None = None, instruction: str | None = None, apps: dict[str, str] | None = None,
+                        evidence: list | None = None) -> str:
     """NoX's drafter agent writes the file; it may look facts up in the mission's applications first."""
     from ..ai.agents import cowriter
 
     return await cowriter.draft(mission, role, upstream=upstream, context=context, apps=apps or {},
-                                current=current, instruction=instruction)
+                                current=current, instruction=instruction, evidence=evidence)
 
 
 async def draft_mission_files(mission_id: str) -> None:
@@ -114,6 +120,9 @@ async def draft_mission_files(mission_id: str) -> None:
         kb_ids = (await db.execute(select(MissionApp.kb_id).where(MissionApp.mission_id == mission.id))).scalars().all()
         context = jira_context(mission) + await kb_context(db, list(kb_ids), mission.prompt)
         apps = await mission_apps(db, list(kb_ids))
+        from .media import mission_evidence
+
+        evidence = await mission_evidence(db, mission.id)  # what the author showed NoX, loaded once for every file
         files = {f.role: f for f in mission.files}
         upstream: dict[Role, str] = {}
         for role in ROLE_ORDER:
@@ -124,7 +133,7 @@ async def draft_mission_files(mission_id: str) -> None:
                 await record(db, mission, "file.drafting", {"role": role.value})
                 try:
                     with telemetry.usage_scope(f"draft-file:{role.value}", org_id=mission.org_id, mission_id=mission.id) as usage:
-                        md = await generate_file(mission, role, upstream, context, apps=apps)
+                        md = await generate_file(mission, role, upstream, context, apps=apps, evidence=evidence)
                 except Exception as e:
                     logger.exception(f"drafting {mission.key}/{role.value} failed")
                     f.status = SpecStatus.empty if role != mission.created_as_role else SpecStatus.draft

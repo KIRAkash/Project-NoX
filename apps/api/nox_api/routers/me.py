@@ -17,6 +17,8 @@ class RoleUpdate(BaseModel):
 
 
 async def _me_payload(db: AsyncSession, user: User) -> dict:
+    from ..ai.config import backend
+
     visible = await visible_org_ids(db, user)
     orgs = (await db.execute(select(Org).where(Org.id.in_(visible)).order_by(Org.name))).scalars().all() if visible else []
     return {
@@ -26,6 +28,7 @@ async def _me_payload(db: AsyncSession, user: User) -> dict:
         "photoUrl": user.photo_url,
         "role": user.last_role.value if user.last_role else None,
         "capabilities": sorted(c.value for c in ACCESS[user.last_role]) if user.last_role else [],
+        "aiBackend": backend(),  # "local" hides video and voice capture (NoX Local reads images only)
         "orgs": [{"id": str(o.id), "name": o.name, "slug": o.slug, "parentOrgId": str(o.parent_org_id) if o.parent_org_id else None} for o in orgs],
     }
 

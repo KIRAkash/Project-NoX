@@ -34,9 +34,10 @@ apps/web/                         Next.js 15, React 19, TypeScript, Tailwind 3
   app/(product)/app/[role]/       the product, scoped to the acting seat (impact/ is the flight recorder)
     page.tsx                      Mission control (waiting / in flight / coming back)
     atlas/                        org canvas, onboarding (new/), app page (apps/[kbId]/), connectors/
-    missions/                     list, new/, [key]/ (tabs per spec file, Jira & PRs panel, timeline)
+    missions/                     list, new/, [key]/ (tabs per spec file, Evidence tab, Jira & PRs panel, timeline)
   components/app/                 shell, ui (Panel, PageHeader, KbStatusChip, FEED_LIST…), spec-editor,
-                                  verify-panel, contract-map, markdown, planet(-character)
+                                  verify-panel, contract-map, markdown, planet(-character),
+                                  media/ (Show NoX: capture bar, recorders, annotator, player, capture card, chips)
   lib/app/                        api client, auth (Firebase), roles, nav, types, SSE stream, useApi
   lib/docs.ts                     docs chapter manifest
   content/docs/                   the user docs (Markdown, one file per chapter)
@@ -50,9 +51,10 @@ apps/api/nox_api/                 FastAPI, Python 3.12, SQLAlchemy 2 async, Alem
                                   okf (Open Knowledge Format: frontmatter, folder indexes, log, conformance)
   connectors/                     github, confluence, jira, notion, slack, file upload (read side)
   integrations/                   atlassian + jira write client (typed errors, retries)
-  missions/                       templates, personas, drafting, cowrite, verification, gitsync, jira_sync, prs, context, events
-  routers/                        orgs, kb, missions, jira, cli, webhooks, integrations, sources, me
-  services/                       search (hybrid), sse, gitops, storage (local/GCS), pins, discovery,
+  missions/                       templates, personas, drafting, cowrite, verification, gitsync, jira_sync, prs, context, events,
+                                  media (Show NoX: perceive, ground, seat views, evidence)
+  routers/                        orgs, kb, missions, media, jira, cli, webhooks, integrations, sources, me
+  services/                       search (hybrid), sse, gitops, storage (local/GCS), media_storage (signed URLs), pins, discovery,
                                   shield (Model Armor + DLP), analytics (BigQuery flight recorder), scope (token → visible apps)
   interop/                        mcp_server (NoX tools over MCP at /mcp), a2a (Ask agent over A2A at /a2a/ask)
   workers/                        Celery tasks + dispatcher (celery | in_process | auto)
@@ -61,9 +63,9 @@ apps/api/nox_api/                 FastAPI, Python 3.12, SQLAlchemy 2 async, Alem
 apps/api/alembic/                 migrations (0005 adds pgvector chunks for search)
 apps/api/tests/                   pytest; tests/ai_fakes.py fakes ADK/Gemini for agent tests
 packages/nox-cli/                 `nox` CLI (bin/nox.mjs, no deps) + integrations/ for antigravity, cursor, codex, copilot, claude
-scripts/                          deploy_gcp.sh, bench_kb.py, eval_ask.py
+scripts/                          deploy_gcp.sh, bench_kb.py, eval_ask.py, eval_media.py
 docs/                             design docs and IMPLEMENTATION_PLAN.md (history and decisions)
-demo/                             the Apex demo codebases and mock sources
+demo/                             the Apex demo codebases, mock sources, and screens/ (mock UI for Show NoX)
 ```
 
 ## The AI layer (`apps/api/nox_api/ai/`)
@@ -97,6 +99,7 @@ Search (`services/search.py`): pages chunked at `##`, embedded with `gemini-embe
 | Refine / chat | `POST …/refine`, `POST …/chat` | `missions/cowrite.py` → co-writer agent; one version per turn; `POST …/revert` undoes |
 | Complete / verify | `POST …/complete`, `PUT …/verification`, `POST …/verify` | `missions/verification.py` (checklist parse/write-back, `VERIFY_ORDER`) |
 | Jira | `routers/jira.py` | `missions/jira_sync.py` (status map, `[NoX]` tag + echo window loop protection) |
+| Show NoX (capture) | `POST /api/v1/media` → upload → `POST /media/{id}/complete` | `routers/media.py`; job `missions/media.py` `analyze_media` (Perceive → Shield → Ground → seat views); evidence into `drafting.build_prompt` and `cowrite.chat`; `compare_evidence` for Show it works |
 | PR guard | `/github/pr` webhook or `nox pr` | `missions/prs.py` + `agents/guard.py` |
 | CLI | `routers/cli.py` (device flow, context, search, read, kb push) | `packages/nox-cli/bin/nox.mjs` |
 | NoX Local | `nox kb build|sync|push|watch` | `nox_api/local.py` with `NOX_AI_BACKEND=local` |
@@ -123,7 +126,7 @@ npm run build:web
 - Two dev servers must not share `apps/web/.next`: starting a second `next dev` in the same folder corrupts the first one's build cache. Reuse the running server, or stop it and clear `.next`.
 - `WORKER_MODE=in_process` runs jobs inside the API (no Celery needed). `NOX_DEV_AUTH=true` enables the one-field local sign-in.
 - `uv run python -m nox_api.agents.okf check <kb-id>|--all` reports Open Knowledge Format conformance of stored knowledge bases; `backfill` converts ones built before OKF (stored copy only, no Git writes).
-- AI evals cost a few cents: `make eval` (Ask golden questions), `scripts/bench_kb.py <kb-id>` (build benchmark).
+- AI evals cost a few cents: `make eval` (Ask golden questions, then `scripts/eval_media.py` on the Show NoX captures in `demo/screens/captures/`), `scripts/bench_kb.py <kb-id>` (build benchmark).
 
 ## Conventions
 
