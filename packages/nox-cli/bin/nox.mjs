@@ -103,6 +103,16 @@ function openBrowser(url) {
   }
 }
 
+// Where each agent keeps MCP servers, and the shape of NoX's entry (Streamable HTTP + headers).
+function mcpConfigs(url, headers) {
+  return {
+    antigravity: { label: "Antigravity", path: join(homedir(), ".gemini", "config", "mcp_config.json"), entry: { serverUrl: url, headers } },
+    gemini: { label: "Gemini CLI", path: join(homedir(), ".gemini", "settings.json"), entry: { httpUrl: url, headers } },
+    claude: { label: "Claude Code", path: join(homedir(), ".claude.json"), entry: { type: "http", url, headers } },
+    cursor: { label: "Cursor", path: join(homedir(), ".cursor", "mcp.json"), entry: { url, headers } },
+  };
+}
+
 // ── commands ──────────────────────────────────────────────────────────────
 const commands = {
   async login() {
@@ -396,6 +406,50 @@ const commands = {
     } else throw new NoxError(2, "Usage: nox kb <build|sync|push|watch|status> [--app x] [--model gemma4:12b] [--push]");
   },
 
+  // ── Agents calling NoX over MCP ──
+  async mcp() {
+    const sub = rest[0] || "show";
+    if (!TOKEN) throw new NoxError(1, "Not signed in. Run: nox login  (the MCP settings carry your NoX token)");
+    const url = `${API}/mcp`;
+    const role = String(flags.role || "developer");
+    const headers = { Authorization: `Bearer ${TOKEN}`, "X-Nox-Role": role };
+    const configs = mcpConfigs(url, headers);
+    if (sub === "show" || sub === "config") {
+      if (flags.json) return console.log(JSON.stringify(Object.fromEntries(Object.entries(configs).map(([k, v]) => [k, v.entry])), null, 2));
+      console.log(`\n  NoX MCP server: ${cyan(url)}  ${dim(`(seat: ${role}; change with --role)`)}\n`);
+      for (const [name, c] of Object.entries(configs)) {
+        console.log(`${bold(c.label)}  ${dim(c.path)}`);
+        console.log(JSON.stringify({ mcpServers: { nox: c.entry } }, null, 2) + "\n");
+      }
+      console.log(dim(`Or let nox write it: nox mcp install <${Object.keys(configs).join("|")}>`));
+      return;
+    }
+    if (sub === "install") {
+      const target = rest[1];
+      const names = target === "all" ? Object.keys(configs) : [target];
+      if (!names.every((n) => configs[n])) throw new NoxError(2, `Usage: nox mcp install <${Object.keys(configs).join("|")}|all> [--role developer]`);
+      for (const n of names) {
+        const { path, entry } = configs[n];
+        let current = {};
+        if (existsSync(path)) {
+          try {
+            current = JSON.parse(readFileSync(path, "utf8") || "{}");
+          } catch {
+            throw new NoxError(1, `${path} isn't valid JSON; fix it or add the settings by hand (nox mcp).`);
+          }
+        }
+        // Merge: other servers and settings in the file are left exactly as they were.
+        const next = { ...current, mcpServers: { ...(current.mcpServers || {}), nox: entry } };
+        mkdirSync(dirname(path), { recursive: true });
+        writeFileSync(path, JSON.stringify(next, null, 2) + "\n", { mode: 0o600 });
+        console.log(green("✓"), `${configs[n].label}: ${path}`);
+      }
+      console.log(dim("Restart the agent (or reload its MCP servers) to pick up NoX's tools."));
+      return;
+    }
+    throw new NoxError(2, "Usage: nox mcp [--role <seat>] | nox mcp install <antigravity|gemini|claude|cursor|all>");
+  },
+
   help() {
     console.log(`
 ${bold("nox")} — NoX missions and knowledge bases, in your terminal and your coding agent
@@ -414,6 +468,8 @@ ${bold("nox")} — NoX missions and knowledge bases, in your terminal and your c
   ${bold("nox kb build")} [--push]            Build this repo's knowledge base locally with Gemma (code stays here)
   ${bold("nox kb sync")} [--push]             Update pages for new commits;  ${bold("nox kb watch")} does it on every commit
   ${bold("nox kb push")}                     Send the local pages to NoX (a KB pull request); ${bold("nox kb status")}
+  ${bold("nox mcp")} [--role developer]      MCP settings for Antigravity, Gemini CLI, Claude Code, Cursor
+  ${bold("nox mcp install")} <agent|all>     Write them into the agent's MCP settings (other servers kept)
   ${bold("nox config")} [set api <url>]
 
 ${dim(`api: ${API}   config: ${CONFIG_FILE}   --json on most commands`)}

@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..core.auth import Actor, Cap, assert_org_visible, require, visible_org_ids
+from ..core.auth import Actor, Cap, assert_org_visible, current_actor, require, visible_org_ids
 from ..db.database import get_db
 from ..db.models import KnowledgeBase, Membership, Org, OrgInterfaceContract, OrgInvite, User
 from ..db.schemas import KBCreate, KBResponse, OrgCreate, OrgResponse, OrgTreeNode
@@ -217,3 +217,26 @@ async def org_map(org_id: str, db: AsyncSession = Depends(get_db), actor: Actor 
         ],
         "links": [{"from": a, "to": b, "count": n} for (a, b), n in sorted(links.items(), key=lambda x: -x[1])],
     }
+
+
+@router.get("/{org_id}/impact")
+async def org_impact(org_id: UUID, days: int = 30, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
+    """The Impact page: measured flight times, send-backs, grounding and AI cost for an org and its teams.
+
+    Every seat may read it (the business seat has no SEE_ATLAS), as long as the org is theirs. From the BigQuery
+    views with NOX_ANALYTICS=bigquery, otherwise computed from Postgres.
+    """
+    from ..services import analytics
+
+    await assert_org_visible(db, actor.user, org_id)
+    days = max(1, min(days, 365))
+    visible = await visible_org_ids(db, actor.user)
+    parents = dict((await db.execute(select(Org.id, Org.parent_org_id))).all())
+    scope = []
+    for oid in visible:
+        node = oid
+        while node is not None and node != org_id:
+            node = parents.get(node)
+        if node == org_id:
+            scope.append(oid)
+    return await analytics.impact(db, scope, days)

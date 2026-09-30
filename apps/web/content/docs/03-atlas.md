@@ -72,6 +72,8 @@ While a build runs, the trajectory panel draws this graph and lights up each ste
 
 On the demo's market-data-gateway, this team writes 11 pages in 29 seconds using 12 model calls and 20k input tokens. The classic single-model pipeline, still available for comparison, took 252 seconds, 19 calls and 85k tokens on the same snapshot. Screenshots and diagrams in the sources are passed to Gemini as images, so an architecture diagram in Confluence becomes part of what the pages describe.
 
+**NoX Shield** screens every document before the agents read it. The flight log says how many documents were screened and names any that were withheld as a possible prompt injection. A withheld document is left out of the build, which carries on with the rest. On the application's page, the **Shielded** chip on the sources panel shows the count, and the engineering lead and developer can see which sources were withheld. See [NoX Shield](/docs/google-ai#nox-shield-model-armor-and-sensitive-data-protection).
+
 **If something fails**, the trajectory shows **Lost Signal** on the failing step. **Retry** resumes from that step, using the checkpoints saved along the way. **Restart** runs the whole build again.
 
 ## What a knowledge base contains: an Open Knowledge Format bundle

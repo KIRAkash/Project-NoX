@@ -348,8 +348,9 @@ function SourcesPanel({ app, canManage, onChanged }: { app: KbDetail; canManage:
       setBusy(false);
     }
   };
+  const shield = useApi<ShieldState>(`/api/v1/kb/${app.id}/shield?v=${encodeURIComponent(app.updatedAt ?? "")}`);
   return (
-    <Panel title="Sources">
+    <Panel title="Sources" action={<ShieldChip state={shield.data} />}>
       <ul className="space-y-3">
         {app.sourceUrls.map((s) => {
           const mon = app.sourceMonitors.find((m) => (m.sourceUrl || m.repoUrl) === s.url);
@@ -387,7 +388,35 @@ function SourcesPanel({ app, canManage, onChanged }: { app: KbDetail; canManage:
           </div>
         </form>
       )}
+      {shield.data && shield.data.withheld.length > 0 && (
+        <div className="mt-4 border-t border-hairline pt-3">
+          <p className="text-[12px] text-ink-muted">NoX Shield kept these out of every prompt (possible prompt injection or unsafe content):</p>
+          <ul className="mt-2 space-y-1.5">
+            {shield.data.withheld.map((w) => (
+              <li key={w.source} className="truncate text-[12px] text-[#F3A27E]" title={w.source}>
+                {w.source}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </Panel>
+  );
+}
+
+type ShieldState = { mode: "off" | "monitor" | "enforce"; screened: number; withheldCount: number; unscreened: number; withheld: { source: string; category: string; at: string | null }[] };
+
+/** "Shielded" on the sources panel: how many documents Model Armor screened and how many it withheld. */
+function ShieldChip({ state }: { state: ShieldState | null }) {
+  if (!state || state.mode === "off") return null;
+  const color = state.withheldCount ? "#F7B542" : "#5FD29F";
+  const label = state.withheldCount ? `Shielded · ${state.withheldCount} withheld` : `Shielded · ${state.screened}`;
+  const title = `NoX Shield (${state.mode}): ${state.screened} documents screened, ${state.withheldCount} withheld${state.unscreened ? `, ${state.unscreened} not screened` : ""}`;
+  return (
+    <span title={title} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em]" style={{ borderColor: `${color}55`, color }}>
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
+      {label}
+    </span>
   );
 }
 

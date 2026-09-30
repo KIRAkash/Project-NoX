@@ -19,8 +19,8 @@ export const CHAPTERS: Chapter[] = [
   { slug: "atlas", file: "03-atlas.md", group: "Use NoX", title: "Atlas", summary: "Organizations and teams, onboarding, living knowledge bases in Google's Open Knowledge Format, pinned corrections, Ask and the contract map." },
   { slug: "missions", file: "04-missions.md", group: "Use NoX", title: "Missions", summary: "Starting a change, the four spec files, writing with NoX, approving, sending back, Jira and Git." },
   { slug: "build-and-verify", file: "05-build-and-verify.md", group: "Use NoX", title: "Build and verify", summary: "The nox CLI, /nox in your coding agent, the PR guard, reverse verification and NoX Local." },
-  { slug: "integrations", file: "06-integrations.md", group: "Use NoX", title: "Integrations", summary: "GitHub, Jira, Confluence, Notion, Slack, uploads, Firebase and coding agents: what each does and how to set it up." },
-  { slug: "google-ai", file: "07-google-ai.md", group: "How it works", title: "Agentic AI on Google", summary: "The agent team on Google ADK and Gemini, knowledge in Google's Open Knowledge Format, hybrid search with Gemini embeddings, and Gemma for NoX Local." },
+  { slug: "integrations", file: "06-integrations.md", group: "Use NoX", title: "Integrations", summary: "GitHub, Jira, Confluence, Notion, Slack, uploads, Firebase, coding agents, MCP and A2A: what each does and how to set it up." },
+  { slug: "google-ai", file: "07-google-ai.md", group: "How it works", title: "Agentic AI on Google", summary: "The agent team on Google ADK and Gemini, knowledge in Google's Open Knowledge Format, hybrid search with Gemini embeddings, NoX Shield, the BigQuery flight recorder, and Gemma for NoX Local." },
   { slug: "architecture", file: "08-architecture.md", group: "How it works", title: "Architecture", summary: "The system, data model, state machine, background work, security, and deploying to Google Cloud." },
   { slug: "roadmap", file: "09-roadmap.md", group: "How it works", title: "Roadmap", summary: "What's next, and how NoX takes enterprise delivery to 10× and 100×." },
 ];

@@ -31,7 +31,7 @@ apps/web/                         Next.js 15, React 19, TypeScript, Tailwind 3
   app/page.tsx                    landing experience (three.js / GSAP)
   app/docs/                       product docs, rendered from content/docs/*.md
   app/(product)/login, choose-role, cli/authorize/[code]
-  app/(product)/app/[role]/       the product, scoped to the acting seat
+  app/(product)/app/[role]/       the product, scoped to the acting seat (impact/ is the flight recorder)
     page.tsx                      Mission control (waiting / in flight / coming back)
     atlas/                        org canvas, onboarding (new/), app page (apps/[kbId]/), connectors/
     missions/                     list, new/, [key]/ (tabs per spec file, Jira & PRs panel, timeline)
@@ -52,7 +52,9 @@ apps/api/nox_api/                 FastAPI, Python 3.12, SQLAlchemy 2 async, Alem
   integrations/                   atlassian + jira write client (typed errors, retries)
   missions/                       templates, personas, drafting, cowrite, verification, gitsync, jira_sync, prs, context, events
   routers/                        orgs, kb, missions, jira, cli, webhooks, integrations, sources, me
-  services/                       search (hybrid), sse, gitops, storage (local/GCS), pins, discovery
+  services/                       search (hybrid), sse, gitops, storage (local/GCS), pins, discovery,
+                                  shield (Model Armor + DLP), analytics (BigQuery flight recorder), scope (token → visible apps)
+  interop/                        mcp_server (NoX tools over MCP at /mcp), a2a (Ask agent over A2A at /a2a/ask)
   workers/                        Celery tasks + dispatcher (celery | in_process | auto)
   local.py                        NoX Local entry point (Gemma)
   demo/                           seed the Apex demo org, reset missions, push demo repos
@@ -98,6 +100,9 @@ Search (`services/search.py`): pages chunked at `##`, embedded with `gemini-embe
 | PR guard | `/github/pr` webhook or `nox pr` | `missions/prs.py` + `agents/guard.py` |
 | CLI | `routers/cli.py` (device flow, context, search, read, kb push) | `packages/nox-cli/bin/nox.mjs` |
 | NoX Local | `nox kb build|sync|push|watch` | `nox_api/local.py` with `NOX_AI_BACKEND=local` |
+| MCP / A2A | `/mcp`, `/a2a/ask` (token-gated) | `interop/mcp_server.py`, `interop/a2a.py`; scope from `services/scope.py` |
+| Shield | ingest, Ask, chat, new mission, pre-commit | `services/shield.py` (`screen_prompt`, `guard_source`, `assert_pages_clean`); findings in `shield_findings` |
+| Impact | `GET /api/v1/orgs/{id}/impact`, `…/missions/{key}/flight` | `services/analytics.py` (BigQuery or Postgres), views in `services/analytics_views.sql` |
 
 Mission stages: `business → product → engineering → developer → build → verifying → done`. Server-enforced in `routers/missions.py`; the UI only reflects it.
 

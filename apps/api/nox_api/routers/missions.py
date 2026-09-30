@@ -181,6 +181,10 @@ async def create_mission(body: MissionCreate, db: AsyncSession = Depends(get_db)
     if len(kbs) != len(set(body.app_ids)) or any(k.org_id not in visible for k in kbs):
         raise HTTPException(404, "One of those applications isn't in your orbit")
     primary = next(k for k in kbs if k.id == body.app_ids[0])
+    from ..services import shield
+
+    if (await shield.screen_prompt(body.prompt, where="mission_prompt", org_id=primary.org_id)).blocked:
+        raise HTTPException(422, "NoX Shield flagged this request as a possible prompt injection. Rephrase it in your own words and try again.")
 
     creator = actor.role
     for attempt in range(3):
@@ -267,6 +271,15 @@ async def list_missions(
 async def get_mission(key: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
     mission = await load_mission(db, actor, key)
     return mission_json(mission, await mission_apps(db, mission), with_bodies=True)
+
+
+@router.get("/{key}/flight")
+async def mission_flight(key: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
+    """Flight recorder strip: time this mission has spent in each stage, read off its event log."""
+    from ..services.analytics import mission_flight as flight
+
+    mission = await load_mission(db, actor, key)
+    return {"key": mission.key, "stage": mission.stage.value, "stages": await flight(db, mission)}
 
 
 @router.get("/{key}/events")

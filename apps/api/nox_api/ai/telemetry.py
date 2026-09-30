@@ -3,7 +3,8 @@
 A `usage_scope()` wraps one unit of work (a KB build, an Ask turn, a co-writer turn). Every model response
 inside it adds to the same `Usage`, however many agents and parallel tasks are involved, because the scope
 lives in a context variable that asyncio tasks inherit. The totals go to the log as one structured line
-(which Cloud Logging indexes) and back to the caller for the UI.
+(which Cloud Logging indexes), back to the caller for the UI, and (outermost scopes only, so nothing is counted
+twice) to the flight recorder's `ai_usage` table, tagged with the org, mission or KB set by `tags()`.
 """
 
 from __future__ import annotations
@@ -31,6 +32,7 @@ class Usage:
     started: float = field(default_factory=time.monotonic)
     seconds: float = 0.0
     models: dict[str, int] = field(default_factory=dict)
+    tags: dict = field(default_factory=dict)     # org_id / mission_id / kb_id, plus facts like `citations`
 
     def add_response(self, usage_metadata, model: str | None = None) -> None:
         """Count one model response (anything with google-genai usage metadata)."""
@@ -52,9 +54,15 @@ class Usage:
         self.seconds = round(time.monotonic() - self.started, 2)
         return self
 
+    def tokens(self) -> dict:
+        """Token counts for event payloads (the Postgres side of the AI-cost numbers)."""
+        return {"input": self.input_tokens, "cached": self.cached_tokens, "output": self.output_tokens,
+                "thinking": self.thinking_tokens}
+
     def summary(self) -> dict:
         d = asdict(self)
         d.pop("started")
+        d.pop("tags")
         d["cached_share"] = round(self.cached_share, 3)
         return d
 
@@ -72,6 +80,17 @@ def _k(n: int) -> str:
 
 
 _current: contextvars.ContextVar[Usage | None] = contextvars.ContextVar("nox_ai_usage", default=None)
+_tags: contextvars.ContextVar[dict | None] = contextvars.ContextVar("nox_ai_tags", default=None)
+
+
+@contextmanager
+def tags(**values):
+    """Tag every usage scope opened inside (e.g. `tags(org_id=…, mission_id=…)` around a co-writer turn)."""
+    token = _tags.set({**(_tags.get() or {}), **{k: str(v) for k, v in values.items() if v is not None}})
+    try:
+        yield
+    finally:
+        _tags.reset(token)
 
 
 def current() -> Usage | None:
@@ -79,10 +98,10 @@ def current() -> Usage | None:
 
 
 @contextmanager
-def usage_scope(label: str):
+def usage_scope(label: str, **scope_tags):
     """Collect usage for everything inside; nested scopes also count toward their parent."""
     parent = _current.get()
-    usage = Usage(label=label)
+    usage = Usage(label=label, tags={**(_tags.get() or {}), **{k: str(v) for k, v in scope_tags.items() if v is not None}})
     token = _current.set(usage)
     try:
         yield usage
@@ -95,6 +114,24 @@ def usage_scope(label: str):
             for m, n in usage.models.items():
                 parent.models[m] = parent.models.get(m, 0) + n
         logger.info(json.dumps({"event": "nox.ai.usage", **usage.summary()}))
+        if parent is None:
+            _to_flight_recorder(usage)
+
+
+def _to_flight_recorder(usage: Usage) -> None:
+    try:
+        from ..services import analytics
+
+        analytics.emit("ai_usage", {
+            **{k: usage.tags.get(k) for k in ("org_id", "mission_id", "kb_id")},
+            "label": usage.label, "calls": usage.calls, "input_tokens": usage.input_tokens,
+            "cached_tokens": usage.cached_tokens, "output_tokens": usage.output_tokens,
+            "thinking_tokens": usage.thinking_tokens, "embedded_tokens": usage.embedded_tokens,
+            "tool_calls": usage.tool_calls, "seconds": usage.seconds, "models": json.dumps(usage.models),
+            "citations": int(usage.tags["citations"]) if "citations" in usage.tags else None,
+        })
+    except Exception:  # the flight recorder never breaks AI work
+        logger.debug("ai_usage not recorded", exc_info=True)
 
 
 def record_response(usage_metadata, model: str | None = None) -> None:

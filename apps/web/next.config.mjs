@@ -24,6 +24,9 @@ const nextConfig = {
     return [
       { source: "/api/v1/:path*", destination: `${api}/api/v1/:path*` },
       { source: "/healthz", destination: `${api}/healthz` },
+      // Agents can use the web origin too: MCP and A2A are proxied like the API.
+      { source: "/mcp", destination: `${api}/mcp` },
+      { source: "/a2a/:path*", destination: `${api}/a2a/:path*` },
     ];
   },
 };
