@@ -8,6 +8,8 @@ import { APPS } from "@/lib/content";
 import { Accent, Check } from "@/components/landing/primitives";
 import { LiquidMetalLink } from "@/components/liquid-metal/liquid-metal";
 import SpecBook, { BOOK_SPAN, type SpecBookHandle } from "@/components/sections/spec-book/spec-book";
+import { REST_TIMES } from "@/components/sections/spec-book/timeline";
+import { gateScroll, type ScrollGate } from "@/lib/scroll-gate";
 import ExperienceScene, {
   SUN_R,
   CAM_REST_Z,
@@ -58,6 +60,8 @@ export default function NoxExperience() {
   const nLetterRef = useRef<HTMLSpanElement>(null);
   const xLetterRef = useRef<HTMLSpanElement>(null);
   const textPanelRef = useRef<HTMLDivElement>(null);
+  // the pitch's one-time arrival animates this inner layer, so it can never fight the scrub over the panel's own opacity
+  const pitchInnerRef = useRef<HTMLDivElement>(null);
   const mapPanelRef = useRef<HTMLDivElement>(null);
   const sourcesPanelRef = useRef<HTMLDivElement>(null);
   const bookWrapRef = useRef<HTMLDivElement>(null);
@@ -73,6 +77,8 @@ export default function NoxExperience() {
   const arrivedRef = useRef(false);
   const introTlRef = useRef<gsap.core.Timeline | null>(null);
   const mapTlRef = useRef<gsap.core.Timeline | null>(null);
+  // holds the scroll at each rest of the spec book, so one long flick turns one page
+  const gateRef = useRef<ScrollGate | null>(null);
 
   const rotRef = useRef<RotationDrive>({ yaw: 0, pitch: 0, vYaw: 0, vPitch: 0, dragging: false });
   const layoutRef = useRef<LayoutDrive>({ orbit: 1, planet: 1 });
@@ -168,12 +174,16 @@ export default function NoxExperience() {
     setupMapScroll();
 
     const panel = textPanelRef.current;
-    if (!panel) return;
+    const inner = pitchInnerRef.current;
+    if (!panel || !inner) return;
     if (prefersReducedMotion()) {
-      gsap.set(panel, { opacity: 1, x: 0 });
+      gsap.set([panel, inner], { opacity: 1, x: 0 });
       return;
     }
-    gsap.fromTo(panel, { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 1.1, ease: "power3.out", delay: 0.35 });
+    // The scrub owns the panel's opacity (it fades it out as soon as the
+    // visitor scrolls); the arrival only ever touches the inner layer, so a
+    // fast scroll during the arrival can't leave the pitch stuck on screen.
+    gsap.fromTo(inner, { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 1.1, ease: "power3.out", delay: 0.35 });
   };
 
   /** Three beats, one pin, one continuous scrub:
@@ -202,7 +212,7 @@ export default function NoxExperience() {
       scrollTrigger: {
         trigger: heroEl,
         start: "top top",
-        end: "+=6370",
+        end: "+=6030",
         pin: true,
         scrub: 0.3,
         anticipatePin: 1,
@@ -284,6 +294,15 @@ export default function NoxExperience() {
     }
     mapTlRef.current = tl;
 
+    // The scrub maps scroll linearly onto time, so each book rest is a fixed
+    // point in the pinned range; read live so a refresh moves them with it.
+    gateRef.current?.kill();
+    gateRef.current = gateScroll(() => {
+      const st = tl.scrollTrigger;
+      if (!st) return [];
+      return REST_TIMES.map((r) => st.start + (st.end - st.start) * ((BOOK_AT + r) / tl.duration()));
+    });
+
     // The pin spacer this just inserted changes the document's total
     // height, and the body-overflow lock above was only just lifted — both
     // can leave ScrollTrigger's very first measurement stale. One refresh
@@ -297,6 +316,7 @@ export default function NoxExperience() {
     const tl = mapTlRef.current;
     const st = tl?.scrollTrigger;
     if (!tl || !st) return;
+    gateRef.current?.pass();
     window.scrollTo({ top: st.start + (st.end - st.start) * (time / tl.duration()), behavior: "smooth" });
   };
 
@@ -425,6 +445,7 @@ export default function NoxExperience() {
 
   useEffect(() => {
     return () => {
+      gateRef.current?.kill();
       mapTlRef.current?.scrollTrigger?.kill();
       mapTlRef.current?.kill();
     };
@@ -502,7 +523,7 @@ export default function NoxExperience() {
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         onPointerLeave={endDrag}
-        className={`absolute inset-0 z-0 select-none ${arrived ? "touch-none" : ""} ${
+        className={`absolute inset-0 z-0 select-none ${arrived ? "touch-pan-y" : ""} ${
           arrived ? (dragging ? "cursor-grabbing" : "cursor-grab") : ""
         }`}
       >
@@ -569,20 +590,22 @@ export default function NoxExperience() {
           arrived ? "h-[40%] lg:h-full lg:w-[42%] lg:pointer-events-auto" : "h-full"
         }`}
       >
-        <span className="mb-[20px] flex items-center gap-3">
-          <span className="block h-px w-[22px] bg-[rgba(247,181,66,.7)]" />
-          <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-nox">
-            Enterprise delivery
+        <div ref={pitchInnerRef} className="opacity-0">
+          <span className="mb-[20px] flex items-center gap-3">
+            <span className="block h-px w-[22px] bg-[rgba(247,181,66,.7)]" />
+            <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-nox">
+              Enterprise delivery
+            </span>
           </span>
-        </span>
-        <h1 className="max-w-[560px] text-[32px] font-semibold leading-[1.06] tracking-[-0.024em] text-ink sm:text-[44px] lg:text-[52px] [text-wrap:balance]">
-          One <Accent>sentence</Accent>, shipped across the enterprise.
-        </h1>
-        <p className="mt-[22px] max-w-[480px] text-[15px] leading-[1.62] text-ink-muted lg:text-base [text-wrap:pretty]">
-          Hundreds of applications, dozens of teams, contracts no one sees in full. NoX keeps a living map of
-          that estate and carries each change from a business user&rsquo;s first sentence to shipped software
-          &mdash; across every team and system it touches.
-        </p>
+          <h1 className="max-w-[560px] text-[32px] font-semibold leading-[1.06] tracking-[-0.024em] text-ink sm:text-[44px] lg:text-[52px] [text-wrap:balance]">
+            One <Accent>sentence</Accent>, shipped across the enterprise.
+          </h1>
+          <p className="mt-[22px] max-w-[480px] text-[15px] leading-[1.62] text-ink-muted lg:text-base [text-wrap:pretty]">
+            Hundreds of applications, dozens of teams, contracts no one sees in full. NoX keeps a living map of
+            that estate and carries each change from a business user&rsquo;s first sentence to shipped software
+            &mdash; across every team and system it touches.
+          </p>
+        </div>
       </div>
 
       {/* the map pitch — stacked exactly on top of the opening pitch above;

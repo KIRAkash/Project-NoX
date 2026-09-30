@@ -2,7 +2,9 @@
  * The landing's spec book: one mission, NOX-1 on mini-auth-service, written
  * page by page by the four seats with NoX beside each, then locked, sent for
  * development and returned verified. Pages are realistic, detailed spec
- * files in Markdown; blocks marked `nox` are the ones NoX drafted.
+ * files in Markdown; blocks marked `nox` are the ones NoX drafted. Each page
+ * opens with the seat's one plain-language request, and the page fills in
+ * section by section from it.
  */
 
 import type { RoleId } from "@/lib/app/roles";
@@ -17,7 +19,7 @@ export type BlockKind = "meta" | "h1" | "h2" | "p" | "li" | "check" | "code";
 /** One Markdown block. Inline `code` and [[kb:…]] citations are styled when drawn. */
 export type Block = { kind: BlockKind; text: string; by: "person" | "nox" };
 
-export type BookPage = { role: RoleId; file: string; blocks: Block[] };
+export type BookPage = { role: RoleId; file: string; prompt: string; blocks: Block[] };
 
 const person = (kind: BlockKind, text: string): Block => ({ kind, text, by: "person" });
 const nox = (kind: BlockKind, text: string): Block => ({ kind, text, by: "nox" });
@@ -26,6 +28,7 @@ export const BOOK_PAGES: BookPage[] = [
   {
     role: "business",
     file: "01-business.md",
+    prompt: "Stop people guessing their way into customer accounts.",
     blocks: [
       person("meta", "status: approved · seat: business user · mission: NOX-1 · version 3"),
       person("h1", BOOK_TITLE),
@@ -62,6 +65,7 @@ export const BOOK_PAGES: BookPage[] = [
   {
     role: "product",
     file: "02-product.md",
+    prompt: "Lock the account after a few wrong passwords, without tipping off attackers.",
     blocks: [
       person("meta", "status: approved · seat: product owner · builds on: 01-business.md · version 4"),
       person("h1", "Product spec"),
@@ -101,6 +105,7 @@ export const BOOK_PAGES: BookPage[] = [
   {
     role: "engineering",
     file: "03-engineering.md",
+    prompt: "Keep it inside the auth service and don't break the login contract.",
     blocks: [
       person("meta", "status: approved · seat: engineering lead · builds on: 02-product.md · version 2"),
       person("h1", "Engineering design"),
@@ -138,6 +143,7 @@ export const BOOK_PAGES: BookPage[] = [
   {
     role: "developer",
     file: "04-developer.md",
+    prompt: "Plan the build with tests, and ship it behind a flag.",
     blocks: [
       person("meta", "status: approved · seat: developer · builds on: 03-engineering.md · version 2"),
       person("h1", "Build plan"),
@@ -173,3 +179,6 @@ export const BOOK_PAGES: BookPage[] = [
     ],
   },
 ];
+
+/** A page's sections: its title, then one per `##` heading. They appear one at a time. */
+export const sectionCount = (page: BookPage) => page.blocks.filter((b) => b.kind === "h1" || b.kind === "h2").length;

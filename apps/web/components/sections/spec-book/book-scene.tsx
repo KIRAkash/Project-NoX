@@ -7,7 +7,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { gsap } from "@/lib/motion";
 import { BOOK_PAGES } from "@/lib/spec-book";
 import { drawBackCover, drawCover, drawSpecPage, drawStatus, layoutPage, makeCanvas, readFonts, type Fonts } from "./draw";
-import { bookState } from "./timeline";
+import { bookState, PROMPT_SHARE } from "./timeline";
 
 /*
  * The spec book in three.js: a cover and one leaf per spec file, hinged at
@@ -200,7 +200,6 @@ export default function BookScene({
   const fontsRef = useRef<Fonts | null>(null);
   const stepRef = useRef(-1);
   const keys = useRef<string[]>([]);
-  const lastReveal = useRef<{ chars: number; at: number }>({ chars: -1, at: 0 });
   const tilt = useRef({ x: 0, y: 0 });
   // when each page's approval began (clock seconds), or null while it isn't approved
   const stampAt = useRef<(number | null)[]>(BOOK_PAGES.map(() => null));
@@ -336,22 +335,21 @@ export default function BookScene({
     }
     let impact = 0;
     BOOK_PAGES.forEach((_, i) => {
-      const total = layoutPage(book.canvases.fronts[i].getContext("2d")!, i, fonts).total;
-      const chars = Math.round(s.written[i] * total);
-      const cursor = s.writing === i;
-      if (cursor && chars !== lastReveal.current.chars) lastReveal.current = { chars, at: clock };
-      // the caret blinks only once the writing pauses (the visitor stopped scrolling)
-      const blink = cursor && clock - lastReveal.current.at > 0.4 && Math.floor(clock * 2.2) % 2 === 1;
-      const approved = s.written[i] >= 1 && (i < BOOK_PAGES.length - 1 || s.lastApproved);
+      const units = layoutPage(book.canvases.fronts[i].getContext("2d")!, i, fonts).sections.length;
+      // the request takes the first share of the page's writing; the sections split the rest
+      const w = s.written[i];
+      const shown = w < PROMPT_SHARE ? w / PROMPT_SHARE : 1 + ((w - PROMPT_SHARE) / (1 - PROMPT_SHARE)) * units;
+      const writing = s.writing === i;
+      const approved = w >= 1 && (i < BOOK_PAGES.length - 1 || s.lastApproved);
       if (!approved) stampAt.current[i] = null;
       else if (stampAt.current[i] === null) stampAt.current[i] = clock;
       const at = stampAt.current[i];
       const stamp = at === null ? 0 : Math.min(1, (clock - at) / STAMP_SECONDS);
       if (stamp > 0.55 && stamp < 0.8) impact = Math.max(impact, Math.sin(((stamp - 0.55) / 0.25) * Math.PI));
-      const key = `${chars}|${cursor ? 1 : 0}|${blink ? 1 : 0}|${Math.round(stamp * 40)}`;
+      const key = `${Math.round(shown * 24)}|${writing ? 1 : 0}|${Math.round(stamp * 40)}`;
       if (keys.current[i + 1] !== key) {
         keys.current[i + 1] = key;
-        drawSpecPage(book.canvases.fronts[i], i, chars, fonts, { cursor, blink, stamp });
+        drawSpecPage(book.canvases.fronts[i], i, shown, fonts, { writing, stamp });
         book.tex.fronts[i].needsUpdate = true;
       }
     });

@@ -13,7 +13,8 @@ import { BOOK_SPAN, STEP_TIMES } from "./timeline";
 
 /*
  * The spec-driven beat of the landing: one spec book, written page by page
- * by the four seats with NoX, then locked, sent for development and returned
+ * by the four seats with NoX (each page starts from the seat's one-line
+ * request and fills in section by section), then locked, sent for development and returned
  * verified. The landing's pinned scrub nests `build()`'s timeline, which
  * only moves `timeRef`; the scene derives everything else from it.
  */
@@ -22,7 +23,7 @@ export { BOOK_SPAN };
 
 const CAPTIONS = [
   "A new requirement opens its spec book.",
-  ...BOOK_PAGES.map((p) => `${ROLE_BY_ID[p.role].name} writes ${p.file}, with NoX.`),
+  ...BOOK_PAGES.map((p) => `${ROLE_BY_ID[p.role].name} asks for one thing. NoX drafts ${p.file} from it, section by section.`),
   "Every seat signed. The book is locked.",
   "Sent for development.",
   "Back from the build, verified by every seat.",

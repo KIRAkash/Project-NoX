@@ -2,31 +2,46 @@
  * The spec book's whole performance as one pure function of time, so the
  * landing's scroll scrub can move it forwards and backwards exactly:
  *
- *   appear → cover opens → each seat writes its page with NoX, and the page
- *   turns → the book closes → a lock band seals it → it's sent for
- *   development → it comes back stamped built and verified.
+ *   appear → cover opens → on each page the seat's one-line request shows
+ *   first, then the spec fills in section by section (NoX's and the seat's
+ *   own), and the page turns → the book closes → a lock band seals it →
+ *   it's sent for development → it comes back stamped built and verified.
  */
 
 import { BOOK_PAGES } from "@/lib/spec-book";
 
-export const BOOK_SPAN = 3.6;
+export const BOOK_SPAN = 3.22;
 
 const PAGES = BOOK_PAGES.length;
-const WRITE_AT = (i: number) => 0.45 + i * 0.62;
-const WRITE_LEN = 0.42;
-const TURN_AT = (i: number) => WRITE_AT(i) + 0.43;
-const TURN_LEN = 0.19;
-const CLOSE_AT = 2.82;
+const WRITE_AT = (i: number) => 0.45 + i * 0.52;
+const WRITE_LEN = 0.34;
+/** The first share of each page's writing shows only the seat's request. */
+export const PROMPT_SHARE = 0.16;
+const TURN_AT = (i: number) => WRITE_AT(i) + 0.35;
+const TURN_LEN = 0.17;
+const CLOSE_AT = 2.44;
 const CLOSE_LEN = 0.14;
-export const LOCK_AT = 3.04;
-const SEND_AT = 3.16;
-export const RETURN_AT = 3.32;
+export const LOCK_AT = 2.66;
+const SEND_AT = 2.78;
+export const RETURN_AT = 2.94;
 
 /** Where each caption / progress step starts, for the seat buttons to jump to. */
 export const STEP_TIMES = [
   ...BOOK_PAGES.map((_, i) => WRITE_AT(i) + WRITE_LEN - 0.02),
   LOCK_AT + 0.1,
   BOOK_SPAN - 0.05,
+];
+
+/**
+ * Where the story rests: the first request on the open book, each page fully
+ * written, the locked book, the verified book. The landing holds the scroll
+ * at each one, so a long flick moves the story one rest at a time.
+ */
+export const REST_TIMES = [
+  WRITE_AT(0) + WRITE_LEN * PROMPT_SHARE,
+  ...BOOK_PAGES.map((_, i) => WRITE_AT(i) + WRITE_LEN + 0.005),
+  LOCK_AT + 0.1,
+  BOOK_SPAN - 0.02,
 ];
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -39,7 +54,7 @@ export type BookState = {
   appear: number;
   /** Turn angle of the cover (0) and each page leaf (1…n), 0 = closed on the right, π = open on the left. */
   angles: number[];
-  /** Characters revealed on each page, as a 0–1 share of its text. */
+  /** How far each page is written, 0–1: the request first, then its sections in order. */
   written: number[];
   /** The page currently being written, or −1. */
   writing: number;

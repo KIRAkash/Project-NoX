@@ -5,8 +5,9 @@
  * pages of cool star-chart paper (a faint dot grid, an orbit watermark)
  * carrying the spec files in dense Markdown.
  *
- * Page text is laid out once per page into positioned runs; a redraw only
- * replays those runs up to the reveal count, so writing live is cheap.
+ * Page text is laid out once per page into positioned runs grouped into
+ * sections; a redraw only replays them, fading in the newest section, so
+ * writing live is cheap.
  */
 
 import { ROLES, ROLE_BY_ID, type RoleId } from "@/lib/app/roles";
@@ -23,7 +24,7 @@ const NOX_GOLD = "#D99A2B";
 const CITE = "#2F67B1";
 const SPACE_INK = "#ECEFF8";
 const MARGIN = 76;
-const TOP = 214;
+const PROMPT_TOP = 206;
 const BOTTOM = TEX_H - 96;
 
 export type Fonts = { sans: string; mono: string; display: string };
@@ -260,7 +261,12 @@ type Run = { x: number; y: number; text: string; font: string; size: number; col
 type Rule = { y0: number; y1: number; start: number };
 type Box = { x: number; y: number; start: number };
 type Panel = { y0: number; y1: number; start: number };
-export type PageLayout = { runs: Run[]; rules: Rule[]; boxes: Box[]; panels: Panel[]; total: number; authorAt: { start: number; by: Block["by"] }[] };
+type Section = { start: number; y: number; by: Block["by"] };
+type Prompt = { lines: string[]; y: number; h: number };
+export type PageLayout = { runs: Run[]; rules: Rule[]; boxes: Box[]; panels: Panel[]; total: number; sections: Section[]; prompt: Prompt };
+
+const PROMPT_SIZE = 21;
+const PROMPT_LEAD = 29;
 
 const STYLE: Record<BlockKind, { size: number; weight: number; lead: number; before: number; after: number; marker: string }> = {
   meta: { size: 14.5, weight: 500, lead: 21, before: 0, after: 10, marker: "" },
@@ -295,11 +301,26 @@ export function layoutPage(ctx: CanvasRenderingContext2D, index: number, fonts: 
   const rules: Rule[] = [];
   const boxes: Box[] = [];
   const panels: Panel[] = [];
-  const authorAt: PageLayout["authorAt"] = [];
+  const sections: Section[] = [];
   let count = 0;
-  let y = TOP;
+
+  // the seat's one-line request, in a speech bubble above the spec it starts
+  ctx.font = `500 ${PROMPT_SIZE}px ${fonts.sans}`;
+  const lines: string[] = [];
+  let line = "";
+  for (const word of `“${page.prompt}”`.split(" ")) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(next).width > TEX_W - MARGIN * 2 - 48) {
+      lines.push(line);
+      line = word;
+    } else line = next;
+  }
+  lines.push(line);
+  const prompt = { lines, y: PROMPT_TOP, h: 58 + lines.length * PROMPT_LEAD };
+  let y = PROMPT_TOP + prompt.h + 30;
 
   for (const block of page.blocks) {
+    if (block.kind === "meta") continue; // the header already says whose file it is
     const st = STYLE[block.kind];
     if (y + st.before + st.lead > BOTTOM) break; // never print past the footer
     y += st.before;
@@ -307,7 +328,8 @@ export function layoutPage(ctx: CanvasRenderingContext2D, index: number, fonts: 
     const left = MARGIN + indent;
     const right = TEX_W - MARGIN;
     const blockTop = y;
-    authorAt.push({ start: count, by: block.by });
+    const blockStart = count;
+    if (block.kind === "h1" || block.kind === "h2") sections.push({ start: count, y: y - st.before, by: block.by });
 
     if (block.kind === "code") {
       const font = `${st.weight} ${st.size}px ${fonts.mono}`;
@@ -320,7 +342,7 @@ export function layoutPage(ctx: CanvasRenderingContext2D, index: number, fonts: 
         y += st.lead;
       }
       y += st.after + 8;
-      if (block.by === "nox") rules.push({ y0: blockTop, y1: y - st.after - 8, start: authorAt[authorAt.length - 1].start });
+      if (block.by === "nox") rules.push({ y0: blockTop, y1: y - st.after - 8, start: blockStart });
       continue;
     }
 
@@ -335,13 +357,8 @@ export function layoutPage(ctx: CanvasRenderingContext2D, index: number, fonts: 
     let x = left;
     for (const seg of segments(block.text)) {
       const size = seg.style === "code" ? st.size * 0.86 : seg.style === "cite" ? st.size * 0.74 : st.size;
-      const font =
-        block.kind === "meta"
-          ? `500 ${st.size}px ${fonts.mono}`
-          : seg.style === "text"
-            ? `${st.weight} ${st.size}px ${fonts.sans}`
-            : `500 ${size}px ${fonts.mono}`;
-      const color = block.kind === "meta" ? "rgba(19,26,44,.45)" : seg.style === "cite" ? CITE : block.kind === "h1" || block.kind === "h2" ? INK : INK_SOFT;
+      const font = seg.style === "text" ? `${st.weight} ${st.size}px ${fonts.sans}` : `500 ${size}px ${fonts.mono}`;
+      const color = seg.style === "cite" ? CITE : block.kind === "h1" || block.kind === "h2" ? INK : INK_SOFT;
       ctx.font = font;
       // code and citations never break; prose wraps on spaces
       const words = seg.style === "text" ? seg.text.split(/(?<= )/) : [seg.text];
@@ -358,14 +375,10 @@ export function layoutPage(ctx: CanvasRenderingContext2D, index: number, fonts: 
       }
     }
     y += st.lead + st.after;
-    if (block.kind === "meta") {
-      rules.push({ y0: -1, y1: -1, start: count }); // placeholder keeps author spans aligned
-      continue;
-    }
-    if (block.by === "nox") rules.push({ y0: blockTop + 4, y1: y - st.after - 6, start: authorAt[authorAt.length - 1].start });
+    if (block.by === "nox") rules.push({ y0: blockTop + 4, y1: y - st.after - 6, start: blockStart });
   }
 
-  const layout = { runs, rules: rules.filter((r) => r.y0 >= 0), boxes, panels, total: count, authorAt };
+  const layout = { runs, rules, boxes, panels, total: count, sections, prompt };
   layoutCache.set(index, layout);
   return layout;
 }
@@ -529,81 +542,115 @@ function signature(x: CanvasRenderingContext2D, px: number, py: number, seed: nu
 /* ---- the faces ---------------------------------------------------------- */
 
 /**
- * A spec page, `reveal` characters in. While the page is being written the
- * current author's cursor sits at the end of the text, with a name flag.
+ * A spec page, `shown` units in: unit 0 is the seat's request, then one unit
+ * per section, each fading in whole. While the page is being written a flag
+ * marks who added the newest section, NoX or the seat.
  * `stamp` (0–1) is the approval stamp coming down once the page is signed off.
  */
 export function drawSpecPage(
   c: HTMLCanvasElement,
   index: number,
-  reveal: number,
+  shown: number,
   fonts: Fonts,
-  opts: { cursor: boolean; blink: boolean; stamp: number },
+  opts: { writing: boolean; stamp: number },
 ) {
   const x = c.getContext("2d")!;
   x.drawImage(paper(), 0, 0);
   const page = BOOK_PAGES[index];
+  const def = ROLE_BY_ID[page.role];
   const L = layoutPage(x, index, fonts);
-  const status: PageStatus = opts.stamp > 0 ? "approved" : reveal > 0 ? "writing" : "waiting";
+  const status: PageStatus = opts.stamp > 0 ? "approved" : shown > 0 ? "writing" : "waiting";
   ownerHeader(x, fonts, index, status);
-  pageFooter(x, fonts, `${L.total.toLocaleString("en")} characters`);
+  pageFooter(x, fonts, `${L.sections.length} sections`);
 
-  for (const panel of L.panels) {
-    if (panel.start >= reveal) continue;
-    x.fillStyle = "rgba(47,72,130,.07)";
-    roundRect(x, MARGIN, panel.y0, TEX_W - MARGIN * 2, panel.y1 - panel.y0, 8);
+  // a section lands quickly once its turn comes, then stays
+  const fade = (u: number) => Math.min(1, Math.max(0, (shown - u) / 0.35));
+  const sectionOf = (start: number) => {
+    let k = 0;
+    while (k + 1 < L.sections.length && L.sections[k + 1].start <= start) k++;
+    return k;
+  };
+  const alphaAt = (start: number) => fade(1 + sectionOf(start));
+  const within = (start: number, draw: (a: number) => void) => {
+    const a = alphaAt(start);
+    if (a <= 0) return;
+    x.save();
+    x.globalAlpha = a;
+    x.translate(0, 10 * (1 - a));
+    draw(a);
+    x.restore();
+  };
+
+  const pa = fade(0);
+  if (pa > 0) {
+    const P = L.prompt;
+    x.save();
+    x.globalAlpha = pa;
+    x.translate(0, 10 * (1 - pa));
+    x.fillStyle = `${def.hue}24`;
+    roundRect(x, MARGIN - 14, P.y, TEX_W - MARGIN * 2 + 28, P.h, 18);
     x.fill();
-  }
-  for (const rule of L.rules) {
-    if (rule.start >= reveal) continue;
-    x.fillStyle = "rgba(217,154,43,.6)";
-    x.fillRect(MARGIN - 26, rule.y0, 3.5, rule.y1 - rule.y0);
-  }
-  for (const box of L.boxes) {
-    if (box.start >= reveal) continue;
-    x.strokeStyle = "rgba(19,26,44,.42)";
-    x.lineWidth = 2;
-    roundRect(x, box.x, box.y, 17, 17, 4);
-    x.stroke();
+    x.fillStyle = def.surface[2];
+    x.fillRect(MARGIN - 14, P.y + 16, 4, P.h - 32);
+    x.font = `600 14px ${fonts.mono}`;
+    x.fillText(`${def.name.toUpperCase()} ASKED NOX`, MARGIN + 12, P.y + 32);
+    x.font = `500 ${PROMPT_SIZE}px ${fonts.sans}`;
+    x.fillStyle = INK;
+    P.lines.forEach((l, k) => x.fillText(l, MARGIN + 12, P.y + 64 + k * PROMPT_LEAD));
+    x.restore();
   }
 
-  let end = { x: MARGIN, y: TOP + 26, h: 26 };
-  x.textBaseline = "alphabetic";
-  for (const run of L.runs) {
-    if (run.start >= reveal) break;
-    const text = run.text.slice(0, Math.max(0, reveal - run.start));
-    x.font = run.font;
-    const w = x.measureText(text).width;
-    if (run.style === "code" || run.style === "cite") {
-      x.fillStyle = run.style === "cite" ? "rgba(47,103,177,.1)" : "rgba(19,26,44,.07)";
-      roundRect(x, run.x - 5, run.y - run.size * 0.95, w + 10, run.size * 1.3, 4);
+  for (const panel of L.panels)
+    within(panel.start, () => {
+      x.fillStyle = "rgba(47,72,130,.07)";
+      roundRect(x, MARGIN, panel.y0, TEX_W - MARGIN * 2, panel.y1 - panel.y0, 8);
       x.fill();
-    }
-    x.fillStyle = run.color;
-    x.fillText(text, run.x, run.y);
-    end = { x: run.x + w, y: run.y, h: run.size };
-  }
+    });
+  for (const rule of L.rules)
+    within(rule.start, () => {
+      x.fillStyle = "rgba(217,154,43,.6)";
+      x.fillRect(MARGIN - 26, rule.y0, 3.5, rule.y1 - rule.y0);
+    });
+  for (const box of L.boxes)
+    within(box.start, () => {
+      x.strokeStyle = "rgba(19,26,44,.42)";
+      x.lineWidth = 2;
+      roundRect(x, box.x, box.y, 17, 17, 4);
+      x.stroke();
+    });
 
-  if (opts.cursor && reveal < L.total) {
-    let by: Block["by"] = "person";
-    for (const a of L.authorAt) if (a.start <= reveal) by = a.by;
-    const def = ROLE_BY_ID[page.role];
-    const color = by === "nox" ? NOX_GOLD : def.surface[2];
-    const label = by === "nox" ? "NoX" : def.name;
-    if (!opts.blink) {
-      x.fillStyle = color;
-      x.fillRect(end.x + 2, end.y - end.h * 0.95, 3, end.h * 1.2);
-    }
-    // the name flag hangs below the caret, over lines not yet written
+  x.textBaseline = "alphabetic";
+  for (const run of L.runs)
+    within(run.start, () => {
+      x.font = run.font;
+      const w = x.measureText(run.text).width;
+      if (run.style === "code" || run.style === "cite") {
+        x.fillStyle = run.style === "cite" ? "rgba(47,103,177,.1)" : "rgba(19,26,44,.07)";
+        roundRect(x, run.x - 5, run.y - run.size * 0.95, w + 10, run.size * 1.3, 4);
+        x.fill();
+      }
+      x.fillStyle = run.color;
+      x.fillText(run.text, run.x, run.y);
+    });
+
+  // who added the newest section: NoX drafting, or the seat's own input
+  const newest = Math.min(L.sections.length - 1, Math.ceil(shown - 1) - 1);
+  if (opts.writing && newest >= 0 && shown < L.sections.length + 1) {
+    const sec = L.sections[newest];
+    const a = fade(1 + newest);
+    const color = sec.by === "nox" ? NOX_GOLD : def.surface[2];
+    const label = sec.by === "nox" ? "NoX drafted" : `${def.name} added`;
+    x.save();
+    x.globalAlpha = a;
     x.font = `600 16px ${fonts.sans}`;
-    const lw = x.measureText(label).width + 16;
-    const fx = Math.min(end.x + 2, TEX_W - MARGIN - lw);
-    const fy = end.y + end.h * 0.35;
+    const lw = x.measureText(label).width + 20;
+    const fx = TEX_W - MARGIN - lw + 14;
     x.fillStyle = color;
-    roundRect(x, fx, fy, lw, 24, 5);
+    roundRect(x, fx, sec.y - 2, lw, 26, 13);
     x.fill();
     x.fillStyle = "#fff";
-    x.fillText(label, fx + 8, fy + 17);
+    x.fillText(label, fx + 10, sec.y + 16);
+    x.restore();
   }
 
   if (opts.stamp > 0) patch(x, fonts, TEX_W - MARGIN - 110, TEX_H - 210, page.role, 0.95, opts.stamp);
