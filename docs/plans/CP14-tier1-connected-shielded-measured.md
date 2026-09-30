@@ -298,7 +298,7 @@ In `deploy_gcp.sh`:
 
 ## Resume notes
 
-**2026-09-29: code done on `claude/project-thread-ymzt5d`.** `make test` and `make lint` pass. Live checks wait on the Cloud Run deploy.
+**2026-09-29: code done; merged with CP15 and CP16 on `nox/cp14-15-16-combined`.** `make test` and `make lint` pass. Live checks wait on the Cloud Run deploy.
 
 - **A2A spike: in.** ADK's `to_a2a` pieces (a2a-sdk 1.x) are wired by hand in `interop/a2a.py`: a token gate in front, a context var carrying the caller's scope, and a `before_agent_callback` that copies it into session state. Metadata in the request can't change scope (`tests/test_a2a.py`).
 - **MCP** uses `mcp` 2.x (`MCPServer`, the renamed FastMCP), Streamable HTTP, stateless, JSON responses. DNS-rebinding protection is off because the token gate sits in front and Cloud Run hosts vary. The session manager can run once per process, so each app lifespan builds a fresh server.

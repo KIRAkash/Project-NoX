@@ -426,7 +426,7 @@ _Not started. Depends on CP14 Part B (Shield) for Stage 2. If CP14 isn't done fi
 
 ## Resume notes
 
-**Status (2026-09-29): code done on branch `claude/project-thread-muni6k`; the live check on the deployed app is left.**
+**Status (2026-09-29): code done, merged with CP14 and CP16 on `nox/cp14-15-16-combined`; the live check on the deployed app is left.**
 
 - Migration is `0008_media_assets` (`media_assets` table, `spec_chat_messages.media_ids`), after CP14's `0007_shield_findings`.
 - Shield is CP14's real one: `screen_source` screens a capture's transcript and on-screen text with Model Armor and a block becomes `withheld`. `redact()` (kept from CP15's stub) masks emails, card numbers and phone numbers with regexes in every mode.
