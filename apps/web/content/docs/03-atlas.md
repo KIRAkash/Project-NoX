@@ -60,14 +60,19 @@ Each application's page shows its **Trajectory**, which updates live over server
 
 The **Flight log** under the trajectory records each step as it happens: every source read, the architecture map, every page written, lint results, contracts registered and the pull request opened. It scrolls within a fixed height, newest first.
 
-Behind **Compiling Stars** is a team of Gemini agents built with Google ADK:
+Behind **Compiling Stars** is a team of Gemini agents built with Google ADK, run as one ADK workflow graph:
 
 1. A **cartographer** reads the whole snapshot once and returns a typed architecture map: the overview, the components, every interface the application exposes or consumes, and a page plan that names the exact source files each page must be grounded in.
 2. **Page writers** run in parallel, one per planned page. Each gets only its own files, plus a shared prefix that Gemini caches implicitly across all the writers.
-3. A **reviewer** runs NoX's deterministic linter over every page and rewrites only the pages that fail.
-4. NoX then writes the result as an **Open Knowledge Format** bundle: frontmatter on every page, an index in every folder, and the dated change log.
+3. **Links**: NoX repairs every link between pages and weaves in links to the other applications this one talks to.
+4. A **quality gate** runs NoX's deterministic linter over every page. A **reviewer** rewrites only the pages that fail, and the gate checks them again. This loops up to twice (`NOX_REVIEW_ROUNDS`); a page that still fails is listed in the pull request for a person to fix.
+5. NoX then writes the result as an **Open Knowledge Format** bundle: frontmatter on every page, an index in every folder, and the dated change log.
+
+While a build runs, the trajectory panel draws this graph and lights up each step as it runs: the writers count pages as they finish, and the reviewer shows its round. When the build is done, the panel shows what it cost, for example **Built by NoX's agents · 31 calls · 412k tokens · 38% cached · 2m 14s**.
 
 On the demo's market-data-gateway, this team writes 11 pages in 29 seconds using 12 model calls and 20k input tokens. The classic single-model pipeline, still available for comparison, took 252 seconds, 19 calls and 85k tokens on the same snapshot. Screenshots and diagrams in the sources are passed to Gemini as images, so an architecture diagram in Confluence becomes part of what the pages describe.
+
+**NoX Shield** screens every document before the agents read it. The flight log says how many documents were screened and names any that were withheld as a possible prompt injection. A withheld document is left out of the build, which carries on with the rest. On the application's page, the **Shielded** chip on the sources panel shows the count, and the engineering lead and developer can see which sources were withheld. See [NoX Shield](/docs/google-ai#nox-shield-model-armor-and-sensitive-data-protection).
 
 **If something fails**, the trajectory shows **Lost Signal** on the failing step. **Retry** resumes from that step, using the checkpoints saved along the way. **Restart** runs the whole build again.
 

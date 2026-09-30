@@ -249,11 +249,15 @@ class SecretLeakError(RuntimeError):
 
 
 def assert_no_secrets(files: dict[str, str]) -> None:
-    """Refuse to commit KB content that trips the secret/PII screen."""
+    """Refuse to commit KB content that trips the secret/PII screen: the regexes always (offline and NoX Local),
+    then NoX Shield's Sensitive Data Protection check when Shield is on (services/shield.py)."""
     leaks = [i for i in check_secrets_and_pii(files) if i.severity == "error"]
     if leaks:
         where = ", ".join(sorted({i.file_path for i in leaks})[:5])
         raise SecretLeakError(f"Blocked commit: possible secrets in {where} ({leaks[0].message})")
+    from ..services import shield
+
+    shield.assert_pages_clean(files)
 
 
 def lint_summary_markdown(report: LintReport, max_items: int = 8) -> str:

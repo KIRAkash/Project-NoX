@@ -29,3 +29,6 @@ celerybeat-schedule*
 .claude/
 CLAUDE.md
 Claude.pdf
+
+# Show NoX golden captures (large; recorded locally)
+demo/screens/captures/

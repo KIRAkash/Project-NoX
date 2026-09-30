@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     NOX_LOCAL_THINK: bool = False                      # Gemma 4 thinking: better on hard repos, ~4× slower locally
     NOX_MAX_CONCURRENCY: int = 8                       # parallel model calls inside one pipeline run
     NOX_KB_BUILDER: str = "agents"                     # "agents" (cartographer + parallel writers + reviewer) or "classic"
+    NOX_KB_WORKFLOW: str = "graph"                     # agents builder as an ADK workflow graph, or "linear" (the pre-workflow orchestration, for the bench)
+    NOX_REVIEW_ROUNDS: int = 2                         # quality gate ⇄ reviewer rounds before the build moves on
+    NOX_CONTEXT_CACHE: bool = True                     # explicit Gemini context caches for Ask and co-writer conversations (ignored locally)
 
     # ── Gemma / Ollama (Local) ────────────────────────────────────────────────
     GEMMA_OLLAMA_URL: str = "http://localhost:11434"
@@ -117,6 +120,28 @@ class Settings(BaseSettings):
     NOX_COMMIT_SPECS: bool = True
     NOX_DEMO_ORG_SLUGS: str = ""                       # New users auto-join these orgs (e.g. "apex")
     NOX_DEV_AUTH: bool = False                         # Accept `Authorization: Dev <email>`; local dev only
+    NOX_PUBLIC_API_URL: str = ""                       # The API as agents reach it (MCP, A2A card); empty = WEBHOOK_BASE_URL
+
+    # ── NoX Shield (Model Armor + Sensitive Data Protection) ──────────────────
+    NOX_SHIELD: str = "off"                            # "off" | "monitor" (record only) | "enforce" (withhold / refuse)
+    NOX_SHIELD_TEMPLATE: str = "nox-shield"            # Model Armor template id, or its full resource name
+    NOX_SHIELD_LOCATION: str = "us-central1"           # Model Armor region (regional endpoint)
+
+    # ── Flight recorder (BigQuery) ────────────────────────────────────────────
+    NOX_ANALYTICS: str = "off"                         # "off" | "bigquery"
+    NOX_BQ_DATASET: str = "nox_analytics"
+
+    # ── Agents calling NoX (MCP, A2A) ─────────────────────────────────────────
+    NOX_MCP_RATE_LIMIT: int = 60                       # tool calls per minute per API token
+
+    # ── Show NoX (CP15): screenshots, recordings, video and voice ─────────────
+    NOX_MEDIA_MAX_VIDEO_MB: int = 200
+    NOX_MEDIA_MAX_AUDIO_MB: int = 50
+    NOX_MEDIA_MAX_IMAGE_MB: int = 10
+    NOX_MEDIA_MAX_VIDEO_S: int = 300                   # uploads; recordings made in NoX stop at 3 minutes
+    NOX_MEDIA_MAX_AUDIO_S: int = 600
+    NOX_MEDIA_PER_MISSION: int = 12
+    NOX_MEDIA_STAGE_TIMEOUT_S: int = 90                # a stage that runs longer marks the capture failed (Retry)
 
     # ── Local Mode Tuning ─────────────────────────────────────────────────────
     LOCAL_MAX_FILES: int = 150

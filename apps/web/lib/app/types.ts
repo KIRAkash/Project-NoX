@@ -83,7 +83,17 @@ export type SpecFile = {
   updatedAt: string | null;
   gitPath: string | null;
   markdown?: string;
-  verification: { items?: VerificationItem[]; verifiedAt?: string; verifiedBy?: string; result?: "verified" | "not_met" | null; note?: string; round?: number };
+  verification: {
+    items?: VerificationItem[];
+    verifiedAt?: string;
+    verifiedBy?: string;
+    result?: "verified" | "not_met" | null;
+    note?: string;
+    round?: number;
+    /** Show it works: what NoX saw in the "after" recording, per checklist item. Hints only; people tick. */
+    hints?: { index: number; hint: string; t?: number | null; seen?: boolean }[];
+    evidence?: { after: string[]; before: string[]; summary?: string; usage?: string };
+  };
 };
 
 export type MissionLink = { system: "jira" | "github_pr"; externalId: string; url: string | null; primary: boolean; state: Record<string, unknown> };
@@ -149,3 +159,54 @@ export const SPEC_STATUS_LABEL: Record<SpecStatus, string> = {
   approved: "Approved",
   stale: "Stale — upstream changed",
 };
+
+// ── Show NoX: captures ───────────────────────────────────────────────────────
+
+export type MediaKind = "image" | "screenshot" | "screen_recording" | "video" | "audio";
+export type MediaStatus = "uploading" | "analyzing" | "ready" | "failed" | "withheld" | "deleted";
+
+/** A capture as the acting seat sees it (the server leaves code out for the business and product seats). */
+export type MediaCapture = {
+  id: string;
+  kind: MediaKind;
+  label: string;
+  mime: string;
+  bytes: number;
+  durationS: number | null;
+  width: number | null;
+  height: number | null;
+  caption: string | null;
+  status: MediaStatus;
+  statusReason: string | null;
+  missionKey: string | null;
+  specRole: SpecFile["role"] | null;
+  uploadedAs: SpecFile["role"];
+  uploadedBy: string | null;
+  mine: boolean;
+  annotatedOf: string | null;
+  createdAt: string | null;
+  analyzedAt: string | null;
+  summary?: string;
+  moments?: { t: number; what: string }[];
+  problemTimes?: number[];
+  findings?: { ref: string; why: string }[];
+  kindOfRequest?: "bug" | "change" | "question" | "idea";
+  expected?: string | null;
+  actual?: string | null;
+  steps?: string[];
+  likely?: "bug" | "intended_behaviour" | "missing_feature" | "unclear";
+  apps?: { app: string; confidence: "high" | "medium" | "low"; why: string }[];
+  openQuestions?: string[];
+  suggestedRequest?: string;
+  explanation?: string | null;
+  code?: { app: string; location: string; snippet?: string; moment_t?: number | null }[];
+  contracts?: { app: string; identifier: string; direction: string }[];
+  usage?: string | null;
+  hasCaptions?: boolean;
+};
+
+/** "0:42" */
+export function fmtT(t: number | null | undefined): string {
+  const s = Math.max(0, Math.round(t ?? 0));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}

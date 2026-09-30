@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import json
 import logging
 import re
@@ -181,11 +182,26 @@ def append_log_entry(current_log: str, action: str, summary: str, details: list)
 # Synthesis / link-repair pass
 # ---------------------------------------------------------------------------
 
+_WIKILINK = re.compile(r"\[\[[^\]]*\]\]")
+
+
+def _outside_wikilinks(text: str, fn) -> str:
+    """Apply `fn` to the parts of `text` that aren't inside a [[wikilink]]."""
+    out, last = [], 0
+    for m in _WIKILINK.finditer(text):
+        out.append(fn(text[last:m.start()]))
+        out.append(m.group(0))
+        last = m.end()
+    out.append(fn(text[last:]))
+    return "".join(out)
+
+
 async def run_synthesis_pass(files: dict, plan: list, candidate_contracts: list = None) -> dict:
     """Post-compilation pass to verify and repair wikilinks across all compiled pages.
 
     Deterministically resolves wikilinks against the plan manifest, fixes leaf-only links,
     preserves valid cross-KB [[ap:...]] links, and automatically weaves matched cross-KB contracts.
+    Idempotent: running it twice gives the same files as running it once.
     """
     valid_targets = {"index"}
     leaf_to_full = {}
@@ -201,40 +217,6 @@ async def run_synthesis_pass(files: dict, plan: list, candidate_contracts: list 
         valid_targets.add(clean_path)
         leaf_name = clean_path.split("/")[-1]
         leaf_to_full[leaf_name] = clean_path
-
-    # Deterministic cross-KB link weaving for matched candidate contracts
-    if candidate_contracts:
-        for c in candidate_contracts:
-            app = getattr(c, "app_name", "") if not isinstance(c, dict) else c.get("app_name", "")
-            repo = getattr(c, "repo_name", "") if not isinstance(c, dict) else c.get("repo_name", "")
-            org_slug = getattr(c, "org_slug", "") if not isinstance(c, dict) else c.get("org_slug", "")
-            page = getattr(c, "page_path", "") if not isinstance(c, dict) else c.get("page_path", "")
-            anchor = getattr(c, "anchor_slug", "") if not isinstance(c, dict) else c.get("anchor_slug", "")
-            ident = getattr(c, "identifier", "") if not isinstance(c, dict) else c.get("identifier", "")
-            if not ident or not app:
-                continue
-
-            if not repo:
-                clean_app = re.sub(r'[\s_-]+', '-', re.sub(r'[^\w\s-]', '', app.lower().strip())).strip('-')
-                if org_slug:
-                    clean_org = re.sub(r'[\s_-]+', '-', re.sub(r'[^\w\s-]', '', org_slug.lower().strip())).strip('-')
-                    repo = f"kb-{clean_org}-{clean_app}"
-                else:
-                    repo = f"kb-{clean_app}"
-
-            clean_path = page.replace(".md", "")
-            link_target = f"ap:{repo}/{clean_path}"
-            if anchor:
-                link_target += f"#{anchor}"
-            wikilink_replacement = f"[[{link_target}|{app} ({ident})]]"
-
-            escaped_ident = re.escape(ident)
-            # Match backticked `ident` that is not already part of a [[wikilink]]
-            backtick_pattern = re.compile(rf"(?<!\[\[)`{escaped_ident}`(?!\]\])")
-            for path in list(files.keys()):
-                if path in ("AGENTS.md", ".nox/brief.md"):
-                    continue
-                files[path] = backtick_pattern.sub(wikilink_replacement, files[path])
 
     # Regex repair pass for all files (local, remote, and hybrid)
     pattern = re.compile(r'\[\[([^\]|#]+)(?:#([^\]|]+))?(?:\|([^\]]+))?\]\]')
@@ -271,6 +253,42 @@ async def run_synthesis_pass(files: dict, plan: list, candidate_contracts: list 
             return f"`{label or target}`"
 
         files[path] = pattern.sub(_repair_link, content)
+
+
+    # Deterministic cross-KB link weaving for matched candidate contracts. It runs after the repair so an unknown
+    # link the repair turned into a code span is woven now, not on the next pass: the pass stays idempotent,
+    # which matters because the workflow builder runs it again after every reviewer round.
+    if candidate_contracts:
+        for c in candidate_contracts:
+            app = getattr(c, "app_name", "") if not isinstance(c, dict) else c.get("app_name", "")
+            repo = getattr(c, "repo_name", "") if not isinstance(c, dict) else c.get("repo_name", "")
+            org_slug = getattr(c, "org_slug", "") if not isinstance(c, dict) else c.get("org_slug", "")
+            page = getattr(c, "page_path", "") if not isinstance(c, dict) else c.get("page_path", "")
+            anchor = getattr(c, "anchor_slug", "") if not isinstance(c, dict) else c.get("anchor_slug", "")
+            ident = getattr(c, "identifier", "") if not isinstance(c, dict) else c.get("identifier", "")
+            if not ident or not app:
+                continue
+
+            if not repo:
+                clean_app = re.sub(r'[\s_-]+', '-', re.sub(r'[^\w\s-]', '', app.lower().strip())).strip('-')
+                if org_slug:
+                    clean_org = re.sub(r'[\s_-]+', '-', re.sub(r'[^\w\s-]', '', org_slug.lower().strip())).strip('-')
+                    repo = f"kb-{clean_org}-{clean_app}"
+                else:
+                    repo = f"kb-{clean_app}"
+
+            clean_path = page.replace(".md", "")
+            link_target = f"ap:{repo}/{clean_path}"
+            if anchor:
+                link_target += f"#{anchor}"
+            wikilink_replacement = f"[[{link_target}|{app} ({ident})]]"
+
+            # Backticked `ident` outside any [[wikilink]] (a label may quote it too)
+            weave = functools.partial(re.compile(rf"`{re.escape(ident)}`").sub, wikilink_replacement.replace("\\", "\\\\"))
+            for path in list(files.keys()):
+                if path in ("AGENTS.md", ".nox/brief.md"):
+                    continue
+                files[path] = _outside_wikilinks(files[path], weave)
 
     return files
 

@@ -6,12 +6,15 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { BrandLogo } from "@/components/app/brand-logo";
+import { CaptureBar } from "@/components/app/media/capture-bar";
+import { CaptureCard } from "@/components/app/media/capture-card";
+import { visibleCaptures } from "@/components/app/media/evidence-tab";
 import { PageHeader, Panel, useToast } from "@/components/app/ui";
 import { LiquidMetalButton } from "@/components/liquid-metal/liquid-metal";
 import { api, ApiError } from "@/lib/app/api";
 import { useAuth } from "@/lib/app/auth";
 import { ROLE_BY_ID } from "@/lib/app/roles";
-import type { Mission } from "@/lib/app/types";
+import type { MediaCapture, Mission } from "@/lib/app/types";
 
 type Suggestion = { id: string; name: string; status: string; score: number };
 
@@ -36,6 +39,10 @@ export default function NewMissionPage() {
   const [importKey, setImportKey] = useState("");
   const [importing, setImporting] = useState(false);
   const touched = useRef(false);
+  // Show NoX: draft captures made before the mission exists (only their uploader sees them until launch).
+  const [captures, setCaptures] = useState<MediaCapture[]>([]);
+  const [hidden, setHidden] = useState<string[]>([]); // originals of marked-up screenshots: sent, not shown
+  const grounded = captures.flatMap((c) => (c.status === "ready" ? c.apps ?? [] : []));
 
   const importFromJira = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +73,27 @@ export default function NewMissionPage() {
     return () => clearTimeout(t);
   }, [prompt]);
 
+  // When a capture is grounded, its applications replace the word-matching ranking: pre-ticked, still the user's call.
+  useEffect(() => {
+    if (!grounded.length || !apps.length) return;
+    const rank = (name: string) => {
+      const i = grounded.findIndex((g) => g.app === name);
+      return i < 0 ? 99 : i;
+    };
+    setApps((xs) => (xs.every((x, i) => i === 0 || rank(xs[i - 1].name) <= rank(x.name)) ? xs : [...xs].sort((a, b) => rank(a.name) - rank(b.name))));
+    if (!touched.current) {
+      const top = grounded.filter((g) => g.confidence !== "low").map((g) => apps.find((a) => a.name === g.app)?.id).filter((x): x is string => !!x);
+      if (top.length) setPicked(top);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-rank when the grounding changes, not on every re-render
+  }, [JSON.stringify(grounded), apps.length]);
+
+  const onCapture = (c: MediaCapture, extra: string[] = []) => {
+    setCaptures((xs) => [...xs, c]);
+    setHidden((h) => [...h, ...extra]);
+  };
+  const updateCapture = (c: MediaCapture) => setCaptures((xs) => xs.map((x) => (x.id === c.id ? c : x)));
+
   const toggle = (id: string) => {
     touched.current = true;
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -75,7 +103,8 @@ export default function NewMissionPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      const m = await api<Mission>("/api/v1/missions", { method: "POST", json: { prompt: prompt.trim(), appIds: picked, type, jiraKey: jiraKey ?? undefined } });
+      const mediaIds = [...captures.filter((c) => c.status !== "withheld").map((c) => c.id), ...hidden];
+      const m = await api<Mission>("/api/v1/missions", { method: "POST", json: { prompt: prompt.trim(), appIds: picked, type, jiraKey: jiraKey ?? undefined, mediaIds } });
       toast(`${m.key} started — NoX is drafting`, "success");
       router.push(`/app/missions/${m.key}`);
     } catch (err) {
@@ -92,7 +121,7 @@ export default function NewMissionPage() {
         ← Missions
       </Link>
       <div className="mt-4">
-        <PageHeader eyebrow="New mission" title={role.id === "business" ? "Ask for a change" : "Start a mission"} lead="Say it the way you'd say it to a colleague. One sentence is enough." />
+        <PageHeader eyebrow="New mission" title={role.id === "business" ? "Ask for a change" : "Start a mission"} lead="Say it the way you'd say it to a colleague, or show NoX: record your screen, take a screenshot or leave a voice note." />
       </div>
       <form onSubmit={importFromJira} className="mt-8 flex flex-wrap items-center gap-2 text-[13px]">
         <span className="inline-flex items-center gap-2 text-ink-muted"><BrandLogo name="jira" size={14} />Starting from a Jira ticket?</span>
@@ -115,6 +144,26 @@ export default function NewMissionPage() {
             aria-label="The request"
             className="w-full resize-y rounded-sm border border-hairline bg-deck p-3 text-[15px] leading-relaxed text-ink outline-none focus:border-[color:var(--role)]"
           />
+          <div className="mt-4 border-t border-hairline pt-4">
+            <CaptureBar global onMedia={onCapture} />
+            {captures.length > 0 && (
+              <ul className="mt-4 space-y-3" aria-label="What you showed NoX">
+                {visibleCaptures(captures).map((c) => (
+                  <li key={c.id}>
+                    <CaptureCard
+                      capture={c}
+                      onChange={(next) => {
+                        updateCapture(next);
+                        if (next.status === "ready" && next.kindOfRequest === "bug") setType((t) => (t === "feature" ? "bug" : t));
+                      }}
+                      onDeleted={(id) => setCaptures((xs) => xs.filter((x) => x.id !== id))}
+                      onUseRequest={(sentence) => setPrompt(sentence)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="Type">
             {[
               ["feature", "Something new"],
@@ -156,7 +205,13 @@ export default function NewMissionPage() {
                         </span>
                         {a.name}
                       </span>
-                      {a.score > 0 && prompt.trim().length >= 12 && <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-dim">suggested</span>}
+                      {grounded.some((g) => g.app === a.name) ? (
+                        <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-[color:var(--role)]" title={grounded.find((g) => g.app === a.name)?.why}>
+                          seen in your capture
+                        </span>
+                      ) : (
+                        !grounded.length && a.score > 0 && prompt.trim().length >= 12 && <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-dim">suggested</span>
+                      )}
                     </button>
                   </li>
                 );

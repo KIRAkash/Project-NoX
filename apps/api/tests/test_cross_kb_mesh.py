@@ -159,3 +159,21 @@ def test_linter_flags_malformed_cross_kb_link():
     assert len(errors) == 1
     assert "Malformed cross-KB wikilink" in errors[0].message
 
+
+
+def test_synthesis_is_idempotent():
+    contracts = [{"app_name": "order-matching-engine", "repo_name": "kb-nte-order-matching-engine", "page_path": "summaries/events.md",
+                  "anchor_slug": "matched-trades", "identifier": "nte.trades.matched"}]
+    plan = [{"path": "summaries/api-spec.md"}, {"path": "entities/ledger.md"}]
+    files = {
+        "index.md": "See [[api-spec]], [[entities/ledger|the ledger]] and [[nowhere]]; trades arrive on `nte.trades.matched`.",
+        "summaries/api-spec.md": "Consumes [[nte.trades.matched]] and [[ap:kb-scfs-mini-auth-service/summaries/api-spec#login|Auth Login]].",
+        "entities/ledger.md": "Already linked: [[ap:kb-nte-order-matching-engine/summaries/events#matched-trades|order-matching-engine (`nte.trades.matched`)]].",
+    }
+    once = asyncio.run(run_synthesis_pass(dict(files), plan, candidate_contracts=contracts))
+    twice = asyncio.run(run_synthesis_pass(dict(once), plan, candidate_contracts=contracts))
+    assert twice == once
+    link = "[[ap:kb-nte-order-matching-engine/summaries/events#matched-trades|order-matching-engine (nte.trades.matched)]]"
+    assert "[[summaries/api-spec|api-spec]]" in once["index.md"] and "`nowhere`" in once["index.md"] and link in once["index.md"]
+    assert link in once["summaries/api-spec.md"]  # an unknown link to a contract's identifier is woven, not left as code
+    assert once["entities/ledger.md"] == files["entities/ledger.md"]  # an identifier inside a link's label is never re-wrapped

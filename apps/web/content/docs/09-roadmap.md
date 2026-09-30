@@ -2,6 +2,12 @@
 
 NoX connects the entire delivery trajectory from a business user's first sentence to verified code, across live repositories, tickets and architectural contracts. This chapter outlines the next three horizons: completing core platform foundations, scaling enterprise spec-driven orchestration, and establishing an autonomous, self-governing software network.
 
+## Recently shipped
+
+- **Agents that call each other.** NoX's knowledge tools over the Model Context Protocol, and its Ask agent over Agent2Agent. See [Integrations](/docs/integrations#mcp-nox-s-tools-inside-any-agent).
+- **NoX Shield.** Model Armor and Sensitive Data Protection on everything NoX reads and writes. See [Agentic AI on Google](/docs/google-ai#nox-shield-model-armor-and-sensitive-data-protection).
+- **The flight recorder.** Mission events and AI usage in BigQuery, and the Impact page.
+
 ## Next: finishing the foundations
 
 Pieces that are designed and partly built:
@@ -29,8 +35,6 @@ Pieces that are designed and partly built:
 
 **One knowledge format for code and data.** Google's OKF reference agent already writes OKF bundles for BigQuery datasets: tables, metrics and join paths. Because NoX's knowledge bases are OKF too, the two can be linked: an application's page for the `orders` service can point at the BigQuery table it writes, and a question like "which services feed this metric?" can be answered across both. Every bundle can also be published to a shared catalog, so the company's code and data knowledge is discoverable in one place.
 
-**Agents that call each other.** NoX's agents already use tools. Exposing the knowledge-base tools over the **Model Context Protocol**, and NoX's agents over Google's **Agent2Agent (A2A)** protocol, lets any coding agent or enterprise agent ask NoX "who consumes this topic?" or "what did the business actually ask for?" without a CLI in between.
-
 **Managed agent hosting.** Moving the long-running agent teams onto **Vertex AI Agent Engine** gives them managed sessions, memory and scaling, so NoX's own services stay small and the knowledge-base builders scale with demand.
 
 ## The autonomous enterprise: a self-governing software network
@@ -41,9 +45,9 @@ Pieces that are designed and partly built:
 
 **Company-specific models, on the company's own hardware.** Gemma fine-tuned on an organization's own code, decisions and past missions, running inside its network with NoX Local, for the code that can never leave. Gemini for everything else. One set of agents, the right model for each piece of work.
 
-**Built-in governance.** Every AI action is already cited, versioned and attributed. At enterprise scale, that becomes an audit trail regulators can read: which requirement a line of code traces to, who approved it, what it was checked against. Guardrails from architecture decisions are enforced on every PR across the estate, with model safety screening (such as Model Armor) on everything that crosses the boundary.
+**Built-in governance.** Every AI action is already cited, versioned and attributed. At enterprise scale, that becomes an audit trail regulators can read: which requirement a line of code traces to, who approved it, what it was checked against. Guardrails from architecture decisions are enforced on every PR across the estate, building on NoX Shield, which already screens sources and questions with Model Armor.
 
-**Delivery analytics that tell the truth.** Missions carry timestamps for every stage, send-back and verification. Streamed into BigQuery, they show where work really waits, which requirements bounce back most, and whether shipped changes delivered the outcome the business asked for. That feedback improves NoX's own drafts.
+**Delivery analytics that close the loop.** The flight recorder already streams every mission into BigQuery and shows where work waits and what bounces back. Next, it checks whether shipped changes delivered the outcome the business asked for, and feeds that back into NoX's own drafts.
 
 **A cross-company contract network.** The same contract map that links applications inside a company can also link partners. API producers and consumers in different organizations receive notifications before breaking changes ship.
 

@@ -17,6 +17,8 @@ class RoleUpdate(BaseModel):
 
 
 async def _me_payload(db: AsyncSession, user: User) -> dict:
+    from ..ai.config import backend
+
     visible = await visible_org_ids(db, user)
     orgs = (await db.execute(select(Org).where(Org.id.in_(visible)).order_by(Org.name))).scalars().all() if visible else []
     return {
@@ -26,6 +28,7 @@ async def _me_payload(db: AsyncSession, user: User) -> dict:
         "photoUrl": user.photo_url,
         "role": user.last_role.value if user.last_role else None,
         "capabilities": sorted(c.value for c in ACCESS[user.last_role]) if user.last_role else [],
+        "aiBackend": backend(),  # "local" hides video and voice capture (NoX Local reads images only)
         "orgs": [{"id": str(o.id), "name": o.name, "slug": o.slug, "parentOrgId": str(o.parent_org_id) if o.parent_org_id else None} for o in orgs],
     }
 
@@ -42,3 +45,13 @@ async def set_role(body: RoleUpdate, user: User = Depends(current_user), db: Asy
     await db.commit()
     await db.refresh(user)
     return await _me_payload(db, user)
+
+
+@router.get("/agents")
+async def agent_endpoints(user: User = Depends(current_user)):
+    """Where agents reach NoX (MCP, A2A), for the Connect an agent panel. Null when no public API URL is set:
+    the web app then offers its own origin, which proxies /mcp and /a2a to the API."""
+    from ..core.config import settings
+
+    base = settings.NOX_PUBLIC_API_URL.rstrip("/")
+    return {"mcpUrl": f"{base}/mcp" if base else None, "a2aCardUrl": f"{base}/a2a/ask/.well-known/agent-card.json" if base else None}

@@ -16,6 +16,31 @@ As a business user, type your request into **What would you like to change?** on
 3. **Which applications?** NoX ranks the applications you can see by how much of the request's vocabulary each one owns: its name, its contracts and its knowledge-base brief. Pick one or more. The first one you pick is the **primary** application: the mission's spec files are kept in its knowledge-base repository.
 4. **Start mission.** NoX immediately begins writing first drafts.
 
+## Show NoX
+
+Some things are faster to show than to say. Next to the request box, **Show NoX** lets you:
+
+- **Record screen**: up to 5 minutes of a tab, a window or your screen, with your voice if you allow the microphone. A three-second countdown starts it, and a pill shows the time, with pause and stop.
+- **Take screenshot**: one frame of what you share. You can mark it up with a box, an arrow, a pen or text before sending, so NoX knows where to look.
+- **Voice note**: up to 10 minutes of speech.
+- **Upload**: an image (up to 10 MB), a video (up to 200 MB) or an audio file (up to 50 MB). You can also paste an image, or drop a file, onto the page.
+
+A mission holds up to 12 captures. Record screen is hidden where the browser can't capture the screen (most phones).
+
+**What NoX does with it.** A capture card shows each step live while NoX works:
+
+1. **Watches.** Gemini watches the video (or looks at the image, or listens) and writes down only what it sees and hears: a transcript with times, the key moments, the screens, and the exact words on them.
+2. **Looks it up.** NoX searches the knowledge bases you can see for those words, reads the pages that explain them, and finds which application the capture is about. For the engineering and developer seats it also finds the code.
+3. **Explains.** The card shows the key moments (▶ jumps the player there), what the knowledge base says about the behaviour (a bug, working as designed, or something missing), open questions, and a **Suggested request** you can take with **Use this sentence**.
+
+The applications NoX found move to the top of **Which applications?** and are ticked for you, marked *seen in your capture*. A capture of something broken switches the mission to **Something broken**. When you start the mission, the captures come with it, and the drafts cite their moments as ▶ 0:42 chips that play the capture from that point.
+
+**Who sees what.** A capture on a mission you haven't started yet is visible only to you. Once the mission starts, every seat on it can play it, from the mission's **Evidence** tab. Each seat reads NoX's explanation in its own words: the business and product seats never see code locations, file paths or services. If NoX Shield finds something that shouldn't be shared, the capture is withheld: only you can see it, and NoX won't use it.
+
+You can also attach a capture in **Ask NoX** with the paperclip ("make this screen match the recording"), or choose **Show NoX a capture** from the image button in the editor to insert a ▶ chip into your file.
+
+With NoX Local (Gemma), only screenshots and images are available. Video and voice need NoX in the cloud.
+
 ## NoX drafts the files above you
 
 NoX drafts your own file, and every file upstream of your seat, grounded in your request and the knowledge base:
@@ -143,6 +168,12 @@ Anyone who can see the mission can assign it. Choose **Assign** (or **Reassign**
 ## The timeline
 
 The **Timeline** in the right rail records everything that happened, newest first: drafts, saves, NoX's edits, approvals, send-backs, chat messages, Jira updates, PRs, guard results, Git syncs, assignments and verification progress. It scrolls within a fixed height. Every event also streams live to anyone who has the mission open.
+
+## The flight recorder
+
+Above the timeline, the **Flight recorder** strip shows how long the mission has spent in each stage so far. It is read from the mission's own events, and the current stage keeps counting.
+
+The **Impact** page, in the menu for every seat, adds these up across an organization: median time from the first sentence to verified, time per stage, the send-back rate and where work comes back, how much of what NoX drafted cites a source, and an estimate of the AI cost per mission. Pick 7, 30 or 90 days.
 
 ## Where the files are saved
 

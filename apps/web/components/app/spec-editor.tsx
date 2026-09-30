@@ -12,6 +12,7 @@ import {
   List,
   ListOrdered,
   MessageSquare,
+  Paperclip,
   Send,
   Sparkles,
   Table,
@@ -22,8 +23,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { api, API_URL, ApiError, authHeaders } from "@/lib/app/api";
 import { subscribe } from "@/lib/app/stream";
+import type { MediaCapture } from "@/lib/app/types";
 
 import { KbMarkdown } from "./markdown";
+import { CaptureBar, CaptureChip } from "./media/capture-bar";
 import { useToast } from "./ui";
 
 type Op = { op: "replace" | "insert" | "delete"; from: number; to: number; lines: string[] };
@@ -87,7 +90,7 @@ function editedHeading(what: string): string | null {
 
 const normHeading = (h: string) => h.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
-type ChatMsg = { id: string; author: "user" | "nox"; body: string; createdAt: string };
+type ChatMsg = { id: string; author: "user" | "nox"; body: string; mediaIds?: string[]; createdAt: string };
 
 const REFINE_KEY = "nox.refineOnSave";
 
@@ -351,6 +354,7 @@ export function SpecEditor({
     requestAnimationFrame(() => ta?.focus());
   };
   const fileRef = useRef<HTMLInputElement>(null);
+  const [mediaMenu, setMediaMenu] = useState<"closed" | "menu" | "capture">("closed");
   const uploadImage = async (file: File) => {
     const form = new FormData();
     form.append("file", file);
@@ -375,7 +379,7 @@ export function SpecEditor({
     { icon: Table, label: "Table", run: () => insertBlock("| Column | Column |\n| --- | --- |\n|  |  |") },
     { icon: Code, label: "Code block", run: () => insertBlock("```\ncode\n```") },
     { icon: Link2, label: "Link", run: () => surround("[", "](https://)", "link text") },
-    { icon: ImagePlus, label: "Image", run: () => fileRef.current?.click() },
+    { icon: ImagePlus, label: "Image or capture", run: () => setMediaMenu((m) => (m === "closed" ? "menu" : "closed")) },
   ];
 
   const previewText = typing ? typing.shown.join("\n") : text;
@@ -420,6 +424,37 @@ export function SpecEditor({
           </span>
         </span>
       </div>
+
+      {mediaMenu !== "closed" && (
+        <div className="flex flex-wrap items-start gap-3 border border-b-0 border-hairline bg-deck px-3 py-2.5 text-[13px]">
+          {mediaMenu === "menu" ? (
+            <>
+              <button type="button" onClick={() => { setMediaMenu("closed"); fileRef.current?.click(); }} className="h-8 rounded-sm border border-hairline px-3 text-ink-muted hover:text-ink">
+                Insert an image into the file
+              </button>
+              <button type="button" onClick={() => setMediaMenu("capture")} className="h-8 rounded-sm border border-hairline px-3 text-ink-muted hover:text-ink">
+                Show NoX a recording, screenshot or voice note
+              </button>
+            </>
+          ) : (
+            <div className="min-w-0 flex-1">
+              <p className="mb-2 text-[12.5px] text-ink-faint">NoX watches it and adds it to the mission&rsquo;s evidence; a ▶ chip goes into the file where your cursor is.</p>
+              <CaptureBar
+                compact
+                missionKey={missionKey}
+                role={role}
+                onMedia={(c) => {
+                  setMediaMenu("closed");
+                  insertBlock(`[[media:${c.id}${c.kind === "image" || c.kind === "screenshot" ? "" : "#t=0"}]]`);
+                }}
+              />
+            </div>
+          )}
+          <button type="button" onClick={() => setMediaMenu("closed")} aria-label="Close" className="ml-auto text-ink-dim hover:text-ink">
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {(noxBusy || typing) && (
         <div className="flex items-center gap-2 border border-b-0 border-hairline bg-[rgba(168,151,240,.08)] px-3 py-2 text-[13px] text-ink" role="status">
@@ -578,6 +613,8 @@ function ChatDock({ missionKey, role, busy, status }: { missionKey: string; role
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [streaming, setStreaming] = useState("");
   const [text, setText] = useState("");
+  const [attach, setAttach] = useState(false);
+  const [attached, setAttached] = useState<MediaCapture[]>([]);
   const listRef = useRef<HTMLOListElement>(null);
 
   const load = useCallback(async () => {
@@ -611,11 +648,14 @@ function ChatDock({ missionKey, role, busy, status }: { missionKey: string; role
 
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
-    const body = text.trim();
+    const body = text.trim() || (attached.length ? "Here's what I mean." : "");
     if (!body) return;
+    const mediaIds = attached.map((c) => c.id);
     setText("");
-    setMsgs((m) => [...m, { id: `tmp-${Date.now()}`, author: "user", body, createdAt: new Date().toISOString() }]);
-    await api(`/api/v1/missions/${missionKey}/files/${role}/chat`, { method: "POST", json: { message: body } });
+    setAttached([]);
+    setAttach(false);
+    setMsgs((m) => [...m, { id: `tmp-${Date.now()}`, author: "user", body, mediaIds, createdAt: new Date().toISOString() }]);
+    await api(`/api/v1/missions/${missionKey}/files/${role}/chat`, { method: "POST", json: { message: body, mediaIds } });
   };
 
   if (!open) {
@@ -626,7 +666,7 @@ function ChatDock({ missionKey, role, busy, status }: { missionKey: string; role
     );
   }
   return (
-    <section aria-label="Chat with NoX" className="fixed bottom-20 right-4 z-40 flex h-[440px] w-[min(360px,calc(100vw-2rem))] flex-col overflow-hidden rounded-md border border-hairline bg-deck shadow-2xl lg:bottom-6 lg:right-6">
+    <section aria-label="Chat with NoX" className="fixed bottom-20 right-4 z-40 flex h-[min(520px,calc(100vh-7rem))] w-[min(360px,calc(100vw-2rem))] flex-col overflow-hidden rounded-md border border-hairline bg-deck shadow-2xl lg:bottom-6 lg:right-6">
       <header className="flex items-center justify-between border-b border-hairline px-4 py-2.5">
         <span className="flex items-center gap-2 text-[13px] text-ink">
           <Sparkles size={14} className="text-[#A897F0]" /> NoX · this file
@@ -640,6 +680,7 @@ function ChatDock({ missionKey, role, busy, status }: { missionKey: string; role
         {msgs.map((m) => (
           <li key={m.id} className={`max-w-[88%] whitespace-pre-line rounded-md px-3 py-2 text-[13px] leading-snug ${m.author === "user" ? "ml-auto bg-[rgba(143,160,204,.12)] text-ink" : "bg-[rgba(168,151,240,.1)] text-ink"}`}>
             {m.body}
+            {!!m.mediaIds?.length && <span className="mt-1 block font-mono text-[10.5px] text-ink-dim">+ {m.mediaIds.length} capture{m.mediaIds.length > 1 ? "s" : ""}</span>}
           </li>
         ))}
         {streaming ? (
@@ -648,7 +689,32 @@ function ChatDock({ missionKey, role, busy, status }: { missionKey: string; role
           busy && <li className="animate-pulse text-[12.5px] text-ink-faint">{status ?? "NoX is thinking…"}</li>
         )}
       </ol>
+      {(attach || attached.length > 0) && (
+        <div className="max-h-[45%] space-y-2 overflow-y-auto border-t border-hairline p-2">
+          {attached.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {attached.map((c) => (
+                <CaptureChip key={c.id} capture={c} onRemove={() => setAttached((xs) => xs.filter((x) => x.id !== c.id))} />
+              ))}
+            </div>
+          )}
+          {attach && attached.length < 4 && (
+            <CaptureBar
+              compact
+              missionKey={missionKey}
+              role={role}
+              onMedia={(c) => {
+                setAttached((xs) => [...xs, c]);
+                setAttach(false);
+              }}
+            />
+          )}
+        </div>
+      )}
       <form onSubmit={send} className="flex gap-2 border-t border-hairline p-2">
+        <button type="button" onClick={() => setAttach((a) => !a)} aria-label="Attach a recording, screenshot or voice note" aria-expanded={attach} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-ink-muted hover:text-ink">
+          <Paperclip size={14} />
+        </button>
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Add a rollback section…" aria-label="Message NoX" className="h-9 min-w-0 flex-1 rounded-sm border border-hairline bg-void px-3 text-[13px] text-ink outline-none focus:border-[#A897F0]" />
         <button type="submit" aria-label="Send" className="flex h-9 w-9 items-center justify-center rounded-sm bg-[#A897F0] text-void">
           <Send size={14} />

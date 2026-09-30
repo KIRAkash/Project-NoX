@@ -884,7 +884,7 @@ async def ask_kb(kb_id: str, body: AskRequest, request: Request, db: AsyncSessio
     async def events():
         try:
             async for ev in ask.answer(body.question, home_app=kb.app_name, apps=apps, role=actor.role.value,
-                                       user_id=str(actor.user.id), session_id=session_id):
+                                       user_id=str(actor.user.id), session_id=session_id, org_id=kb.org_id, kb_id=kb.id):
                 if await request.is_disconnected():
                     break
                 yield {"event": ev["type"], "data": json.dumps(ev, default=str)}
@@ -904,6 +904,35 @@ def _friendly_ai_error(e: Exception) -> str:
     return "NoX couldn't answer that just now. Try again in a moment."
 
 
+@router.get("/api/v1/kb/{kb_id}/shield")
+async def kb_shield(kb_id: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(kb_access(Cap.SEE_ATLAS))):
+    """What NoX Shield screened and withheld for this application. Withheld source names are shown to the
+    Engineering lead and Developer seats; other seats see the counts."""
+    from ..db.models import KBEvent, Role, ShieldFinding
+    from ..services import shield
+
+    kb = await db.get(KnowledgeBase, UUID(kb_id))
+    events = (await db.execute(select(KBEvent).where(KBEvent.kb_id == kb.id, KBEvent.event_type == "shield_screened")
+                               .order_by(KBEvent.created_at.desc()).limit(1))).scalars().first()
+    rows = (await db.execute(select(ShieldFinding).where(ShieldFinding.kb_id == kb.id).order_by(ShieldFinding.created_at.desc())
+                             .limit(200))).scalars().all()
+    withheld: dict[str, dict] = {}
+    for r in rows:
+        if r.action == "withheld" and r.source not in withheld:
+            withheld[r.source] = {"source": r.source, "category": r.category, "at": r.created_at.isoformat() if r.created_at else None}
+    last = (events.payload or {}) if events else {}
+    see_sources = actor.role in (Role.engineering, Role.developer)
+    return {
+        "mode": shield.mode(),
+        "screened": last.get("documents", 0),
+        "withheldCount": len(withheld),
+        "unscreened": last.get("unscreened", 0),
+        "lastScreenedAt": events.created_at.isoformat() if events and events.created_at else None,
+        "withheld": list(withheld.values()) if see_sources else [],
+        "findings": len(rows),
+    }
+
+
 @router.post("/api/v1/kb/{kb_id}/chat")
 async def chat_with_kb(kb_id: str, request: Request, db: AsyncSession = Depends(get_db),
                        actor: Actor = Depends(kb_access(Cap.SEE_ATLAS))):
@@ -920,7 +949,8 @@ async def chat_with_kb(kb_id: str, request: Request, db: AsyncSession = Depends(
     answer, citations = "", []
     try:
         async for ev in ask.answer(prompt, home_app=kb.app_name, apps=apps, role=actor.role.value,
-                                   user_id=str(actor.user.id), session_id=f"chat-{_uuid.uuid4().hex}"):
+                                   user_id=str(actor.user.id), session_id=f"chat-{_uuid.uuid4().hex}",
+                                   org_id=kb.org_id, kb_id=kb.id):
             if ev["type"] == "done":
                 answer = ev["text"]
             elif ev["type"] == "citations":

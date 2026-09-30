@@ -10,7 +10,7 @@ Those agents are built with **Google's Agent Development Kit (ADK)** and run on 
 | --- | --- | --- | --- |
 | **Cartographer** | Reads an application's whole source snapshot once and maps it, planning the knowledge base's OKF pages | Deep | Typed `ArchitectureMap`: overview, components, interfaces, page plan with the source files for each page |
 | **Page writers** | Write the knowledge-base pages, in parallel | Default | Each gets only its own files; can fetch another with a tool |
-| **Reviewer** | Rewrites the pages that fail the deterministic linter | Default | Only failing pages are touched |
+| **Reviewer** | Rewrites the pages that fail the deterministic linter, in a loop with the quality gate | Default | Only failing pages are touched |
 | **Gatekeeper** | Decides whether a push or document change matters to the knowledge base | Fast | Code anchors first, then a typed `GatekeeperDecision` |
 | **Patch compiler** | Rewrites only the affected pages after a significant change | Default | Typed `PagePatch` |
 | **Coverage diff** | When a source is added later, finds what is new versus already documented | Default | Typed `CoverageDiff` |
@@ -18,6 +18,8 @@ Those agents are built with **Google's Agent Development Kit (ADK)** and run on 
 | **Ask** | Answers questions about an application, citing what it read | Default | `search_kb`, `read_kb_page`, `list_pages`, `find_interfaces`, `grep_source`, `read_source_file`, `get_jira_issue` |
 | **Co-writer** | Refines a spec file after a save and edits it on request | Default | The lookup tools, plus `read_spec_file`, `replace_section`, `insert_section`, `append_to_section`, `add_open_question` |
 | **Drafter** | Writes the first draft of each spec file | Default | The lookup tools |
+| **Perceive** | Watches a screen recording, screenshot or voice note | Default | Typed `MediaObservation`: transcript, moments, screens, exact strings |
+| **Ground** | Ties a capture to applications, knowledge-base pages and code | Default | The lookup tools; typed `MediaGrounding` |
 
 Two simpler jobs call Gemini through the `google-genai` SDK directly rather than as agents: the ingestor's per-file summaries of large sources, and the original single-model build path, kept behind `NOX_KB_BUILDER=classic` for comparison. Around all of them sit deterministic checks that need no model at all: the **linter** (page structure, wikilinks, orphans, stubs), the **secret gate**, the **guard** that checks pull requests against architecture rules, and **code anchors** that tie page sections to source lines.
 
@@ -50,6 +52,23 @@ All AI code lives in `apps/api/nox_api/ai/`. Everything that touches ADK's runne
 
 **Structured output is typed.** One-shot jobs (the cartographer's map, the gatekeeper's decision, a page patch, the rollup) are ADK agents constrained to a Pydantic schema, and their answers come back as validated objects rather than text to parse.
 
+**The build is an ADK workflow graph.** The knowledge-base builder (`ai/agents/kb_builder.py`) is an ADK 2 `Workflow`: deterministic steps are function nodes, the page writer is an `LlmAgent` that each node runs as a child, and edges with routes make the review a real loop.
+
+```text
+ START → Cartographer → Warm cache → Writers ──▶ Links ──▶ Quality gate ──"done"──▶ Finish → END
+                                   (parallel)      ▲            │
+                                                   └─ Reviewer ◀┘ "fix"  (parallel, at most 2 rounds)
+```
+
+- **Cartographer**: one deep call that maps the snapshot and plans the pages (or its checkpoint, on a resumed build).
+- **Warm cache**: the first page, written alone so the writers' shared prefix is cached before the rest start.
+- **Writers**: a parallel-worker node, one item per page, at most `NOX_MAX_CONCURRENCY` at once (one at a time on Gemma).
+- **Links**: repairs local links and weaves cross-application links. It runs again after every reviewer round, so a rewritten page can't lose a woven link.
+- **Quality gate**: the deterministic linter. It routes to the reviewer while pages fail and rounds remain (`NOX_REVIEW_ROUNDS`, 2 by default), otherwise to the finish.
+- **Finish**: the agent contract, the change log and the agent brief, then the whole-build checkpoint.
+
+Every node emits a start and finish event, which the application's page draws as the graph lights up. A failed writer leaves a placeholder page rather than failing the build, and every page is checkpointed as it finishes, so a restarted build only writes what is missing. `NOX_KB_WORKFLOW=linear` keeps the earlier orchestration for `scripts/bench_kb.py --compare linear graph`.
+
 **Parallel tool calls.** Ask and the co-writer are told to send independent lookups together (read three pages at once, run two searches at once). Gemini returns them as parallel function calls, so most questions are answered in two to four lookups.
 
 ## Gemini
@@ -64,11 +83,13 @@ All AI code lives in `apps/api/nox_api/ai/`. Everything that touches ADK's runne
 
 **Resilience.** Each Gemini model is wrapped with retry options (exponential backoff on transient errors), and ADK's `FallbackModel` switches to `GEMINI_BACKUP_MODEL` (`gemini-3.5-flash`) if the primary model fails. A busy model slows a build down; it doesn't break it.
 
-**Implicit context caching.** The page writers share one identical prefix (the writing rules, the architecture overview, the page manifest and the interface list), passed as ADK's `static_instruction`. The first page runs alone to warm the cache, then the rest run in parallel and reuse it. Telemetry records the cached share of every build.
+**Implicit context caching.** The page writers share one identical prefix (the writing rules, the architecture overview, the page manifest and the interface list), passed as ADK's `static_instruction`. The first page runs alone to warm the cache, then the rest run in parallel and reuse it. Telemetry records the cached share of every build, and the application's page shows it after each build.
+
+**Explicit context caching for conversations.** Ask and the co-writer repeat the same long instruction and tool results on every model call of a conversation. They run with ADK's `ContextCacheConfig`, which creates a Gemini context cache for that stable prefix from the conversation's second model call on, once it passes the model's minimum size (4,096 tokens for Gemini 3), and reuses it for ten minutes. The Ask footer shows the result, for example **4 lookups · 62% cached**. `NOX_CONTEXT_CACHE=false` turns it off; NoX Local never uses it.
 
 **Long context.** The cartographer reads a whole application snapshot in a single call, up to about 2.4 million characters, replacing three sequential calls and the keyword guessing about which files each page needs.
 
-**Multimodal.** Diagrams and screenshots found in sources (for example an architecture diagram on a Confluence page) are sent to Gemini as images alongside the text, so they inform the pages.
+**Multimodal.** Diagrams and screenshots found in sources (for example an architecture diagram on a Confluence page) are sent to Gemini as images alongside the text, so they inform the pages. Screen recordings, screenshots and voice notes that people show NoX are watched by Gemini directly (see Show NoX below).
 
 **The measured difference.** On the demo's market-data-gateway, NoX's agent team builds the knowledge base in **29 seconds** from **12 model calls** and **20k input tokens**. The classic single-model pipeline took 252 seconds, 19 calls and 85k tokens on the same snapshot (writing 16 broader pages, where the agent team plans 11 focused ones). `scripts/bench_kb.py` reproduces the comparison on any knowledge base.
 
@@ -103,6 +124,18 @@ Some organizations can't send certain code to any cloud service. **NoX Local** r
 - The pipeline adapts to a smaller model: the cartographer works from per-chunk summaries instead of the whole snapshot, and page writers run one at a time.
 - Only the finished Markdown is sent to NoX, which lints it, indexes it and opens the knowledge-base pull request. The knowledge base records that it was built with `local:gemma4:12b`, and the Atlas shows it.
 
+## Show NoX: Gemini watches, the agents ground it
+
+When someone records their screen or leaves a voice note, NoX sends it to Gemini as it is, not as frames or a transcript made elsewhere. Gemini watches the video and listens to the narration in one call.
+
+- **Files go by reference.** On the Agent Platform, the capture is uploaded straight from the browser to Cloud Storage with a signed URL, and Gemini reads it from there with `Part.from_uri`. The bytes never pass through NoX's API. With an API key, small files go inline and large ones through the Gemini Files API.
+- **Media resolution.** Captures over a minute are sampled at low media resolution, shorter ones at medium, and video at one frame a second. That keeps a five-minute recording to a few thousand tokens while text on screen stays readable.
+- **Perceive, then ground.** The first call (Perceive) is constrained to a `MediaObservation` schema: only what is seen and heard, with times, and the exact strings on screen. It isn't allowed to guess about code. The second step (Ground) is an ADK agent with the knowledge tools. It searches the knowledge bases the uploader can see for those strings, reads the pages that explain them, and greps the source, returning a typed `MediaGrounding`.
+- **Checked after the model.** A deterministic post-check drops any page the agent didn't actually read, any code location that isn't in the application's snapshot, and any application outside the uploader's scope.
+- **Written per seat.** One fast call rewrites the result for each seat, so the business user's version never mentions code. This runs inside the job, so opening a capture never waits on a model.
+
+The drafter and co-writer receive the capture's moments and findings as evidence, and cite them as `[[media:id#t=42]]`, which the app shows as a ▶ chip.
+
 ## Grounding and trust
 
 Enterprise AI has to be checkable. NoX's rules:
@@ -113,11 +146,43 @@ Enterprise AI has to be checkable. NoX's rules:
 - **Nothing is approved by AI.** Approval, verification and send-back are always a person's action.
 - **Pages are checked before they're committed.** The linter, the secret gate and the pull-request review stand between any model output and the knowledge base.
 
+## NoX Shield: Model Armor and Sensitive Data Protection
+
+NoX reads documents it didn't write: Confluence pages, Slack threads, Jira comments, uploads. Any of them could carry an instruction aimed at an AI. **NoX Shield** screens that text with **Model Armor** before an agent sees it, and screens what NoX writes with **Sensitive Data Protection** before it is committed.
+
+| Where | What happens when Shield flags it |
+| --- | --- |
+| Documents read while building or syncing a knowledge base, and the prose files in code sources | The document is replaced with a one-line "withheld" note. The build carries on without it, and the flight log shows what was withheld. |
+| Ask questions, MCP `ask_nox` and A2A messages | NoX answers with a short refusal and makes no model call. |
+| Co-writer chat and refine instructions | NoX keeps the message but replies "I can't act on that message" and changes nothing. |
+| A new mission's first sentence | NoX asks you to rephrase it. |
+| Knowledge-base pages before they are committed | Sensitive Data Protection looks for keys, tokens, passwords, emails and card numbers, as well as NoX's own secret patterns. Nothing is committed if it finds one. |
+
+- **Modes.** `NOX_SHIELD=off` (the default locally and in tests), `monitor` (record findings, block nothing) or `enforce` (production). NoX Local always runs with Shield off, because nothing leaves the laptop.
+- **Nothing sensitive is stored.** Each finding is recorded with its category, confidence and a hash of the text, never the text itself.
+- **Availability wins.** If Model Armor or Sensitive Data Protection can't be reached, NoX carries on and says so: the flight log reads "not screened".
+- **Where you see it.** A **Shielded** chip on each application's sources panel, the withheld sources listed for the engineering lead and developer, and refusals on the mission timeline.
+
+`NOX_SHIELD` · `NOX_SHIELD_TEMPLATE` · `NOX_SHIELD_LOCATION`
+
+## The flight recorder: BigQuery
+
+Every mission event and every AI unit of work is streamed into **BigQuery** (dataset `nox_analytics`). Views on top of it answer the questions a delivery leader asks: how long each stage takes, where work gets sent back, how much of what NoX drafted cites a source, what the AI costs per mission, and how quickly a knowledge base catches up with a push.
+
+The **Impact** page shows those numbers for an organization over the last 7, 30 or 90 days, and each mission shows its own flight strip above the timeline. The AI cost is an estimate at Gemini's list prices. With `NOX_ANALYTICS=off`, the same numbers are computed from the database, so the page works in development too.
+
+`NOX_ANALYTICS` · `NOX_BQ_DATASET`
+
+## Agents that call NoX: MCP and A2A
+
+NoX's knowledge tools are an **MCP** server, and its Ask agent is an **A2A** server built with ADK, so other agents can use NoX without the CLI. Both take their scope from a NoX token, never from the request. See [Integrations](/docs/integrations#mcp-nox-s-tools-inside-any-agent).
+
 ## Measuring it
 
-- **Usage per unit of work.** Every build, Ask turn and co-writer turn runs inside a telemetry scope that adds up model calls, input, cached, output and thinking tokens, tool calls and wall time across all its agents, including parallel ones. Each scope ends in one structured log line that **Cloud Logging** indexes.
+- **Usage per unit of work.** Every build, Ask turn and co-writer turn runs inside a telemetry scope that adds up model calls, input, cached, output and thinking tokens, tool calls and wall time across all its agents, including parallel ones. Each scope ends in one structured log line that **Cloud Logging** indexes, and a row in the BigQuery flight recorder.
 - **Ask eval.** `scripts/eval_ask.py` asks golden questions about the demo applications and scores each answer on whether it cited the right pages, contained the expected facts, and how fast it was.
-- **Build benchmark.** `scripts/bench_kb.py` compares build strategies on the same snapshot: wall time, calls, tokens and cache share.
+- **Show NoX eval.** `scripts/eval_media.py` runs golden captures of the demo trade desk and checks that the right application ranks first, the right pages are cited and the right code is found.
+- **Build benchmark.** `scripts/bench_kb.py` compares build strategies on the same snapshot: wall time, calls, tokens and cache share. `--compare linear graph` compares the workflow graph with the earlier orchestration, including lint errors left after review.
 
 ## Google Cloud underneath
 
@@ -131,7 +196,10 @@ Enterprise AI has to be checkable. NoX's rules:
 | **Memorystore for Redis** | The Celery job queue and live event fan-out, reached by Direct VPC egress |
 | **Cloud Storage** | Source snapshots, build checkpoints, uploads and spec-file images |
 | **Secret Manager** | Every credential, mounted into Cloud Run at deploy time |
+| **Model Armor** | Screens sources, questions and chat for prompt injection, malicious links and unsafe content |
+| **Sensitive Data Protection** | Checks knowledge-base pages for credentials and personal data before they are committed |
+| **BigQuery** | The flight recorder: mission events, AI usage and Shield findings, with views for the Impact page |
 | **Cloud Logging** | Request logs with request IDs, and per-job AI usage lines |
 | **Firebase Authentication** | Google sign-in for people; ID tokens verified on every request |
 
-On the developer's side, **Google Antigravity** is one of the coding agents `/nox` installs into, and **Gemma** powers NoX Local.
+On the developer's side, **Google Antigravity** is one of the coding agents `/nox` installs into and can call NoX's tools over MCP, and **Gemma** powers NoX Local.
