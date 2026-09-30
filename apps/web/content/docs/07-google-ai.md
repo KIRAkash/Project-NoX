@@ -18,6 +18,8 @@ Those agents are built with **Google's Agent Development Kit (ADK)** and run on 
 | **Ask** | Answers questions about an application, citing what it read | Default | `search_kb`, `read_kb_page`, `list_pages`, `find_interfaces`, `grep_source`, `read_source_file`, `get_jira_issue` |
 | **Co-writer** | Refines a spec file after a save and edits it on request | Default | The lookup tools, plus `read_spec_file`, `replace_section`, `insert_section`, `append_to_section`, `add_open_question` |
 | **Drafter** | Writes the first draft of each spec file | Default | The lookup tools |
+| **Perceive** | Watches a screen recording, screenshot or voice note | Default | Typed `MediaObservation`: transcript, moments, screens, exact strings |
+| **Ground** | Ties a capture to applications, knowledge-base pages and code | Default | The lookup tools; typed `MediaGrounding` |
 
 Two simpler jobs call Gemini through the `google-genai` SDK directly rather than as agents: the ingestor's per-file summaries of large sources, and the original single-model build path, kept behind `NOX_KB_BUILDER=classic` for comparison. Around all of them sit deterministic checks that need no model at all: the **linter** (page structure, wikilinks, orphans, stubs), the **secret gate**, the **guard** that checks pull requests against architecture rules, and **code anchors** that tie page sections to source lines.
 
@@ -87,7 +89,7 @@ Every node emits a start and finish event, which the application's page draws as
 
 **Long context.** The cartographer reads a whole application snapshot in a single call, up to about 2.4 million characters, replacing three sequential calls and the keyword guessing about which files each page needs.
 
-**Multimodal.** Diagrams and screenshots found in sources (for example an architecture diagram on a Confluence page) are sent to Gemini as images alongside the text, so they inform the pages.
+**Multimodal.** Diagrams and screenshots found in sources (for example an architecture diagram on a Confluence page) are sent to Gemini as images alongside the text, so they inform the pages. Screen recordings, screenshots and voice notes that people show NoX are watched by Gemini directly (see Show NoX below).
 
 **The measured difference.** On the demo's market-data-gateway, NoX's agent team builds the knowledge base in **29 seconds** from **12 model calls** and **20k input tokens**. The classic single-model pipeline took 252 seconds, 19 calls and 85k tokens on the same snapshot (writing 16 broader pages, where the agent team plans 11 focused ones). `scripts/bench_kb.py` reproduces the comparison on any knowledge base.
 
@@ -121,6 +123,18 @@ Some organizations can't send certain code to any cloud service. **NoX Local** r
 - NoX raises Ollama's context window to 16k tokens (its 4k default quietly truncates prompts) and turns Gemma 4's thinking off by default, making builds about four times faster locally. `NOX_LOCAL_THINK=true` turns it back on for hard repositories.
 - The pipeline adapts to a smaller model: the cartographer works from per-chunk summaries instead of the whole snapshot, and page writers run one at a time.
 - Only the finished Markdown is sent to NoX, which lints it, indexes it and opens the knowledge-base pull request. The knowledge base records that it was built with `local:gemma4:12b`, and the Atlas shows it.
+
+## Show NoX: Gemini watches, the agents ground it
+
+When someone records their screen or leaves a voice note, NoX sends it to Gemini as it is, not as frames or a transcript made elsewhere. Gemini watches the video and listens to the narration in one call.
+
+- **Files go by reference.** On the Agent Platform, the capture is uploaded straight from the browser to Cloud Storage with a signed URL, and Gemini reads it from there with `Part.from_uri`. The bytes never pass through NoX's API. With an API key, small files go inline and large ones through the Gemini Files API.
+- **Media resolution.** Captures over a minute are sampled at low media resolution, shorter ones at medium, and video at one frame a second. That keeps a five-minute recording to a few thousand tokens while text on screen stays readable.
+- **Perceive, then ground.** The first call (Perceive) is constrained to a `MediaObservation` schema: only what is seen and heard, with times, and the exact strings on screen. It isn't allowed to guess about code. The second step (Ground) is an ADK agent with the knowledge tools. It searches the knowledge bases the uploader can see for those strings, reads the pages that explain them, and greps the source, returning a typed `MediaGrounding`.
+- **Checked after the model.** A deterministic post-check drops any page the agent didn't actually read, any code location that isn't in the application's snapshot, and any application outside the uploader's scope.
+- **Written per seat.** One fast call rewrites the result for each seat, so the business user's version never mentions code. This runs inside the job, so opening a capture never waits on a model.
+
+The drafter and co-writer receive the capture's moments and findings as evidence, and cite them as `[[media:id#t=42]]`, which the app shows as a ▶ chip.
 
 ## Grounding and trust
 
@@ -167,6 +181,7 @@ NoX's knowledge tools are an **MCP** server, and its Ask agent is an **A2A** ser
 
 - **Usage per unit of work.** Every build, Ask turn and co-writer turn runs inside a telemetry scope that adds up model calls, input, cached, output and thinking tokens, tool calls and wall time across all its agents, including parallel ones. Each scope ends in one structured log line that **Cloud Logging** indexes, and a row in the BigQuery flight recorder.
 - **Ask eval.** `scripts/eval_ask.py` asks golden questions about the demo applications and scores each answer on whether it cited the right pages, contained the expected facts, and how fast it was.
+- **Show NoX eval.** `scripts/eval_media.py` runs golden captures of the demo trade desk and checks that the right application ranks first, the right pages are cited and the right code is found.
 - **Build benchmark.** `scripts/bench_kb.py` compares build strategies on the same snapshot: wall time, calls, tokens and cache share. `--compare linear graph` compares the workflow graph with the earlier orchestration, including lint errors left after review.
 
 ## Google Cloud underneath

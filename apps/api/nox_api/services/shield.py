@@ -10,6 +10,7 @@ the offline fallback and for NoX Local.
   screen_source(name, text, kb_id=…) one ingested document, chunked            → Verdict (withhold on a finding)
   guard_source(type, url, content)   a connector's whole output: documents whole, code sources per prose file
   screen_output(files)               KB pages before commit → DLP findings (credentials, personal data)
+  redact(text)                       a capture's words with personal data values replaced by their kind
 
 Modes (`NOX_SHIELD`): `off` (local and tests), `monitor` (record, block nothing), `enforce` (production).
 NoX Local (`NOX_AI_BACKEND=local`) always runs with Shield off: no cloud dependency.
@@ -62,6 +63,11 @@ class Verdict:
     blocked: bool = False
     findings: list[Finding] = field(default_factory=list)
     screened: bool = False
+
+    @property
+    def reason(self) -> str:
+        kinds = sorted({f.category.split(":")[0].replace("_", " ").lower() for f in self.findings}) or ["unsafe content"]
+        return f"NoX Shield withheld this: possible {' and '.join(kinds)}."
 
     def as_dict(self) -> dict:
         return {"blocked": self.blocked, "screened": self.screened, "findings": [asdict(f) for f in self.findings]}
@@ -364,3 +370,29 @@ def assert_pages_clean(files: dict[str, str], *, kb_id=None, org_id=None) -> Non
 
         where = ", ".join(sorted({f.source for f in found})[:5])
         raise SecretLeakError(f"Blocked commit: Sensitive Data Protection found {found[0].category.removeprefix('sdp:')} in {where}")
+
+
+# ── Redaction (Show NoX captures) ────────────────────────────────────────────
+
+
+def _luhn(digits: str) -> bool:
+    total = 0
+    for i, ch in enumerate(reversed(digits)):
+        n = int(ch) * (2 if i % 2 else 1)
+        total += n - 9 if n > 9 else n
+    return total % 10 == 0
+
+
+_EMAIL = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b")
+_CARD = re.compile(r"\b\d(?:[ -]?\d){12,18}\b")
+_PHONE = re.compile(r"\+\d[\d ().-]{7,}\d|\(?\b\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b")
+
+
+def redact(text: str) -> str:
+    """Personal data values out, their kind in: what prompts, Git and the UI see of a capture's words.
+
+    Runs in every mode, NoX Local included, so it is regex-only and never calls a service.
+    """
+    text = _EMAIL.sub("[EMAIL_ADDRESS]", text)
+    text = _CARD.sub(lambda m: "[CREDIT_CARD_NUMBER]" if _luhn(re.sub(r"\D", "", m.group(0))) else m.group(0), text)
+    return _PHONE.sub("[PHONE_NUMBER]", text)

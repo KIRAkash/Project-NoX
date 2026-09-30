@@ -1,14 +1,16 @@
 "use client";
 
-import { CornerUpLeft, ExternalLink, Lock, Pencil, X } from "lucide-react";
+import { CornerUpLeft, ExternalLink, Film, Lock, Pencil, X } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BrandLogo } from "@/components/app/brand-logo";
 import { FlightStrip } from "@/components/app/flight-recorder";
 import { KbMarkdown } from "@/components/app/markdown";
 import { Planet } from "@/components/app/planet";
+import { EvidenceTab } from "@/components/app/media/evidence-tab";
+import { MEDIA_SEEK, type MediaSeek } from "@/components/app/media/media-chip";
 import { MissionBlastRadius, SeatBanner } from "@/components/app/seat-rail";
 import { SpecEditor } from "@/components/app/spec-editor";
 import { TicketPanel } from "@/components/app/ticket-panel";
@@ -40,9 +42,22 @@ export default function MissionPage() {
   const mission = useApi<Mission>(`/api/v1/missions/${key}`);
   const events = useApi<MissionEvent[]>(`/api/v1/missions/${key}/events`);
   const ticket = useApi<TicketState>(`/api/v1/missions/${key}/state`);
-  const [tab, setTab] = useState<RoleId>(myRole);
+  const search = useSearchParams();
+  const linked = search.get("media");
+  const [tab, setTab] = useState<RoleId | "evidence">(linked ? "evidence" : myRole);
   // The business user reads their own file; the other three stay one click away.
   const [trail, setTrail] = useState(myRole !== "business");
+  // A ▶ chip (or a link from Git) asks for a capture at a moment: open the Evidence tab there.
+  const [seek, setSeek] = useState<(MediaSeek & { n: number }) | null>(linked ? { id: linked, t: 0, n: 0 } : null);
+  useEffect(() => {
+    const onSeek = (e: Event) => {
+      const d = (e as CustomEvent<MediaSeek>).detail;
+      setTab("evidence");
+      setSeek((s) => ({ ...d, n: (s?.n ?? 0) + 1 }));
+    };
+    window.addEventListener(MEDIA_SEEK, onSeek);
+    return () => window.removeEventListener(MEDIA_SEEK, onSeek);
+  }, []);
 
   const reloads = useRef({ mission: mission.reload, events: events.reload, ticket: ticket.reload });
   reloads.current = { mission: mission.reload, events: events.reload, ticket: ticket.reload };
@@ -61,7 +76,17 @@ export default function MissionPage() {
   if (mission.error) return <p className="text-[14px] text-ink-faint">{mission.error.status === 404 ? "This mission isn't in your orbit." : mission.error.detail}</p>;
   if (!mission.data) return <p className="text-[13px] text-ink-faint">Loading…</p>;
   const m = mission.data;
-  const file = m.files.find((f) => f.role === tab)!;
+  const file = m.files.find((f) => f.role === (tab === "evidence" ? myRole : tab))!;
+  const evidenceTab = (
+    <button
+      type="button"
+      onClick={() => setTab("evidence")}
+      aria-current={tab === "evidence" ? "page" : undefined}
+      className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-[13.5px] ${tab === "evidence" ? "border-[color:var(--role)] text-ink" : "border-transparent text-ink-dim hover:text-ink"}`}
+    >
+      <Film size={14} /> Evidence
+    </button>
+  );
 
   return (
     <div className="mx-auto max-w-[1320px]">
@@ -76,9 +101,22 @@ export default function MissionPage() {
       <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div>
           {!trail && (
-            <button type="button" onClick={() => setTrail(true)} className="mb-2 text-[13px] text-ink-faint underline decoration-dotted hover:text-ink">
-              Show the full trail — what product, engineering and development wrote
-            </button>
+            <div className="mb-2 flex flex-wrap items-end justify-between gap-2 border-b border-hairline">
+              <button type="button" onClick={() => setTrail(true)} className="pb-2 text-[13px] text-ink-faint underline decoration-dotted hover:text-ink">
+                Show the full trail — what product, engineering and development wrote
+              </button>
+              <nav className="flex gap-1" aria-label="Spec file and evidence">
+                <button
+                  type="button"
+                  onClick={() => setTab(myRole)}
+                  aria-current={tab !== "evidence" ? "page" : undefined}
+                  className={`-mb-px border-b-2 px-3 py-2.5 text-[13.5px] ${tab !== "evidence" ? "border-[color:var(--role)] text-ink" : "border-transparent text-ink-dim hover:text-ink"}`}
+                >
+                  Your file
+                </button>
+                {evidenceTab}
+              </nav>
+            </div>
           )}
           {trail && (
             <nav className="flex gap-1 overflow-x-auto border-b border-hairline" aria-label="Spec files">
@@ -102,9 +140,10 @@ export default function MissionPage() {
                   </button>
                 );
               })}
+              {evidenceTab}
             </nav>
           )}
-          <FilePane m={m} file={file} onChanged={() => void mission.reload()} />
+          {tab === "evidence" ? <EvidenceTab missionKey={m.key} seek={seek} /> : <FilePane m={m} file={file} onChanged={() => void mission.reload()} />}
         </div>
         <aside className="space-y-5">
           {myRole === "engineering" ? (
@@ -581,6 +620,12 @@ const EVENT_TEXT: Record<string, (e: MissionEvent) => string> = {
   "shield.refused": () => "flagged a message as a possible prompt injection (NoX Shield); NoX didn't act on it",
   "chat.message": (e) => (e.payload.author === "nox" ? "replied in the chat" : "asked NoX something"),
   "git.synced": (e) => `saved the ${e.payload.role} file to Git (${e.payload.sha})`,
+  "media.attached": (e) => `showed NoX a ${String(e.payload.label ?? e.payload.kind ?? "capture").replace("_", " ")}`,
+  "media.analyzed": () => "watched a capture and looked it up in the knowledge base",
+  "media.withheld": () => "withheld a capture (NoX Shield)",
+  "media.deleted": (e) => `deleted a ${e.payload.label ?? "capture"}`,
+  "evidence.compared": (e) => `compared the after-recording with the ${e.payload.role} checklist`,
+  "evidence.compare_failed": () => "couldn't compare the after-recording",
 };
 
 function Timeline({ events }: { events: MissionEvent[] }) {

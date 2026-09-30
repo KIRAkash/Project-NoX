@@ -134,6 +134,15 @@ class Settings(BaseSettings):
     # ── Agents calling NoX (MCP, A2A) ─────────────────────────────────────────
     NOX_MCP_RATE_LIMIT: int = 60                       # tool calls per minute per API token
 
+    # ── Show NoX (CP15): screenshots, recordings, video and voice ─────────────
+    NOX_MEDIA_MAX_VIDEO_MB: int = 200
+    NOX_MEDIA_MAX_AUDIO_MB: int = 50
+    NOX_MEDIA_MAX_IMAGE_MB: int = 10
+    NOX_MEDIA_MAX_VIDEO_S: int = 300                   # uploads; recordings made in NoX stop at 3 minutes
+    NOX_MEDIA_MAX_AUDIO_S: int = 600
+    NOX_MEDIA_PER_MISSION: int = 12
+    NOX_MEDIA_STAGE_TIMEOUT_S: int = 90                # a stage that runs longer marks the capture failed (Retry)
+
     # ── Local Mode Tuning ─────────────────────────────────────────────────────
     LOCAL_MAX_FILES: int = 150
     LOCAL_CHUNK_SIZE: int = 6000

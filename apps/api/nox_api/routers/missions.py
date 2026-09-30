@@ -172,6 +172,20 @@ class MissionCreate(BaseModel):
     app_ids: list[uuid.UUID] = Field(alias="appIds", min_length=1)
     type: str = Field(default="feature", pattern="^(feature|bug|change)$")
     jira_key: str | None = Field(default=None, alias="jiraKey", pattern=r"^[A-Za-z][A-Za-z0-9]+-\d+$")
+    media_ids: list[uuid.UUID] = Field(default_factory=list, alias="mediaIds", max_length=12)  # draft captures (Show NoX)
+
+
+async def _draft_captures(db: AsyncSession, actor: Actor, ids: list[uuid.UUID]) -> list:
+    """The caller's own draft captures, ready to attach. Anyone else's (or an unknown id) is a 404."""
+    from ..db.models import MediaAsset, MediaStatus
+
+    rows = (await db.execute(select(MediaAsset).where(MediaAsset.id.in_(ids)))).scalars().all() if ids else []
+    if len(rows) != len(set(ids)) or any(r.uploaded_by != actor.user.id or r.mission_id is not None or r.status == MediaStatus.deleted for r in rows):
+        raise HTTPException(404, "One of those captures isn't yours to attach")
+    withheld = [r for r in rows if r.status == MediaStatus.withheld]
+    if withheld:
+        raise HTTPException(422, f"NoX Shield withheld a capture, so it can't be attached: {withheld[0].status_reason or 'it may contain unsafe content'}")
+    return rows
 
 
 @router.post("")
@@ -185,6 +199,7 @@ async def create_mission(body: MissionCreate, db: AsyncSession = Depends(get_db)
 
     if (await shield.screen_prompt(body.prompt, where="mission_prompt", org_id=primary.org_id)).blocked:
         raise HTTPException(422, "NoX Shield flagged this request as a possible prompt injection. Rephrase it in your own words and try again.")
+    captures = await _draft_captures(db, actor, body.media_ids)
 
     creator = actor.role
     for attempt in range(3):
@@ -208,8 +223,14 @@ async def create_mission(body: MissionCreate, db: AsyncSession = Depends(get_db)
         drafting = role == creator or role in upstream_of(creator)
         db.add(SpecFile(mission_id=mission.id, role=role, status=SpecStatus.drafting if drafting else SpecStatus.empty,
                         author_id=actor.user.id if role == creator else None))
+    for c in captures:  # a draft capture moves into the mission's org, where everyone on the mission can see it
+        c.mission_id, c.org_id = mission.id, mission.org_id
     await db.commit()
     await record(db, mission, "mission.created", {"key": mission.key, "prompt": mission.prompt}, actor.user, creator.value)
+    for c in captures:
+        await record(db, mission, "media.attached", {"mediaId": str(c.id), "kind": c.kind.value}, actor.user, creator.value)
+        if c.status.value == "ready":
+            spawn(f"evidence {mission.key}", _sync_evidence_bg, str(mission.id), str(c.id))
     if body.jira_key:  # imported from Jira: link first so NoX's drafts can read the ticket
         from ..missions.jira_sync import link_issue
 
@@ -221,6 +242,17 @@ async def create_mission(body: MissionCreate, db: AsyncSession = Depends(get_db)
     spawn(f"draft {mission.key}", draft_mission_files, str(mission.id))
     mission = await load_mission(db, actor, mission.key)
     return mission_json(mission, kbs)
+
+
+async def _sync_evidence_bg(mission_id: str, media_id: str) -> None:
+    from ..db.database import AsyncSessionLocal
+    from ..db.models import MediaAsset
+    from ..missions.media import sync_evidence
+
+    async with AsyncSessionLocal() as db:
+        mission, m = await db.get(Mission, uuid.UUID(mission_id)), await db.get(MediaAsset, uuid.UUID(media_id))
+        if mission and m:
+            await sync_evidence(db, mission, m)
 
 
 @router.get("")
@@ -674,11 +706,12 @@ async def chat_history(key: str, role: str, db: AsyncSession = Depends(get_db), 
     mission = await load_mission(db, actor, key)
     f = file_for(mission, r)
     rows = (await db.execute(select(SpecChatMessage).where(SpecChatMessage.spec_file_id == f.id).order_by(SpecChatMessage.created_at))).scalars().all()
-    return [{"id": str(m.id), "author": m.author, "body": m.body, "createdAt": m.created_at.isoformat()} for m in rows]
+    return [{"id": str(m.id), "author": m.author, "body": m.body, "mediaIds": m.media_ids or [], "createdAt": m.created_at.isoformat()} for m in rows]
 
 
 class ChatBody(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
+    media_ids: list[uuid.UUID] = Field(default_factory=list, alias="mediaIds", max_length=4)
 
 
 @router.post("/{key}/files/{role}/chat", status_code=202)
@@ -690,12 +723,23 @@ async def chat_post(key: str, role: str, body: ChatBody, db: AsyncSession = Depe
     own_file(actor, r)
     mission = await load_mission(db, actor, key)
     f = file_for(mission, r)
-    msg = SpecChatMessage(spec_file_id=f.id, author="user", user_id=actor.user.id, body=body.message.strip())
+    media_ids = [str(i) for i in dict.fromkeys(body.media_ids)]
+    if media_ids:  # captures attached to the message must already be on this mission
+        from ..db.models import MediaAsset, MediaStatus
+
+        rows = (await db.execute(select(MediaAsset).where(MediaAsset.id.in_(body.media_ids)))).scalars().all()
+        if len(rows) != len(media_ids) or any(x.mission_id != mission.id or x.status in (MediaStatus.deleted, MediaStatus.withheld) for x in rows):
+            raise HTTPException(404, "That capture isn't on this mission")
+    msg = SpecChatMessage(spec_file_id=f.id, author="user", user_id=actor.user.id, body=body.message.strip(), media_ids=media_ids)
     db.add(msg)
     await db.commit()
-    await record(db, mission, "chat.message", {"role": r.value, "author": "user", "body": msg.body}, actor.user, actor.role.value)
-    spawn(f"chat {key}/{role}", chat, str(mission.id), r, msg.body, actor.user.id)
-    return {"id": str(msg.id), "author": "user", "body": msg.body, "createdAt": msg.created_at.isoformat()}
+    if media_ids:
+        for x in rows:
+            x.chat_message_id, x.spec_role = msg.id, x.spec_role or r
+        await db.commit()
+    await record(db, mission, "chat.message", {"role": r.value, "author": "user", "body": msg.body, "mediaIds": media_ids}, actor.user, actor.role.value)
+    spawn(f"chat {key}/{role}", chat, str(mission.id), r, msg.body, actor.user.id, media_ids)
+    return {"id": str(msg.id), "author": "user", "body": msg.body, "mediaIds": media_ids, "createdAt": msg.created_at.isoformat()}
 
 
 class RevertBody(BaseModel):

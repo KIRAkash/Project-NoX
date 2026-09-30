@@ -1,0 +1,107 @@
+<!doctype html>
+<!--
+  Apex trade desk: a static mock screen for the Show NoX demo (CP15).
+
+  The demo codebases have no user interface, so this page stands in for one. Open it in a browser, record it with
+  Record screen, and narrate: "This iceberg order filled in two parts. The first fill settled, the second has been
+  Pending settlement since this morning."
+
+  Every label and message below that NoX should ground is copied from real code, so grep_source finds it:
+
+    trade-settlement-system
+      "SETTLED", "FAILED"                  listeners/TradeMatchedListener.java  statusPublisher.publishStatus(...)
+      "Failed to settle trade"             listeners/TradeMatchedListener.java  log.error(...)
+      "scfs.settlement.status"             src/main/resources/application.yml   outbound settlement-status topic
+      "nte.trades.matched"                 src/main/resources/application.yml   inbound trade-matched topic
+      "Initiating bank transfer for trade" services/BankTransferService.java    log.info(...)
+      "Ledger updated successfully for trade" services/LedgerService.java       log.info(...)
+      "Received matched trade ... from order-matching-engine"  listeners/TradeMatchedListener.java  log.info(...)
+    order-matching-engine
+      "match_phase", "CONTINUOUS", "AUCTION"  models/trade.go                   TradeExecution.MatchPhase
+      "is_iceberg", "display_quantity", "hidden_quantity"  models/order.go      Order
+      "BUY", "SELL", "LIMIT"               models/order.go                      Side / OrderType
+      "nte.trades.matched"                 cmd/server/main.go                   tradeTopic
+
+  "Pending settlement" is the symptom on screen, not a string from the code: a trade shows it when no status message
+  has arrived on scfs.settlement.status for its trade_id.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apex trade desk</title>
+<style>
+  :root { --bg:#0b0e14; --panel:#131824; --line:#232a3a; --ink:#e6e9f0; --dim:#8a93a6; --ok:#3ecf8e; --warn:#f5b041; --bad:#ef5350; --accent:#6c8cff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  header { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line); }
+  header h1 { font-size:16px; margin:0; letter-spacing:.02em; }
+  header .meta { color:var(--dim); font-size:12px; }
+  main { padding:16px; display:grid; gap:16px; grid-template-columns:minmax(0,2fr) minmax(0,1fr); }
+  @media (max-width:820px) { main { grid-template-columns:minmax(0,1fr); } }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  section h2 { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:0; padding:10px 14px; border-bottom:1px solid var(--line); }
+  .scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  th, td { text-align:left; padding:9px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--dim); font-weight:500; font-size:12px; }
+  tr.sel { background:rgba(245,176,65,.08); }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:600; }
+  .SETTLED { background:rgba(62,207,142,.15); color:var(--ok); }
+  .PENDING { background:rgba(245,176,65,.15); color:var(--warn); }
+  .FAILED { background:rgba(239,83,80,.15); color:var(--bad); }
+  .BUY { color:var(--ok); } .SELL { color:var(--bad); }
+  dl { margin:0; padding:12px 14px; display:grid; grid-template-columns:auto 1fr; gap:6px 14px; }
+  dt { color:var(--dim); } dd { margin:0; word-break:break-word; }
+  .log { font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; padding:12px 14px; color:var(--dim); white-space:pre-wrap; word-break:break-word; }
+  .log .e { color:var(--bad); } .log .w { color:var(--warn); }
+  .banner { margin:0 14px 12px; padding:10px 12px; border-radius:8px; background:rgba(245,176,65,.1); border:1px solid rgba(245,176,65,.35); color:var(--warn); font-size:13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Apex trade desk · Blotter</h1>
+  <span class="meta">Settlement feed: scfs.settlement.status · Matches: nte.trades.matched · Desk: Equities EU</span>
+</header>
+<main>
+  <section>
+    <h2>Today's trades</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>trade_id</th><th>Order</th><th>Side</th><th>Symbol</th><th>Qty</th><th>Price</th><th>match_phase</th><th>Settlement</th></tr></thead>
+        <tbody>
+          <tr><td>T-40811</td><td>O-9120</td><td class="BUY">BUY</td><td>APX.L</td><td>2,000</td><td>41.20</td><td>AUCTION</td><td><span class="pill SETTLED">SETTLED</span></td></tr>
+          <tr><td>T-40812</td><td>O-9121</td><td class="SELL">SELL</td><td>VRD.DE</td><td>500</td><td>118.05</td><td>CONTINUOUS</td><td><span class="pill SETTLED">SETTLED</span></td></tr>
+          <tr><td>T-40815</td><td>O-9133 (iceberg)</td><td class="BUY">BUY</td><td>NRT.PA</td><td>3,000</td><td>27.84</td><td>CONTINUOUS</td><td><span class="pill SETTLED">SETTLED</span></td></tr>
+          <tr class="sel"><td>T-40816</td><td>O-9133 (iceberg)</td><td class="BUY">BUY</td><td>NRT.PA</td><td>7,000</td><td>27.85</td><td>CONTINUOUS</td><td><span class="pill PENDING">Pending settlement</span></td></tr>
+          <tr><td>T-40819</td><td>O-9140</td><td class="SELL">SELL</td><td>APX.L</td><td>1,200</td><td>41.35</td><td>CONTINUOUS</td><td><span class="pill FAILED">FAILED</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Order O-9133</h2>
+    <dl>
+      <dt>Type</dt><dd>LIMIT · BUY · NRT.PA @ 27.85</dd>
+      <dt>Quantity</dt><dd>10,000</dd>
+      <dt>is_iceberg</dt><dd>true</dd>
+      <dt>display_quantity</dt><dd>3,000</dd>
+      <dt>hidden_quantity</dt><dd>7,000</dd>
+      <dt>Fills</dt><dd>T-40815 (3,000) · T-40816 (7,000)</dd>
+      <dt>Filled</dt><dd>10,000 of 10,000</dd>
+    </dl>
+    <p class="banner">T-40816 has been Pending settlement for 4h 12m. No message for this trade_id on scfs.settlement.status.</p>
+    <h2>Desk log</h2>
+    <div class="log">09:14:02 Received matched trade T-40815 from order-matching-engine
+09:14:02 Ledger updated successfully for trade T-40815
+09:14:03 Initiating bank transfer for trade T-40815 via SWIFT
+09:14:03 Publishing settlement status … "status":"SETTLED"
+09:14:07 <span class="w">Received matched trade T-40816 from order-matching-engine</span>
+09:14:07 <span class="w">(no status published)</span>
+10:02:41 <span class="e">Failed to settle trade T-40819</span>
+10:02:41 Publishing settlement status … "status":"FAILED"</div>
+  </section>
+</main>
+</body>
+</html>
