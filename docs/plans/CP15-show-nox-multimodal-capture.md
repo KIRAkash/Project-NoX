@@ -35,9 +35,20 @@ This is the feature definition and the build plan. It's written in depth because
 
 1. **New mission** (`apps/web/app/(product)/app/missions/new/page.tsx`). Under the request textarea there's a **Show NoX** bar with four actions: **Record screen**, **Take screenshot**, **Voice note** and **Upload** (image or video). Drag-and-drop and paste (Cmd/Ctrl+V of an image) work anywhere on the page.
 2. **Spec file chat** (`ChatDock` in `components/app/spec-editor.tsx`). A paperclip on the chat input opens the same four actions. The message goes to the co-writer with the media attached.
-3. **Spec editor toolbar.** The existing image button (`uploadImage`, which posts to `/api/v1/missions/{key}/assets`) becomes the same menu. Plain images keep inserting `![alt](url)` into the file exactly as today.
+3. **Spec editor toolbar.** The four actions sit in the editor's toolbar, after the formatting buttons, with no menu in between. A finished capture joins the mission's evidence, and a chip citing it goes into the file at the cursor. A sheet the bar opens (share setup, markup, preview) takes the toolbar's full width.
 4. **Evidence tab on the mission page** (`missions/[key]/page.tsx`). Every capture on the mission, in time order. It's also where you add captures without chatting.
 5. **Verify panel** (`components/app/verify-panel.tsx`): a **Show it works** action (section 4.6).
+6. **Business home** (`RequestComposer` in `components/app/homes/business.tsx`). The same **Show NoX** bar sits under "What would you like to change?", with paste and drop anywhere on the page. An application seen in a capture replaces the word-matched guess (unless the user picked one), a capture read as a bug sends the request as `bug`, and the captures go with the request as `mediaIds`.
+
+Seeing the evidence from the other seats (`components/app/media/mission-media.tsx` holds the mission's captures for the page):
+
+- Each capture is numbered in time order (**E1**, **E2**…), and the same number shows on its card, in the rail and on every chip that cites it.
+- A file's header shows **N evidence added** next to its status when that seat showed NoX something. Clicking it opens the capture on the Evidence tab.
+- The rail has an **Evidence** panel under Applications that lists every capture with who added it ("dev (Business)"). Clicking one opens it.
+- Evidence cards say who added the capture and from which seat.
+- `[[media:<id>]]` cites a screenshot or image whole, and `[[media:<id>#t=42]]` cites a moment in a recording. Both render as a chip ("E1 · screenshot") that opens the capture. A reference to the original of a marked-up screenshot opens its marked copy.
+- People can refer to evidence by its number ("see E1") in their own words. NoX's drafts cite captures as chips.
+- A first draft waits (up to 90 s) for captures NoX is still analysing, so a request sent seconds after a screenshot is drafted with it.
 
 ### 3.2 Recording the screen
 

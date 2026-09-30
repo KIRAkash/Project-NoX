@@ -346,6 +346,16 @@ def test_build_prompt_keeps_code_out_of_business_and_product(role, code):
     assert ("src/refund.py:3" in p) is code and ("order.refunded" in p) is code
 
 
+def test_a_screenshot_is_cited_whole_and_a_recording_by_moment():
+    from nox_api.db.models import Role
+    from nox_api.missions.media import MediaEvidence, render_evidence
+
+    shot = MediaEvidence(id="img", label="screenshot", caption=None, observation={"summary": "Refund page"}, still=True)
+    p = render_evidence([shot, *_evidence()], Role.product)
+    assert "[[media:img]] at the end of each statement it backs" in p and "[[media:img#t=" not in p
+    assert "[[media:abc]]" in p and "[[media:abc#t=<seconds>]]" in p
+
+
 async def test_launching_a_mission_attaches_drafts_and_moves_them_to_its_org(kb, media_llm, fake_nox):
     from nox_api.db.database import AsyncSessionLocal
     from nox_api.db.models import KnowledgeBase, MediaAsset

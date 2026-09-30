@@ -4,15 +4,17 @@ import {
   Bold,
   CheckSquare,
   Code,
+  Columns2,
+  Eye,
   Heading2,
   Heading3,
-  ImagePlus,
   Italic,
   Link2,
   List,
   ListOrdered,
   MessageSquare,
   Paperclip,
+  Pencil,
   Send,
   Sparkles,
   Table,
@@ -21,12 +23,13 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { api, API_URL, ApiError, authHeaders } from "@/lib/app/api";
+import { api, ApiError } from "@/lib/app/api";
 import { subscribe } from "@/lib/app/stream";
 import type { MediaCapture } from "@/lib/app/types";
 
 import { KbMarkdown } from "./markdown";
 import { CaptureBar, CaptureChip } from "./media/capture-bar";
+import { mediaRef } from "./media/mission-media";
 import { useToast } from "./ui";
 
 type Op = { op: "replace" | "insert" | "delete"; from: number; to: number; lines: string[] };
@@ -93,6 +96,10 @@ const normHeading = (h: string) => h.toLowerCase().replace(/[^a-z0-9]+/g, " ").t
 type ChatMsg = { id: string; author: "user" | "nox"; body: string; mediaIds?: string[]; createdAt: string };
 
 const REFINE_KEY = "nox.refineOnSave";
+const LAYOUT_KEY = "nox.specEditLayout";
+
+/** Editing: the Markdown alone, the rendered page alone, or both side by side (wide screens). */
+type EditLayout = "write" | "preview" | "split";
 
 export function SpecEditor({
   missionKey,
@@ -100,12 +107,18 @@ export function SpecEditor({
   markdown,
   version,
   onSaved,
+  startEditing = false,
+  onStopEditing,
 }: {
   missionKey: string;
   role: string;
   markdown: string;
   version: number;
   onSaved: () => void;
+  /** Open straight in the editor (Edit on an approved file) rather than reading the rendered spec first. */
+  startEditing?: boolean;
+  /** Leaving the editor without a change (Cancel, or Done): an approved file goes back to its approved page. */
+  onStopEditing?: () => void;
 }) {
   const toast = useToast();
   const [text, setText] = useState(markdown);
@@ -121,7 +134,17 @@ export function SpecEditor({
   const turnStart = useRef<{ markdown: string; version: number } | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [pendingEdit, setPendingEdit] = useState<NoxEdit | null>(null);
-  const [view, setView] = useState<"write" | "preview">("write");
+  // A file opens to read: the rendered spec, NoX's edits streaming into it. Edit opens the Markdown editor.
+  const [editing, setEditing] = useState(startEditing);
+  const [layout, setLayoutState] = useState<EditLayout>("write");
+  const setLayout = (next: EditLayout) => {
+    setLayoutState(next);
+    try {
+      window.localStorage.setItem(LAYOUT_KEY, next);
+    } catch {
+      /* ignore */
+    }
+  };
   const taRef = useRef<HTMLTextAreaElement>(null);
   const dirty = text !== base.markdown;
   const dirtyRef = useRef(dirty);
@@ -144,6 +167,7 @@ export function SpecEditor({
   useEffect(() => {
     try {
       setRefineOnSave(window.localStorage.getItem(REFINE_KEY) !== "false");
+      if (window.localStorage.getItem(LAYOUT_KEY) === "split") setLayoutState("split");
     } catch {
       /* default on */
     }
@@ -205,7 +229,6 @@ export function SpecEditor({
     turnStart.current = null;
     setLiveAdded(null);
     setLastEdit({ fromVersion: edit.fromVersion, added: addedLines(edit.ops), edits: edit.edits ?? [] });
-    setView("preview"); // below lg the preview is the only place the tint shows
   };
 
   const animateRef = useRef(animate);
@@ -274,7 +297,8 @@ export function SpecEditor({
   );
 
   const save = useCallback(async () => {
-    if (!dirty || saving) return;
+    if (saving) return;
+    if (!dirty) return onStopEditing ? onStopEditing() : setEditing(false);
     setSaving(true);
     try {
       const f = await api<{ version: number; markdown: string }>(`/api/v1/missions/${missionKey}/files/${role}`, {
@@ -283,6 +307,7 @@ export function SpecEditor({
       });
       setBase({ markdown: f.markdown, version: f.version });
       setLastEdit(null);
+      setEditing(false); // saved: back to reading it (NoX's refine, if on, streams into the page)
       onSaved();
       if (refineOnSave) {
         await api(`/api/v1/missions/${missionKey}/files/${role}/refine`, { method: "POST", json: {} });
@@ -293,7 +318,7 @@ export function SpecEditor({
     } finally {
       setSaving(false);
     }
-  }, [dirty, saving, missionKey, role, text, base.version, refineOnSave, onSaved, toast]);
+  }, [dirty, saving, missionKey, role, text, base.version, refineOnSave, onSaved, onStopEditing, toast]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -353,21 +378,6 @@ export function SpecEditor({
     setText(pre + glue + snippet + "\n" + text.slice(at));
     requestAnimationFrame(() => ta?.focus());
   };
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [mediaMenu, setMediaMenu] = useState<"closed" | "menu" | "capture">("closed");
-  const uploadImage = async (file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    try {
-      const res = await fetch(`${API_URL}/api/v1/missions/${missionKey}/assets`, { method: "POST", headers: await authHeaders(), body: form });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.detail ?? "Upload failed");
-      insertBlock(body.markdown);
-    } catch (e) {
-      toast(String((e as Error).message || e), "error");
-    }
-  };
-
   const tools = [
     { icon: Heading2, label: "Heading", run: () => linePrefix("## ") },
     { icon: Heading3, label: "Subheading", run: () => linePrefix("### ") },
@@ -379,83 +389,36 @@ export function SpecEditor({
     { icon: Table, label: "Table", run: () => insertBlock("| Column | Column |\n| --- | --- |\n|  |  |") },
     { icon: Code, label: "Code block", run: () => insertBlock("```\ncode\n```") },
     { icon: Link2, label: "Link", run: () => surround("[", "](https://)", "link text") },
-    { icon: ImagePlus, label: "Image or capture", run: () => setMediaMenu((m) => (m === "closed" ? "menu" : "closed")) },
   ];
+  const refine = () => void api(`/api/v1/missions/${missionKey}/files/${role}/refine`, { method: "POST", json: {} }).then(() => setNoxBusy("NoX is refining your spec…"));
+  const cancel = () => {
+    if (dirty && !window.confirm("Discard your unsaved changes?")) return;
+    setText(base.markdown);
+    setPendingEdit(null);
+    if (onStopEditing) onStopEditing();
+    else setEditing(false);
+  };
+  const edit = () => {
+    setEditing(true);
+    requestAnimationFrame(() => taRef.current?.focus());
+  };
 
   const previewText = typing ? typing.shown.join("\n") : text;
   const highlight = typing?.added ?? liveAdded ?? lastEdit?.added ?? null;
   const jumpTo = (heading: string) => {
     const box = previewRef.current;
     const el = box?.querySelector<HTMLElement>(`[data-heading="${CSS.escape(normHeading(heading))}"]`);
-    if (box && el) box.scrollTo({ top: el.offsetTop - 16, behavior: "smooth" });
+    if (box && el) bringIntoView(box, el, "start");
   };
 
-  return (
-    <div className="relative">
-      <div className="flex flex-wrap items-center gap-1 rounded-t-md border border-b-0 border-hairline bg-deck px-2 py-1.5">
-        {tools.map((t) => (
-          <button key={t.label} type="button" onClick={t.run} title={t.label} aria-label={t.label} disabled={!!typing} className="flex h-8 w-8 items-center justify-center rounded-sm text-ink-muted hover:bg-[rgba(143,160,204,.1)] hover:text-ink disabled:opacity-40">
-            <t.icon size={15} strokeWidth={1.7} />
-          </button>
-        ))}
-        <input ref={fileRef} type="file" accept="image/*" className="sr-only" onChange={(e) => e.target.files?.[0] && void uploadImage(e.target.files[0])} />
-        <span className="ml-auto flex items-center gap-3 pr-1">
-          <label className="flex cursor-pointer items-center gap-1.5 text-[12px] text-ink-muted">
-            <input
-              type="checkbox"
-              checked={refineOnSave}
-              onChange={(e) => {
-                setRefineOnSave(e.target.checked);
-                try {
-                  window.localStorage.setItem(REFINE_KEY, String(e.target.checked));
-                } catch {
-                  /* ignore */
-                }
-              }}
-            />
-            NoX refines on save
-          </label>
-          <span className="flex rounded-sm border border-hairline lg:hidden">
-            {(["write", "preview"] as const).map((v) => (
-              <button key={v} type="button" onClick={() => setView(v)} className={`px-2 py-1 text-[12px] capitalize ${view === v ? "text-ink" : "text-ink-dim"}`}>
-                {v}
-              </button>
-            ))}
-          </span>
-        </span>
-      </div>
+  const busy = !!typing || !!noxBusy;
+  const barBtn = "flex h-8 items-center gap-1.5 rounded-sm border border-hairline px-3 text-[12.5px] text-ink-muted hover:border-ink-faint hover:text-ink disabled:opacity-40";
+  const preview = <PreviewBlocks markdown={previewText} highlight={highlight} cursorLine={typing?.cursorLine ?? null} scrollRef={previewRef} />;
+  const tintHidden = editing && layout === "write";
 
-      {mediaMenu !== "closed" && (
-        <div className="flex flex-wrap items-start gap-3 border border-b-0 border-hairline bg-deck px-3 py-2.5 text-[13px]">
-          {mediaMenu === "menu" ? (
-            <>
-              <button type="button" onClick={() => { setMediaMenu("closed"); fileRef.current?.click(); }} className="h-8 rounded-sm border border-hairline px-3 text-ink-muted hover:text-ink">
-                Insert an image into the file
-              </button>
-              <button type="button" onClick={() => setMediaMenu("capture")} className="h-8 rounded-sm border border-hairline px-3 text-ink-muted hover:text-ink">
-                Show NoX a recording, screenshot or voice note
-              </button>
-            </>
-          ) : (
-            <div className="min-w-0 flex-1">
-              <p className="mb-2 text-[12.5px] text-ink-faint">NoX watches it and adds it to the mission&rsquo;s evidence; a ▶ chip goes into the file where your cursor is.</p>
-              <CaptureBar
-                compact
-                missionKey={missionKey}
-                role={role}
-                onMedia={(c) => {
-                  setMediaMenu("closed");
-                  insertBlock(`[[media:${c.id}${c.kind === "image" || c.kind === "screenshot" ? "" : "#t=0"}]]`);
-                }}
-              />
-            </div>
-          )}
-          <button type="button" onClick={() => setMediaMenu("closed")} aria-label="Close" className="ml-auto text-ink-dim hover:text-ink">
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
+  // NoX's progress and its finished edit show the same way in every view.
+  const banners = (
+    <>
       {(noxBusy || typing) && (
         <div className="flex items-center gap-2 border border-b-0 border-hairline bg-[rgba(168,151,240,.08)] px-3 py-2 text-[13px] text-ink" role="status">
           <Sparkles size={14} className="text-[#A897F0]" /> {typing ? "NoX is writing…" : noxBusy}
@@ -475,17 +438,23 @@ export function SpecEditor({
       {lastEdit && !typing && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border border-b-0 border-hairline bg-[rgba(168,151,240,.1)] px-3 py-2 text-[13px] text-ink-muted">
           <Sparkles size={13} className="text-[#A897F0]" />
-          <span className="text-ink">Review NoX&rsquo;s changes — they&rsquo;re tinted in the preview.</span>
-          {lastEdit.edits.map((what, i) => {
-            const heading = editedHeading(what);
-            return heading ? (
-              <button key={i} type="button" onClick={() => jumpTo(heading)} className="rounded-sm border border-[rgba(168,151,240,.4)] px-2 py-0.5 text-[12px] text-ink hover:border-[#A897F0]">
-                {what.charAt(0).toUpperCase() + what.slice(1)}
-              </button>
-            ) : (
-              <span key={i} className="text-[12px]">{what}</span>
-            );
-          })}
+          <span className="text-ink">{tintHidden ? "Review NoX’s changes — open the preview to see them tinted." : "Review NoX’s changes — they’re tinted in the page."}</span>
+          {tintHidden ? (
+            <button type="button" onClick={() => setLayout("split")} className="rounded-sm border border-[rgba(168,151,240,.4)] px-2 py-0.5 text-[12px] text-ink hover:border-[#A897F0]">
+              Show side by side
+            </button>
+          ) : (
+            lastEdit.edits.map((what, i) => {
+              const heading = editedHeading(what);
+              return heading ? (
+                <button key={i} type="button" onClick={() => jumpTo(heading)} className="rounded-sm border border-[rgba(168,151,240,.4)] px-2 py-0.5 text-[12px] text-ink hover:border-[#A897F0]">
+                  {what.charAt(0).toUpperCase() + what.slice(1)}
+                </button>
+              ) : (
+                <span key={i} className="text-[12px]">{what}</span>
+              );
+            })
+          )}
           <button type="button" onClick={() => setLastEdit(null)} className="text-ink underline">
             Keep
           </button>
@@ -494,8 +463,89 @@ export function SpecEditor({
           </button>
         </div>
       )}
+    </>
+  );
 
-      <div className="grid rounded-b-md border border-hairline lg:grid-cols-2">
+  if (!editing) {
+    return (
+      <div className="relative">
+        <div className="flex flex-wrap items-center gap-2 rounded-t-md border border-b-0 border-hairline bg-deck px-3 py-1.5">
+          <span className="flex items-center gap-1.5 text-[12px] text-ink-muted">
+            <Eye size={13} aria-hidden /> Reading
+          </span>
+          <span className="ml-auto flex items-center gap-2">
+            <button type="button" onClick={refine} disabled={busy} className={barBtn}>
+              <Sparkles size={13} className="text-[#A897F0]" aria-hidden /> Ask NoX to refine
+            </button>
+            <button type="button" onClick={edit} disabled={!!typing} className="flex h-8 items-center gap-1.5 rounded-sm px-3 text-[12.5px] font-semibold text-void disabled:opacity-40" style={{ background: "var(--role)" }}>
+              <Pencil size={13} aria-hidden /> Edit
+            </button>
+          </span>
+        </div>
+        {banners}
+        <div ref={previewRef} className="relative min-h-[40vh] rounded-b-md border border-hairline bg-[rgba(9,11,19,.66)] p-6 sm:p-8">
+          {preview}
+        </div>
+        <ChatDock missionKey={missionKey} role={role} busy={noxMode === "chat"} status={noxMode === "chat" ? noxBusy : null} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <div className="flex flex-wrap items-center gap-1 rounded-t-md border border-b-0 border-hairline bg-deck px-2 py-1.5">
+        {tools.map((t) => (
+          <button key={t.label} type="button" onClick={t.run} title={t.label} aria-label={t.label} disabled={!!typing || layout === "preview"} className="flex h-8 w-8 items-center justify-center rounded-sm text-ink-muted hover:bg-[rgba(143,160,204,.1)] hover:text-ink disabled:opacity-40">
+            <t.icon size={15} strokeWidth={1.7} />
+          </button>
+        ))}
+        {/* Show NoX right in the toolbar; a sheet it opens (share setup, markup, preview) takes the full row */}
+        <div className="ml-1 has-[>div>:nth-child(2)]:order-last has-[>div>:nth-child(2)]:basis-full has-[>div>:nth-child(2)]:py-1">
+          <CaptureBar compact missionKey={missionKey} role={role} onMedia={(c) => insertBlock(mediaRef(c))} />
+        </div>
+        <span className="ml-auto flex items-center gap-3 pr-1">
+          <label className="flex cursor-pointer items-center gap-1.5 text-[12px] text-ink-muted">
+            <input
+              type="checkbox"
+              checked={refineOnSave}
+              onChange={(e) => {
+                setRefineOnSave(e.target.checked);
+                try {
+                  window.localStorage.setItem(REFINE_KEY, String(e.target.checked));
+                } catch {
+                  /* ignore */
+                }
+              }}
+            />
+            NoX refines on save
+          </label>
+          <span className="flex rounded-sm border border-hairline" role="radiogroup" aria-label="Editor layout">
+            {(
+              [
+                ["write", "Write", null],
+                ["preview", "Preview", null],
+                ["split", "Side by side", Columns2],
+              ] as const
+            ).map(([v, label, Icon]) => (
+              <button
+                key={v}
+                type="button"
+                role="radio"
+                aria-checked={layout === v}
+                onClick={() => setLayout(v)}
+                className={`${v === "split" ? "hidden lg:flex" : "flex"} items-center gap-1 px-2 py-1 text-[12px] ${layout === v ? "bg-[rgba(143,160,204,.12)] text-ink" : "text-ink-dim hover:text-ink"}`}
+              >
+                {Icon && <Icon size={12} aria-hidden />}
+                {label}
+              </button>
+            ))}
+          </span>
+        </span>
+      </div>
+
+      {banners}
+
+      <div className={`grid rounded-b-md border border-hairline ${layout === "split" ? "lg:grid-cols-2" : ""}`}>
         <textarea
           ref={taRef}
           value={typing ? typing.shown.join("\n") : text}
@@ -503,32 +553,52 @@ export function SpecEditor({
           onChange={(e) => setText(e.target.value)}
           aria-label="Spec file (Markdown)"
           spellCheck
-          className={`${view === "preview" ? "hidden lg:block" : ""} min-h-[62vh] w-full resize-y border-hairline bg-deck p-4 font-mono text-[13px] leading-relaxed text-ink outline-none lg:border-r`}
+          className={`${layout === "preview" ? "hidden" : layout === "split" ? "hidden lg:block lg:border-r" : ""} min-h-[62vh] w-full resize-y border-hairline bg-deck p-4 font-mono text-[13px] leading-relaxed text-ink outline-none`}
         />
-        <div ref={previewRef} className={`${view === "write" ? "hidden lg:block" : ""} relative max-h-[80vh] min-h-[62vh] overflow-y-auto bg-[rgba(9,11,19,.66)] p-6`}>
-          <PreviewBlocks markdown={previewText} highlight={highlight} cursorLine={typing?.cursorLine ?? null} scrollRef={previewRef} />
+        <div
+          ref={previewRef}
+          className={`${layout === "write" ? "hidden" : layout === "split" ? "max-h-[80vh] overflow-y-auto" : ""} relative min-h-[62vh] bg-[rgba(9,11,19,.66)] p-6`}
+        >
+          {preview}
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-end gap-3">
-        {dirty && <span className="text-[12px] text-ink-faint">Unsaved changes · ⌘S</span>}
+      <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
+        <span className="mr-auto text-[12px] text-ink-faint">{dirty ? "Unsaved changes · ⌘S saves" : "No changes yet"}</span>
+        <button type="button" onClick={cancel} disabled={saving} className="h-9 px-3 text-[13px] text-ink-dim hover:text-ink disabled:opacity-40">
+          Cancel
+        </button>
         <button
           type="button"
-          disabled={!!typing || !!noxBusy || saving || (!dirty && !refineOnSave)}
-          onClick={() =>
-            dirty
-              ? void save()
-              : void api(`/api/v1/missions/${missionKey}/files/${role}/refine`, { method: "POST", json: {} }).then(() => setNoxBusy("NoX is refining your spec…"))
-          }
-          className="h-9 rounded-sm border border-hairline px-4 text-[13px] text-ink hover:border-ink-faint disabled:opacity-40"
+          disabled={busy || saving}
+          onClick={() => void save()}
+          className="h-9 rounded-sm px-4 text-[13px] font-semibold text-void disabled:opacity-40"
+          style={{ background: "var(--role)" }}
         >
-          {saving ? "Saving…" : dirty ? "Save" : "Ask NoX to refine"}
+          {saving ? "Saving…" : dirty ? "Save" : "Done"}
         </button>
       </div>
 
       <ChatDock missionKey={missionKey} role={role} busy={noxMode === "chat"} status={noxMode === "chat" ? noxBusy : null} />
     </div>
   );
+}
+
+/**
+ * Scroll a preview block into view if it isn't. The side-by-side preview scrolls inside its own box; the reading
+ * view and the full-width preview grow with the page, so there the window scrolls instead.
+ */
+function bringIntoView(box: HTMLElement, el: HTMLElement, how: "follow" | "start") {
+  if (box.scrollHeight > box.clientHeight + 1) {
+    const top = el.offsetTop;
+    const visible = top >= box.scrollTop && top + el.offsetHeight <= box.scrollTop + box.clientHeight;
+    if (!visible) box.scrollTo({ top: Math.max(0, top - (how === "follow" ? box.clientHeight / 3 : 16)), behavior: how === "follow" ? "auto" : "smooth" });
+    return;
+  }
+  const r = el.getBoundingClientRect();
+  if (r.top >= 72 && r.bottom <= window.innerHeight) return;
+  const y = window.scrollY + r.top - (how === "follow" ? window.innerHeight / 3 : 88);
+  window.scrollTo({ top: Math.max(0, y), behavior: how === "follow" ? "auto" : "smooth" });
 }
 
 /** Markdown split into blank-line blocks, so blocks NoX wrote can be tinted and the typing cursor placed. */
@@ -568,10 +638,7 @@ function PreviewBlocks({
   useEffect(() => {
     const box = scrollRef.current;
     const el = target >= 0 ? box?.querySelector<HTMLElement>(`[data-block="${target}"]`) : null;
-    if (!box || !el) return;
-    const top = el.offsetTop;
-    const visible = top >= box.scrollTop && top + el.offsetHeight <= box.scrollTop + box.clientHeight;
-    if (!visible) box.scrollTo({ top: Math.max(0, top - (follow ? box.clientHeight / 3 : 16)), behavior: follow ? "auto" : "smooth" });
+    if (box && el) bringIntoView(box, el, follow ? "follow" : "start");
     // Only when the target block changes, not on every keystroke of typing inside it.
   }, [target, follow, scrollRef]);
 

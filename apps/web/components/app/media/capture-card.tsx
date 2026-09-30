@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Check, FileCode2, Image as ImageIcon, Mic, MonitorPlay, RotateCcw, ShieldAlert, Sparkles, Trash2, Video } from "lucide-react";
+import { AlertTriangle, Check, FileCode2, RotateCcw, ShieldAlert, Sparkles, Trash2 } from "lucide-react";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 import { useToast } from "@/components/app/ui";
@@ -10,8 +10,7 @@ import { subscribe } from "@/lib/app/stream";
 import { fmtT, type MediaCapture } from "@/lib/app/types";
 
 import { MediaPlayer, type PlayerHandle } from "./media-player";
-
-const KIND_ICON = { image: ImageIcon, screenshot: ImageIcon, screen_recording: MonitorPlay, video: Video, audio: Mic };
+import { addedBy, KIND_ICON, useMissionMedia } from "./mission-media";
 
 const LIKELY: Record<string, string> = {
   bug: "Looks like a bug",
@@ -89,6 +88,7 @@ export const CaptureCard = forwardRef<PlayerHandle, {
   };
 
   const Icon = KIND_ICON[c.kind];
+  const n = useMissionMedia().findIndex((x) => x.id === c.id); // its number on the spec files' chips (E1, E2…)
   const seek = (t: number) => player.current?.seek(t);
   const problems = new Set(c.problemTimes ?? []);
 
@@ -97,8 +97,9 @@ export const CaptureCard = forwardRef<PlayerHandle, {
       <header className="mb-3 flex flex-wrap items-center justify-between gap-2 text-[12.5px]">
         <span className="flex min-w-0 items-center gap-2 text-ink">
           <Icon size={14} className="shrink-0 text-[color:var(--role)]" aria-hidden />
+          {n >= 0 && <span className="font-mono text-[11px] text-[color:var(--role)]">E{n + 1}</span>}
           <span className="truncate">{c.label}</span>
-          {c.uploadedBy && <span className="truncate text-ink-faint">· {c.uploadedBy}</span>}
+          {c.uploadedBy && <span className="truncate text-ink-faint">· added by {addedBy(c)}</span>}
         </span>
         <span className="flex items-center gap-2">
           {c.status === "ready" && c.likely && <span className="rounded-full border border-hairline px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.06em] text-ink-muted">{LIKELY[c.likely]}</span>}

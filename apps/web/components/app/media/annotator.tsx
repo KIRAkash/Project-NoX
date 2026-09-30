@@ -110,8 +110,10 @@ export function Annotator({ src, hue, onDone, onCancel }: { src: string; hue: st
     redrawTick((n) => n + 1);
   };
   const up = () => {
-    if (draft.current) setShapes((s) => [...s, draft.current!]);
+    // Read the draft now: React runs the updater later, after the ref has been cleared.
+    const d = draft.current;
     draft.current = null;
+    if (d) setShapes((s) => [...s, d]);
   };
 
   const finish = () => {

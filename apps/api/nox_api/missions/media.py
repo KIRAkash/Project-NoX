@@ -416,6 +416,7 @@ class MediaEvidence:
     observation: dict
     grounding: dict = field(default_factory=dict)
     attached: bool = False           # attached to the chat message being answered
+    still: bool = False              # a screenshot or image: cited whole, it has no moments
 
 
 async def mission_evidence(db, mission_id, attached: list[str] | None = None) -> list[MediaEvidence]:
@@ -423,7 +424,8 @@ async def mission_evidence(db, mission_id, attached: list[str] | None = None) ->
                              .order_by(MediaAsset.created_at))).scalars().all()
     wanted = set(attached or [])
     return [MediaEvidence(id=str(r.id), label=describe(r), caption=r.caption, observation=r.observation or {},
-                          grounding=r.grounding or {}, attached=str(r.id) in wanted) for r in rows]
+                          grounding=r.grounding or {}, attached=str(r.id) in wanted,
+                          still=r.kind in IMAGE_KINDS) for r in rows]
 
 
 def render_evidence(evidence: list[MediaEvidence], role: Role) -> str:
@@ -457,9 +459,17 @@ def render_evidence(evidence: list[MediaEvidence], role: Role) -> str:
             lines.append("Contracts touched: " + "; ".join(f"{c['identifier']} ({c['app']}, {c['direction']})" for c in g["contracts"]))
         if g.get("open_questions"):
             lines.append("Open questions: " + " | ".join(g["open_questions"]))
-        lines.append(f"Cite moments as [[media:{ev.id}#t=<seconds>]].")
+        cite = f"Cite this capture as [[media:{ev.id}]] at the end of each statement it backs, so readers can open it"
+        lines.append(cite + ("." if ev.still else f"; cite a moment in it as [[media:{ev.id}#t=<seconds>]]."))
         blocks.append("\n".join(lines))
     return "\n\n".join(blocks)
+
+
+async def wait_for_analysis(db, mission_id, timeout: float = 90.0) -> None:
+    """Hold a first draft until the captures NoX is still watching are analysed, so the draft can use and cite them."""
+    busy = (await db.execute(select(MediaAsset.id).where(MediaAsset.mission_id == mission_id,
+                                                          MediaAsset.status == MediaStatus.analyzing))).scalars().all()
+    await wait_ready([str(i) for i in busy], timeout)
 
 
 async def wait_ready(media_ids: list[str], timeout: float = 90.0) -> None:
