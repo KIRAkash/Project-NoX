@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BrandLogo } from "@/components/app/brand-logo";
+import { FlightStrip } from "@/components/app/flight-recorder";
 import { KbMarkdown } from "@/components/app/markdown";
 import { Planet } from "@/components/app/planet";
 import { MissionBlastRadius, SeatBanner } from "@/components/app/seat-rail";
@@ -127,6 +128,7 @@ export default function MissionPage() {
           )}
           <TicketPanel missionKey={m.key} state={ticket.data} onChanged={() => void ticket.reload()} />
           {myRole !== "business" && <LinksPanel m={m} onChanged={() => void mission.reload()} />}
+          <FlightStrip missionKey={m.key} version={events.data?.length} />
           <Timeline events={events.data ?? []} />
         </aside>
       </div>
@@ -576,6 +578,7 @@ const EVENT_TEXT: Record<string, (e: MissionEvent) => string> = {
   "jira.updated": (e) => `${e.payload.key}: ${[e.payload.status && `status → ${e.payload.status}`, e.payload.assignee && `assigned to ${e.payload.assignee}`, e.payload.comment && `“${String(e.payload.comment).slice(0, 80)}”`].filter(Boolean).join(", ")} (by ${e.payload.by})`,
   "nox.edit": (e) => `refined the ${e.payload.role} file`,
   "file.reverted": (e) => `undid NoX's edit to the ${e.payload.role} file`,
+  "shield.refused": () => "flagged a message as a possible prompt injection (NoX Shield); NoX didn't act on it",
   "chat.message": (e) => (e.payload.author === "nox" ? "replied in the chat" : "asked NoX something"),
   "git.synced": (e) => `saved the ${e.payload.role} file to Git (${e.payload.sha})`,
 };

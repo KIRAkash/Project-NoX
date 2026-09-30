@@ -144,6 +144,12 @@ Anyone who can see the mission can assign it. Choose **Assign** (or **Reassign**
 
 The **Timeline** in the right rail records everything that happened, newest first: drafts, saves, NoX's edits, approvals, send-backs, chat messages, Jira updates, PRs, guard results, Git syncs, assignments and verification progress. It scrolls within a fixed height. Every event also streams live to anyone who has the mission open.
 
+## The flight recorder
+
+Above the timeline, the **Flight recorder** strip shows how long the mission has spent in each stage so far. It is read from the mission's own events, and the current stage keeps counting.
+
+The **Impact** page, in the menu for every seat, adds these up across an organization: median time from the first sentence to verified, time per stage, the send-back rate and where work comes back, how much of what NoX drafted cites a source, and an estimate of the AI cost per mission. Pick 7, 30 or 90 days.
+
 ## Where the files are saved
 
 Every file is stored twice, on every save and every approval:

@@ -1,4 +1,4 @@
-import { Activity, Layers, Map as MapIcon, Orbit, Rocket, SquareTerminal, type LucideIcon } from "lucide-react";
+import { Activity, Gauge, Layers, Map as MapIcon, Orbit, Rocket, SquareTerminal, type LucideIcon } from "lucide-react";
 
 import { ROLE_BY_ID, type RoleId } from "./roles";
 
@@ -17,14 +17,15 @@ const ITEM: Record<string, NavItem> = {
   specs: { key: "artifacts", label: "Specs", path: "/artifacts", icon: Layers },
   activity: { key: "activity", label: "Activity", path: "/activity", icon: Activity },
   cli: { key: "cli", label: "CLI", path: "/cli", icon: SquareTerminal },
+  impact: { key: "impact", label: "Impact", path: "/impact", icon: Gauge },
 };
 
-/** Each seat gets its own short nav: the business user sees only their requests; the developer gets the CLI. */
+/** Each seat gets its own short nav: the business user sees only their requests; the developer gets the CLI. Every seat sees Impact. */
 const SEAT_NAV: Record<RoleId, string[]> = {
-  business: ["home", "missions"],
-  product: ["home", "missions", "atlas", "specs"],
-  engineering: ["home", "missions", "atlas", "activity"],
-  developer: ["home", "missions", "atlas", "cli"],
+  business: ["home", "missions", "impact"],
+  product: ["home", "missions", "atlas", "specs", "impact"],
+  engineering: ["home", "missions", "atlas", "activity", "impact"],
+  developer: ["home", "missions", "atlas", "cli", "impact"],
 };
 
 export function navFor(role: RoleId): NavItem[] {

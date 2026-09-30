@@ -15,6 +15,8 @@ NoX connects to the systems an enterprise already runs. It reads them to build k
 | **Google Gemini** | — | — | Model calls through the Gemini Enterprise Agent Platform |
 | **Firebase Authentication** | Who you are (Google sign-in) | — | — |
 | **Coding agents** | — | — | `/nox` in Google Antigravity, Cursor, Codex, Copilot and Claude Code |
+| **Any MCP client** | — | — | NoX's tools over the Model Context Protocol at `/mcp` |
+| **Any A2A agent** | — | — | NoX's Ask agent over Agent2Agent at `/a2a/ask` |
 
 ## GitHub
 
@@ -89,6 +91,38 @@ People sign in with Google through **Firebase Authentication**. The web app send
 
 The `nox` CLI installs `/nox` into Google Antigravity, Cursor, OpenAI Codex, GitHub Copilot and Claude Code (`nox init <agent>`). The agent can then load a mission, search and read knowledge bases, link its pull request and mark the mission complete. See [Build and verify](/docs/build-and-verify).
 
+## MCP: NoX's tools inside any agent
+
+NoX serves its knowledge tools over the **Model Context Protocol** at `{NOX_PUBLIC_API_URL}/mcp` (Streamable HTTP). Any MCP client can use them: Google Antigravity, Gemini CLI, Claude Code, Cursor and others.
+
+| Tool | What it does |
+| --- | --- |
+| `search_kb`, `read_kb_page`, `list_pages` | Search and read the knowledge bases you can see |
+| `find_interfaces` | The contract map: who exposes and who consumes a topic or endpoint |
+| `grep_source`, `read_source_file` | Search and read the source snapshot behind a knowledge base |
+| `list_apps` | The applications you can see, with their status |
+| `get_mission`, `list_my_missions` | A mission's spec files and what's waiting on you |
+| `ask_nox` | A cited answer from NoX's Ask agent |
+
+**Scope comes from the token, never the request.** Every call carries a personal NoX token. NoX works out which applications that person can see from their memberships, the same as the web app and the CLI. A tool call that names an application outside that set gets "Unknown application". The tools are read-only, and each token gets `NOX_MCP_RATE_LIMIT` calls a minute. A missing or revoked token gets a 401 telling you to run `nox login`.
+
+**Connecting an agent.** The quickest way is the CLI:
+
+```bash
+nox mcp                       # print the settings for your agent
+nox mcp install antigravity   # write them into Antigravity's MCP config (also gemini, claude, cursor, or all)
+```
+
+`nox mcp install` adds a `nox` server to the agent's settings file and leaves any other servers alone. The **CLI** page in the web app does the same: pick your agent, create a token, and copy the settings.
+
+When the MCP tools are connected, `/nox` uses them instead of calling the CLI for each lookup.
+
+## A2A: NoX's Ask agent for other agents
+
+NoX's Ask agent is also an **Agent2Agent (A2A)** server, built with Google ADK. Its agent card is public at `{NOX_PUBLIC_API_URL}/a2a/ask/.well-known/agent-card.json`, so an enterprise agent (for example one built on the Gemini Enterprise Agent Platform) can discover it. Sending it a message needs a NoX token in the `Authorization` header, and the answer is scoped exactly as MCP is: the token decides what the agent can read, and nothing in the message can widen it. Answers cite `[[kb:app/page]]` pages.
+
+`NOX_PUBLIC_API_URL` (empty uses `WEBHOOK_BASE_URL`) · `NOX_MCP_RATE_LIMIT`
+
 ## Checking connections
 
 **Atlas → Connectors** checks every integration live against this deployment's credentials and shows a clear state for each: connected, not configured, or failing with the reason (for example an expired Atlassian token). The engineering lead's home shows the same health at a glance. The API serves it at `GET /api/v1/integrations/status`.
@@ -98,4 +132,4 @@ The `nox` CLI installs `/nox` into Google Antigravity, Cursor, OpenAI Codex, Git
 - In development, secrets live in one `.env` at the repository root, shared by the API and the web app. `.env`, private keys and service-account files are ignored by Git.
 - In production, `scripts/deploy_gcp.sh secrets` copies them into **Google Secret Manager**, and Cloud Run mounts them into the services. Nothing secret is baked into an image.
 - `WEBHOOK_SECRET` is required: the API refuses to start without it, so webhooks can never be forged with a default value.
-- Before anything is committed to a knowledge base, a secret gate checks for anything that looks like a credential.
+- Before anything is committed to a knowledge base, a secret gate checks for anything that looks like a credential. With [NoX Shield](/docs/google-ai#nox-shield-model-armor-and-sensitive-data-protection) on, Sensitive Data Protection checks the pages too.
