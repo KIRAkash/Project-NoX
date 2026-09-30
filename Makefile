@@ -1,12 +1,14 @@
-.PHONY: help install infra infra-down dev api web worker beat migrate embed-backfill eval seed-demo demo-reset test test-live lint typecheck build
+.PHONY: help install infra infra-down free-ports dev api web worker beat migrate embed-backfill eval seed-demo demo-reset test test-live lint typecheck build
 
 API := apps/api
+DEV_PORTS := 8000 3000
 UV  := cd $(API) && uv run
 
 help:
 	@echo "make install     Install web (npm) and api (uv) dependencies"
 	@echo "make infra       Start postgres + redis in Docker"
 	@echo "make dev         infra + api + worker + web, all in the foreground (Ctrl-C stops all)"
+	@echo "make free-ports  Kill whatever listens on the api/web ports and stray nox workers (make dev runs this first)"
 	@echo "make api|web|worker|beat   Run one service"
 	@echo "make migrate     Apply database migrations"
 	@echo "make embed-backfill  Index every compiled knowledge base for search (embeds only what changed)"
@@ -28,7 +30,17 @@ infra:
 infra-down:
 	docker compose down
 
-dev: infra
+free-ports:
+	@killed=; for port in $(DEV_PORTS); do \
+	  pids=$$(lsof -ti tcp:$$port -sTCP:LISTEN 2>/dev/null); \
+	  if [ -n "$$pids" ]; then echo "port $$port in use, stopping pid" $$pids; kill $$pids 2>/dev/null; killed=1; fi; \
+	done; \
+	if pkill -f '[c]elery -A nox_api.workers.tasks worker' 2>/dev/null; then echo "stopped stray celery worker"; killed=1; fi; \
+	if [ -n "$$killed" ]; then sleep 1; \
+	  for port in $(DEV_PORTS); do pids=$$(lsof -ti tcp:$$port -sTCP:LISTEN 2>/dev/null); [ -z "$$pids" ] || kill -9 $$pids 2>/dev/null; done; \
+	fi; true
+
+dev: infra free-ports
 	@trap 'kill 0' INT TERM; \
 	  ( $(UV) uvicorn nox_api.main:app --reload --port 8000 ) & \
 	  ( $(UV) celery -A nox_api.workers.tasks worker -l info 2>/dev/null || true ) & \

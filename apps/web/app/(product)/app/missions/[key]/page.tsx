@@ -1,6 +1,6 @@
 "use client";
 
-import { CornerUpLeft, ExternalLink, Film, Lock, Pencil, X } from "lucide-react";
+import { CornerUpLeft, ExternalLink, Film, Lock, Paperclip, Pencil, X } from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -9,8 +9,10 @@ import { BrandLogo } from "@/components/app/brand-logo";
 import { FlightStrip } from "@/components/app/flight-recorder";
 import { KbMarkdown } from "@/components/app/markdown";
 import { Planet } from "@/components/app/planet";
+import { EvidencePanel } from "@/components/app/media/evidence-panel";
 import { EvidenceTab } from "@/components/app/media/evidence-tab";
-import { MEDIA_SEEK, type MediaSeek } from "@/components/app/media/media-chip";
+import { MEDIA_SEEK, type MediaSeek, seekMedia } from "@/components/app/media/media-chip";
+import { MissionMediaProvider, useMissionMedia } from "@/components/app/media/mission-media";
 import { MissionBlastRadius, SeatBanner } from "@/components/app/seat-rail";
 import { SpecEditor } from "@/components/app/spec-editor";
 import { TicketPanel } from "@/components/app/ticket-panel";
@@ -89,6 +91,7 @@ export default function MissionPage() {
   );
 
   return (
+    <MissionMediaProvider missionKey={m.key}>
     <div className="mx-auto max-w-[1320px]">
       <Link href="/app/missions" className="text-[13px] text-ink-dim hover:text-ink">
         ← {ROLE_BY_ID[myRole].missionsLabel}
@@ -165,6 +168,7 @@ export default function MissionPage() {
               </ul>
             </Panel>
           )}
+          <EvidencePanel onOpenTab={() => setTab("evidence")} />
           <TicketPanel missionKey={m.key} state={ticket.data} onChanged={() => void ticket.reload()} />
           {myRole !== "business" && <LinksPanel m={m} onChanged={() => void mission.reload()} />}
           <FlightStrip missionKey={m.key} version={events.data?.length} />
@@ -172,6 +176,7 @@ export default function MissionPage() {
         </aside>
       </div>
     </div>
+    </MissionMediaProvider>
   );
 }
 
@@ -270,6 +275,7 @@ function FilePane({ m, file, onChanged }: { m: Mission; file: SpecFile; onChange
   const toast = useToast();
   const role = ROLE_BY_ID[file.role];
   const mine = me!.role === file.role;
+  const added = useMissionMedia().filter((c) => c.uploadedAs === file.role); // what this seat showed NoX
   const [approving, setApproving] = useState(false);
   const [completing, setCompleting] = useState(false);
   // Once approved, your file reads as the rendered spec; the editor opens only on Edit.
@@ -315,6 +321,16 @@ function FilePane({ m, file, onChanged }: { m: Mission; file: SpecFile; onChange
             {SPEC_STATUS_LABEL[file.status]}
           </span>
           {file.version > 0 && <span className="text-ink-faint">v{file.version}</span>}
+          {added.length > 0 && (
+            <button
+              type="button"
+              onClick={() => seekMedia(added[0].id, 0)}
+              title={`Evidence the ${role.name.toLowerCase()} showed NoX. Open it on the Evidence tab.`}
+              className="flex items-center gap-1 rounded-full border border-[color:color-mix(in_srgb,var(--role)_45%,transparent)] px-2 py-0.5 text-[12px] text-[color:var(--role)] hover:bg-[color:color-mix(in_srgb,var(--role)_10%,transparent)]"
+            >
+              <Paperclip size={11} aria-hidden /> {added.length} evidence added
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {mine && m.stage !== "verifying" && <SendBack m={m} onChanged={onChanged} />}
@@ -355,15 +371,20 @@ function FilePane({ m, file, onChanged }: { m: Mission; file: SpecFile; onChange
         </div>
       ) : mine && (file.status !== "approved" || editing) ? (
         <>
-          {editing && (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-sm border border-hairline bg-deck px-3 py-2 text-[13px] text-ink-muted">
-              <span>Editing your approved file. Saving a change reopens it for approval and asks the files below it to be reviewed again.</span>
-              <button type="button" onClick={() => setEditing(false)} className="text-ink underline">
-                Close editor
-              </button>
-            </div>
+          {editing && file.status === "approved" && (
+            <p className="mb-3 rounded-sm border border-hairline bg-deck px-3 py-2 text-[13px] text-ink-muted">
+              Editing your approved file. Saving a change reopens it for approval and asks the files below it to be reviewed again.
+            </p>
           )}
-          <SpecEditor missionKey={m.key} role={file.role} markdown={file.markdown ?? ""} version={file.version} onSaved={onChanged} />
+          <SpecEditor
+            missionKey={m.key}
+            role={file.role}
+            markdown={file.markdown ?? ""}
+            version={file.version}
+            onSaved={onChanged}
+            startEditing={editing}
+            onStopEditing={file.status === "approved" ? () => setEditing(false) : undefined}
+          />
         </>
       ) : mine ? (
         <article className="rounded-md border border-hairline bg-[rgba(9,11,19,.66)] p-6 sm:p-8">

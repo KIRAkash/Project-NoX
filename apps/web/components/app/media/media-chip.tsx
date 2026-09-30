@@ -4,6 +4,8 @@ import { Play } from "lucide-react";
 
 import { fmtT } from "@/lib/app/types";
 
+import { addedBy, KIND_ICON, useMissionMedia, useShownId } from "./mission-media";
+
 export const MEDIA_SEEK = "nox:media-seek";
 export type MediaSeek = { id: string; t: number };
 
@@ -12,17 +14,28 @@ export function seekMedia(id: string, t: number) {
   window.dispatchEvent(new CustomEvent<MediaSeek>(MEDIA_SEEK, { detail: { id, t } }));
 }
 
-/** `[[media:<id>#t=42]]` in a spec file: a chip that opens the capture at that moment. */
-export function MediaChip({ id, t }: { id: string; t: number | null }) {
+/**
+ * `[[media:<id>]]` or `[[media:<id>#t=42]]` in a spec file: a chip that opens the capture on the Evidence tab (at that
+ * moment, for a recording). On the mission page it's labelled with the capture's number, kind and who added it.
+ */
+export function MediaChip({ id: cited, t }: { id: string; t: number | null }) {
+  const media = useMissionMedia();
+  const id = useShownId()(cited);
+  const n = media.findIndex((c) => c.id === id);
+  const c = n < 0 ? null : media[n];
+  const Icon = c ? KIND_ICON[c.kind] : Play;
   return (
     <button
       type="button"
       onClick={() => seekMedia(id, t ?? 0)}
-      title="Play this moment of the capture"
-      className="mx-0.5 inline-flex items-center gap-1 rounded-full border border-[color:var(--role)] px-1.5 py-px align-baseline font-mono text-[11.5px] text-[color:var(--role)] hover:bg-[color:color-mix(in_srgb,var(--role)_12%,transparent)]"
+      title={c ? `Open ${c.label}, added by ${addedBy(c)}` : "Open this capture"}
+      className="mx-0.5 inline-flex max-w-[280px] items-center gap-1 rounded-full border border-[color:var(--role)] px-1.5 py-px align-baseline font-mono text-[11.5px] text-[color:var(--role)] hover:bg-[color:color-mix(in_srgb,var(--role)_12%,transparent)]"
     >
-      <Play size={9} className="fill-current" aria-hidden />
-      {t === null ? "capture" : fmtT(t)}
+      <Icon size={10} className={c ? "shrink-0" : "shrink-0 fill-current"} aria-hidden />
+      <span className="truncate">
+        {c ? `E${n + 1} · ${c.label}` : "capture"}
+        {t !== null && ` · ${fmtT(t)}`}
+      </span>
     </button>
   );
 }

@@ -120,8 +120,9 @@ async def draft_mission_files(mission_id: str) -> None:
         kb_ids = (await db.execute(select(MissionApp.kb_id).where(MissionApp.mission_id == mission.id))).scalars().all()
         context = jira_context(mission) + await kb_context(db, list(kb_ids), mission.prompt)
         apps = await mission_apps(db, list(kb_ids))
-        from .media import mission_evidence
+        from .media import mission_evidence, wait_for_analysis
 
+        await wait_for_analysis(db, mission.id)  # a request sent seconds after a screenshot: let NoX finish looking first
         evidence = await mission_evidence(db, mission.id)  # what the author showed NoX, loaded once for every file
         files = {f.role: f for f in mission.files}
         upstream: dict[Role, str] = {}
