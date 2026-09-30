@@ -10,7 +10,7 @@ Those agents are built with **Google's Agent Development Kit (ADK)** and run on 
 | --- | --- | --- | --- |
 | **Cartographer** | Reads an application's whole source snapshot once and maps it, planning the knowledge base's OKF pages | Deep | Typed `ArchitectureMap`: overview, components, interfaces, page plan with the source files for each page |
 | **Page writers** | Write the knowledge-base pages, in parallel | Default | Each gets only its own files; can fetch another with a tool |
-| **Reviewer** | Rewrites the pages that fail the deterministic linter | Default | Only failing pages are touched |
+| **Reviewer** | Rewrites the pages that fail the deterministic linter, in a loop with the quality gate | Default | Only failing pages are touched |
 | **Gatekeeper** | Decides whether a push or document change matters to the knowledge base | Fast | Code anchors first, then a typed `GatekeeperDecision` |
 | **Patch compiler** | Rewrites only the affected pages after a significant change | Default | Typed `PagePatch` |
 | **Coverage diff** | When a source is added later, finds what is new versus already documented | Default | Typed `CoverageDiff` |
@@ -50,6 +50,23 @@ All AI code lives in `apps/api/nox_api/ai/`. Everything that touches ADK's runne
 
 **Structured output is typed.** One-shot jobs (the cartographer's map, the gatekeeper's decision, a page patch, the rollup) are ADK agents constrained to a Pydantic schema, and their answers come back as validated objects rather than text to parse.
 
+**The build is an ADK workflow graph.** The knowledge-base builder (`ai/agents/kb_builder.py`) is an ADK 2 `Workflow`: deterministic steps are function nodes, the page writer is an `LlmAgent` that each node runs as a child, and edges with routes make the review a real loop.
+
+```text
+ START → Cartographer → Warm cache → Writers ──▶ Links ──▶ Quality gate ──"done"──▶ Finish → END
+                                   (parallel)      ▲            │
+                                                   └─ Reviewer ◀┘ "fix"  (parallel, at most 2 rounds)
+```
+
+- **Cartographer**: one deep call that maps the snapshot and plans the pages (or its checkpoint, on a resumed build).
+- **Warm cache**: the first page, written alone so the writers' shared prefix is cached before the rest start.
+- **Writers**: a parallel-worker node, one item per page, at most `NOX_MAX_CONCURRENCY` at once (one at a time on Gemma).
+- **Links**: repairs local links and weaves cross-application links. It runs again after every reviewer round, so a rewritten page can't lose a woven link.
+- **Quality gate**: the deterministic linter. It routes to the reviewer while pages fail and rounds remain (`NOX_REVIEW_ROUNDS`, 2 by default), otherwise to the finish.
+- **Finish**: the agent contract, the change log and the agent brief, then the whole-build checkpoint.
+
+Every node emits a start and finish event, which the application's page draws as the graph lights up. A failed writer leaves a placeholder page rather than failing the build, and every page is checkpointed as it finishes, so a restarted build only writes what is missing. `NOX_KB_WORKFLOW=linear` keeps the earlier orchestration for `scripts/bench_kb.py --compare linear graph`.
+
 **Parallel tool calls.** Ask and the co-writer are told to send independent lookups together (read three pages at once, run two searches at once). Gemini returns them as parallel function calls, so most questions are answered in two to four lookups.
 
 ## Gemini
@@ -64,7 +81,9 @@ All AI code lives in `apps/api/nox_api/ai/`. Everything that touches ADK's runne
 
 **Resilience.** Each Gemini model is wrapped with retry options (exponential backoff on transient errors), and ADK's `FallbackModel` switches to `GEMINI_BACKUP_MODEL` (`gemini-3.5-flash`) if the primary model fails. A busy model slows a build down; it doesn't break it.
 
-**Implicit context caching.** The page writers share one identical prefix (the writing rules, the architecture overview, the page manifest and the interface list), passed as ADK's `static_instruction`. The first page runs alone to warm the cache, then the rest run in parallel and reuse it. Telemetry records the cached share of every build.
+**Implicit context caching.** The page writers share one identical prefix (the writing rules, the architecture overview, the page manifest and the interface list), passed as ADK's `static_instruction`. The first page runs alone to warm the cache, then the rest run in parallel and reuse it. Telemetry records the cached share of every build, and the application's page shows it after each build.
+
+**Explicit context caching for conversations.** Ask and the co-writer repeat the same long instruction and tool results on every model call of a conversation. They run with ADK's `ContextCacheConfig`, which creates a Gemini context cache for that stable prefix from the conversation's second model call on, once it passes the model's minimum size (4,096 tokens for Gemini 3), and reuses it for ten minutes. The Ask footer shows the result, for example **4 lookups · 62% cached**. `NOX_CONTEXT_CACHE=false` turns it off; NoX Local never uses it.
 
 **Long context.** The cartographer reads a whole application snapshot in a single call, up to about 2.4 million characters, replacing three sequential calls and the keyword guessing about which files each page needs.
 
@@ -117,7 +136,7 @@ Enterprise AI has to be checkable. NoX's rules:
 
 - **Usage per unit of work.** Every build, Ask turn and co-writer turn runs inside a telemetry scope that adds up model calls, input, cached, output and thinking tokens, tool calls and wall time across all its agents, including parallel ones. Each scope ends in one structured log line that **Cloud Logging** indexes.
 - **Ask eval.** `scripts/eval_ask.py` asks golden questions about the demo applications and scores each answer on whether it cited the right pages, contained the expected facts, and how fast it was.
-- **Build benchmark.** `scripts/bench_kb.py` compares build strategies on the same snapshot: wall time, calls, tokens and cache share.
+- **Build benchmark.** `scripts/bench_kb.py` compares build strategies on the same snapshot: wall time, calls, tokens and cache share. `--compare linear graph` compares the workflow graph with the earlier orchestration, including lint errors left after review.
 
 ## Google Cloud underneath
 

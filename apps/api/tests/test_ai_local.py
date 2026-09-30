@@ -100,3 +100,26 @@ async def test_push_rejects_unsafe_paths_unknown_apps_and_business_seat(publishe
         assert (await dev.post("/api/v1/cli/kb/push", json={"app": "nope", "files": PAGES})).status_code == 404
     async with _client("business") as biz:
         assert (await biz.post("/api/v1/cli/kb/push", json={"app": "refunds-service", "files": PAGES})).status_code == 403
+
+
+async def test_local_mode_runs_one_at_a_time(monkeypatch):
+    """NoX Local builds with the workflow too: Gemma (the local model), writers and reviewer one at a time."""
+    from types import SimpleNamespace
+
+    from nox_api.ai import config
+    from nox_api.ai.agents import kb_builder
+
+    from .ai_fakes import SlowFakeLlm
+    from .test_ai_kb_builder import RAW, responder
+
+    fake = SlowFakeLlm(responder=responder)
+    monkeypatch.setattr(config, "local_model", lambda: fake)
+    monkeypatch.setattr(config, "model", lambda tier=None: (_ for _ in ()).throw(AssertionError("cloud model used locally")))
+    ctx = SimpleNamespace(kb_id=str(__import__("uuid").uuid4()), app_name="refunds", org_slug="apex", candidate_contracts=[], commit_sha="")
+    try:
+        files, _ = await kb_builder.build(ctx, RAW, local=True)
+    finally:
+        clear_kb_checkpoints(ctx.kb_id)
+    assert {"summaries/api-spec.md", "entities/ledger.md", "concepts/refund-policy.md"} <= set(files)
+    assert "## Responsibilities" in files["entities/ledger.md"]
+    assert len(fake.requests) == 5 and fake.peak == 1
