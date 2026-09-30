@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     NOX_LOCAL_THINK: bool = False                      # Gemma 4 thinking: better on hard repos, ~4× slower locally
     NOX_MAX_CONCURRENCY: int = 8                       # parallel model calls inside one pipeline run
     NOX_KB_BUILDER: str = "agents"                     # "agents" (cartographer + parallel writers + reviewer) or "classic"
+    NOX_KB_WORKFLOW: str = "graph"                     # agents builder as an ADK workflow graph, or "linear" (the pre-workflow orchestration, for the bench)
+    NOX_REVIEW_ROUNDS: int = 2                         # quality gate ⇄ reviewer rounds before the build moves on
+    NOX_CONTEXT_CACHE: bool = True                     # explicit Gemini context caches for Ask and co-writer conversations (ignored locally)
 
     # ── Gemma / Ollama (Local) ────────────────────────────────────────────────
     GEMMA_OLLAMA_URL: str = "http://localhost:11434"
