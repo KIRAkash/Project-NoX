@@ -6,6 +6,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BrandLogo, SourceLogos } from "@/components/app/brand-logo";
+import { BuildGraph, GRAPH_EVENTS } from "@/components/app/build-graph";
 import { KbMarkdown } from "@/components/app/markdown";
 import { EmptyState, FEED_LIST, KbStatusChip, type KbStatus, Panel, useToast } from "@/components/app/ui";
 import { api, ApiError } from "@/lib/app/api";
@@ -221,11 +222,14 @@ function Overview({ app, live, onChanged }: { app: KbDetail; live: KbEvent[]; on
   const canManage = me!.capabilities.includes("manage_sources");
   const [busy, setBusy] = useState<string | null>(null);
 
-  const events = useMemo(() => {
+  const allEvents = useMemo(() => {
     const stored = [...app.events].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    const seen = new Set(stored.map((e) => `${e.eventType}|${eventText(e)}`));
-    return [...live.filter((e) => !seen.has(`${e.eventType}|${eventText(e)}`)), ...stored].slice(0, 40);
+    const key = (e: KbEvent) => `${e.eventType}|${eventText(e)}|${e.payload?.node ?? ""}|${e.payload?.round ?? ""}`;
+    const seen = new Set(stored.map(key));
+    return [...live.filter((e) => !seen.has(key(e))), ...stored];
   }, [app.events, live]);
+  // The graph panel draws the node events; the flight log keeps to what a person reads.
+  const events = useMemo(() => allEvents.filter((e) => !GRAPH_EVENTS.has(e.eventType)).slice(0, 40), [allEvents]);
 
   const act = async (key: string, path: string, done: string) => {
     setBusy(key);
@@ -245,6 +249,9 @@ function Overview({ app, live, onChanged }: { app: KbDetail; live: KbEvent[]; on
       <div className="space-y-5">
         <Panel title="Trajectory">
           <Trajectory status={app.status} />
+          <div className="mt-5 empty:hidden">
+            <BuildGraph events={allEvents} />
+          </div>
           {app.status === "failed" && (
             <p className="mt-5 rounded-sm border border-[rgba(233,113,60,.35)] bg-[rgba(233,113,60,.08)] px-3 py-2 text-[13px] text-[#F3A27E]">
               Lost signal: the last run failed. Retry resumes from the failed step; restart runs everything again.
@@ -341,8 +348,9 @@ function SourcesPanel({ app, canManage, onChanged }: { app: KbDetail; canManage:
       setBusy(false);
     }
   };
+  const shield = useApi<ShieldState>(`/api/v1/kb/${app.id}/shield?v=${encodeURIComponent(app.updatedAt ?? "")}`);
   return (
-    <Panel title="Sources">
+    <Panel title="Sources" action={<ShieldChip state={shield.data} />}>
       <ul className="space-y-3">
         {app.sourceUrls.map((s) => {
           const mon = app.sourceMonitors.find((m) => (m.sourceUrl || m.repoUrl) === s.url);
@@ -380,7 +388,35 @@ function SourcesPanel({ app, canManage, onChanged }: { app: KbDetail; canManage:
           </div>
         </form>
       )}
+      {shield.data && shield.data.withheld.length > 0 && (
+        <div className="mt-4 border-t border-hairline pt-3">
+          <p className="text-[12px] text-ink-muted">NoX Shield kept these out of every prompt (possible prompt injection or unsafe content):</p>
+          <ul className="mt-2 space-y-1.5">
+            {shield.data.withheld.map((w) => (
+              <li key={w.source} className="truncate text-[12px] text-[#F3A27E]" title={w.source}>
+                {w.source}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </Panel>
+  );
+}
+
+type ShieldState = { mode: "off" | "monitor" | "enforce"; screened: number; withheldCount: number; unscreened: number; withheld: { source: string; category: string; at: string | null }[] };
+
+/** "Shielded" on the sources panel: how many documents Model Armor screened and how many it withheld. */
+function ShieldChip({ state }: { state: ShieldState | null }) {
+  if (!state || state.mode === "off") return null;
+  const color = state.withheldCount ? "#F7B542" : "#5FD29F";
+  const label = state.withheldCount ? `Shielded · ${state.withheldCount} withheld` : `Shielded · ${state.screened}`;
+  const title = `NoX Shield (${state.mode}): ${state.screened} documents screened, ${state.withheldCount} withheld${state.unscreened ? `, ${state.unscreened} not screened` : ""}`;
+  return (
+    <span title={title} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em]" style={{ borderColor: `${color}55`, color }}>
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
+      {label}
+    </span>
   );
 }
 
@@ -586,6 +622,12 @@ const STEP_ICON: Record<string, LucideIcon> = {
   read_source_file: Code,
 };
 
+/** The Ask footer: "4 lookups · 62% cached". The cached share comes from the conversation's context cache. */
+function askUsage(d: Record<string, unknown>): string {
+  const lookups = Number(d.tool_calls ?? 0);
+  return `${lookups} lookup${lookups === 1 ? "" : "s"} · ${Math.round(100 * Number(d.cached_share ?? 0))}% cached`;
+}
+
 function Ask({ app }: { app: KbDetail }) {
   const { me } = useAuth();
   const router = useRouter();
@@ -631,7 +673,7 @@ function Ask({ app }: { app: KbDetail }) {
           if (event === "step") update((t) => ({ ...t, steps: [...t.steps, { tool: String(d.tool), label: String(d.label) }] }));
           else if (event === "delta") update((t) => ({ ...t, a: t.a + String(d.text ?? "") }));
           else if (event === "citations") update((t) => ({ ...t, refs: (d.refs as string[]) ?? [] }));
-          else if (event === "usage") update((t) => ({ ...t, usage: String(d.line ?? "") }));
+          else if (event === "usage") update((t) => ({ ...t, usage: askUsage(d) }));
           else if (event === "error") update((t) => ({ ...t, error: String(d.message ?? "NoX couldn't answer that."), done: true }));
           else if (event === "done") update((t) => ({ ...t, a: t.a || String(d.text ?? ""), done: true }));
         },

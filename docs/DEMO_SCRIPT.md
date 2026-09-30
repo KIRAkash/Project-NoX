@@ -12,6 +12,9 @@ One mission, four seats, one sentence to merged code and back. Built on the Apex
 | CLI signed in on the demo laptop | `nox whoami` prints the demo account |
 | Demo repo checked out, `/nox` installed | `cd mini-auth-service && nox init antigravity` (commit the files beforehand) |
 | Four browser profiles, one per seat | Business user, Product owner, Engineering lead, Developer — each on its mission-control page |
+| NoX's MCP tools in Antigravity | `nox mcp install antigravity`, then check the agent lists the `nox` tools |
+| Impact page has data | Run the full loop twice before recording (flight recorder) |
+| Shield is on | The API runs with `NOX_SHIELD=enforce`; the planted runbook is in the APEX space (`make seed-demo` sources) |
 | Backup | A finished mission (`NOX-0`-style dry run) open in a spare tab in case the model is slow |
 
 Keep the Jira board (`APEX`) open in a fifth tab.
@@ -57,6 +60,8 @@ Google Antigravity, with `mini-auth-service` open, in the agent panel:
 /nox NOX-1
 ```
 
+Connected beat (≈25 s): with NoX's MCP tools installed, ask the agent *"Who consumes `nte.trades.matched`?"*. It calls `find_interfaces` and answers *trade-settlement-system and compliance-surveillance-monitor*, citing `[[kb:trade-settlement-system/…]]`. Say: *"Same knowledge, same permissions, inside the agent the developer already uses."*
+
 Show: the agent runs `nox context NOX-1`, prints its plan against the Tasks, edits `src/config.py`, `src/auth.py`, `src/main.py`, runs the tests, and opens a PR titled `NOX-1: …`.
 
 (If time is short, have the PR prepared on a branch and run only `nox context NOX-1 | head -40` live.)
@@ -78,8 +83,25 @@ Tick through quickly — one seat each, 10–15 s:
 
 Mission → **Done**, Jira → **Done**. The ticked files are in the KB repo under `missions/NOX-1-…/`.
 
+### Shielded beat (≈15 s, recorded separately or cut in)
+Engineering lead: Atlas → onboard **trade-settlement-system**. In the flight log, point at **Shield withheld 1 document**: the *End-of-Day Settlement Reconciliation* runbook carries a planted line telling AI assistants to say settlement needs no reconciliation. The published knowledge base still describes reconciliation the way ADR-002 and the code do. The app page's sources panel shows the **Shielded** chip.
+Say: *"NoX reads documents it didn't write. Model Armor checks every one before an agent sees it."*
+
+### Measured beat (≈15 s)
+Any seat: **Impact**. Show time to verified, time per stage, the send-back that just happened, and the grounded share. Every number is measured on the demo org; the AI cost is an estimate at list prices.
+
 ### 4:50 — Close (10 s)
 *"Four people, four files, one sentence. Every file is in Git, every step is on the Jira ticket, and the check at the end was done by the people who asked."*
+
+### Show NoX beat (≈40 s, for the video)
+A second mission, recorded for the video rather than run in the 5 minutes. Open `demo/screens/trade-desk.html` in a tab first. Keep `demo/screens/captures/trade-desk-pending.webm` as the fallback if live recording fails.
+
+1. Seat: **Business user** → *New mission* → **Record screen** → share the trade-desk tab. Narrate: *"This iceberg order filled in two parts. The first fill settled. The second, T-40816, has been Pending settlement since this morning."* Stop.
+2. NoX's live steps appear on the capture card. Show the key moments, the finding (ADR-002: settlement is event-driven), and the suggested request. **trade-settlement-system** is ticked, marked *seen in your capture*.
+3. **Use this sentence** → *Start mission*. The business requirement drafts with ▶ 0:42 chips; click one to play the capture from that moment. Point out: no code anywhere in this file.
+4. Cut to **Developer**: the mission's **Evidence** tab shows the same capture with code locations (for example `TradeMatchedListener.java`).
+
+Say: *"Nobody had to find the words. NoX watched, looked it up in the knowledge base, and wrote it for each reader."*
 
 ## If something goes wrong
 
@@ -89,6 +111,7 @@ Mission → **Done**, Jira → **Done**. The ticked files are in the KB repo und
 | Jira panel says credentials | Skip the ticket beats; the timeline still shows every stage |
 | `/nox` agent stalls | Open the prepared PR; run `nox pr NOX-1 <url>` to link it |
 | Guard comment missing | GitHub PR webhook not reaching the API — show the guard result in NoX's panel instead |
+| Capture card stuck on a step | Retry on the card; or upload the fallback clip from `demo/screens/captures/` |
 | Wrong seat in a browser | Avatar → Switch role (free role picker) |
 
 ## Reset after a rehearsal

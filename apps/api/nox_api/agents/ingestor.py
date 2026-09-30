@@ -150,10 +150,18 @@ async def _reduce_summaries(summaries: list, force_mode=None, images: list | Non
 # ---------------------------------------------------------------------------
 
 async def gather_sources(context, sources: list = None, tokens: dict = None, log_callback=None) -> str:
-    """Fetch every source through its connector into one snapshot and archive it as raw_ingest.txt."""
+    """Fetch every source through its connector into one snapshot and archive it as raw_ingest.txt.
+
+    NoX Shield screens each source as it arrives (services/shield.py): a document Model Armor flags is replaced
+    in the snapshot by a short notice, so its text never reaches a prompt. The flight log gets one
+    `shield_screened` summary and one `shield_withheld` event per withheld source.
+    """
+    from ..services import shield
+
     sources = sources or []
     tokens = tokens or {}
     raw_content = ""
+    screened = {"documents": 0, "withheld": [], "unscreened": 0, "findings": 0}
     if sources:
         for source in sources:
             s_type = source.get('type') if isinstance(source, dict) else getattr(source, 'type', None)
@@ -178,6 +186,17 @@ async def gather_sources(context, sources: list = None, tokens: dict = None, log
 
             try:
                 content = await ingest_source(s_type, s_url, tokens, config=s_config, on_progress=_on_progress)
+                content, report = await shield.guard_source(s_type, s_url, content, kb_id=context.kb_id,
+                                                            org_id=getattr(context, "org_id", None) or None)
+                for k in ("documents", "unscreened", "findings"):
+                    screened[k] += report[k]
+                for name in report["withheld"]:
+                    screened["withheld"].append(name)
+                    if log_callback:
+                        await log_callback("shield_withheld", {
+                            "source": name, "type": s_type,
+                            "message": f"Shield withheld {name}: possible prompt injection or unsafe content",
+                        })
                 raw_content += f"\n\n=== SOURCE: {s_url} ===\n{content}"
                 if log_callback:
                     await log_callback("source_downloaded", {
@@ -187,6 +206,14 @@ async def gather_sources(context, sources: list = None, tokens: dict = None, log
                     })
             except Exception as e:
                 raw_content += f"\n\n=== SOURCE: {s_url} ===\n[Ingestion failed: {e}]"
+
+        if log_callback and shield.mode() != "off":
+            n, held, missed = screened["documents"], len(screened["withheld"]), screened["unscreened"]
+            message = f"Shield screened {n} document{'s' if n != 1 else ''} · {held} withheld"
+            if missed:
+                message += f" · {missed} not screened (Shield unreachable)"
+            await log_callback("shield_screened", {"documents": n, "withheld": held, "unscreened": missed,
+                                                   "findings": screened["findings"], "mode": shield.mode(), "message": message})
 
 
         # Archive raw content

@@ -27,6 +27,9 @@ dependencies = [
     "pgvector>=0.5.0",
     "pyyaml>=6",
     "google-cloud-firestore>=2.19",
+    "mcp>=1.10",
+    "a2a-sdk>=0.3",
+    "google-cloud-bigquery>=3.25",
 ]
 
 [project.optional-dependencies]

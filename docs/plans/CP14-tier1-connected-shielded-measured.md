@@ -159,7 +159,7 @@ Screening incremental syncs (Flow B) uses the same hook, because `run_add_source
 
 ### B3. Storage and surfacing
 
-- **New table `shield_findings`** (Alembic `0007`; `0006_kb_built_with` is the latest today):
+- **New table `shield_findings`** (Alembic `0007_shield_findings`; CP15's `media_assets` follows as `0008`). CP15 added a stub `services/shield.py` (`screen_source`, `redact`, `mode`) that this checkpoint fills in:
   - Columns: `id`, `org_id`, `kb_id?`, `mission_id?`, `where`, `source`, `category`, `confidence`, `excerpt_sha`, `action` (withheld | refused | blocked_commit | monitored), `created_at`.
   - It stores the hash, never the text.
 - **KB build flight log:**
@@ -298,4 +298,14 @@ In `deploy_gcp.sh`:
 
 ## Resume notes
 
-_Not started._
+**2026-09-29: code done; merged with CP15 and CP16 on `nox/cp14-15-16-combined`.** `make test` and `make lint` pass. Live checks wait on the Cloud Run deploy.
+
+- **A2A spike: in.** ADK's `to_a2a` pieces (a2a-sdk 1.x) are wired by hand in `interop/a2a.py`: a token gate in front, a context var carrying the caller's scope, and a `before_agent_callback` that copies it into session state. Metadata in the request can't change scope (`tests/test_a2a.py`).
+- **MCP** uses `mcp` 2.x (`MCPServer`, the renamed FastMCP), Streamable HTTP, stateless, JSON responses. DNS-rebinding protection is off because the token gate sits in front and Cloud Run hosts vary. The session manager can run once per process, so each app lifespan builds a fresh server.
+- **Shield** calls Model Armor and DLP over REST with `google-auth` (no extra client library). SDP findings from Model Armor are recorded but don't block at input; DLP blocks at commit.
+- **Flight recorder**: every mission event payload now carries `stage` (the stage after the event), which is what the stage-duration numbers use. The impact endpoint reads BigQuery when `NOX_ANALYTICS=bigquery` and falls back to Postgres. Prices in `services/analytics.py` are list prices as of 2026-09-29, labelled as an estimate.
+- **Not verified yet:** the BigQuery SQL in `analytics_views.sql` has not run against BigQuery, and the `gcloud model-armor templates create` flags in `deploy_gcp.sh` were written from memory. Check both on the first deploy (`DRY_RUN=1` first).
+- **Migration numbering:** `0007_shield_findings` (CP14), then `0008_media_assets` (CP15, `down_revision` `0007`), settled when the two branches were combined.
+- **Demo page:** `demo/sources/confluence/runbook-settlement-reconciliation.md` is created in the APEX space by `seed_sources.py`.
+
+Acceptance: item 1 (tests, lint) and item 6 (docs) are done. Items 2–4 need the deploy. Item 5 holds in code (Shield and analytics are off for `NOX_AI_BACKEND=local`) but hasn't been rerun with Gemma.

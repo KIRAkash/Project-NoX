@@ -3,6 +3,8 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { MediaChip, parseMediaRef } from "./media/media-chip";
+
 /** OKF frontmatter (the few keys NoX shows): a flat YAML subset, enough for type, title, tags and generated. */
 type OkfMeta = { type?: string; okf_version?: string; tags?: string[]; by?: string; at?: string };
 
@@ -73,6 +75,8 @@ export function KbMarkdown({
     .replace(/\[\[(kb:[^\]]+)\]((?:\s*,\s*\[kb:[^\]]+\])+)\]/g, (_m, first: string, rest: string) =>
       [first, ...[...rest.matchAll(/\[(kb:[^\]]+)\]/g)].map((x) => x[1])].map((t) => `[[${t.trim()}]]`).join(" "),
     )
+    // [[media:<id>#t=42]]: a moment in a capture shown to NoX (Show NoX)
+    .replace(/\[\[(media:[^\]|]+)\]\]/g, (_m, target: string) => `[media](#nox-media:${encodeURIComponent(target)})`)
     .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, target: string, label?: string) => {
       const t = target.trim();
       return `[${(label ?? t.split("/").pop() ?? t).trim()}](#wiki:${encodeURIComponent(t)})`;
@@ -85,6 +89,10 @@ export function KbMarkdown({
         remarkPlugins={[remarkGfm]}
         components={{
           a: ({ href = "", children }) => {
+            if (href.startsWith("#nox-media:")) {
+              const ref = parseMediaRef(decodeURIComponent(href.slice(11)));
+              return ref ? <MediaChip id={ref.id} t={ref.t} /> : <>{children}</>;
+            }
             if (href.startsWith("#wiki:")) {
               const target = decodeURIComponent(href.slice(6)).split("#")[0];
               const cross = target.startsWith("kb:");

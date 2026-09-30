@@ -172,6 +172,11 @@ async def device_token(body: DevicePoll):
 @router.get("/api/v1/cli/missions/{key}/context")
 async def mission_context(key: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
     """Everything an agent needs to build the mission: the four spec files, the KB brief and pages, contracts, links."""
+    return await build_mission_context(db, actor, key)
+
+
+async def build_mission_context(db: AsyncSession, actor: Actor, key: str) -> dict:
+    """What `nox context` prints and MCP's `get_mission` returns."""
     mission = await load_mission(db, actor, key)
     apps = await mission_apps(db, mission)
     j = mission_json(mission, apps, with_bodies=True)
@@ -229,13 +234,10 @@ _ = ExternalLink
 
 
 async def _visible_kbs(db: AsyncSession, actor: Actor, app: str | None):
-    from ..core.auth import visible_org_ids
-    from ..db.models import KnowledgeBase
+    """Kept for callers of the CLI router; the one implementation is `services/scope.visible_kbs`."""
+    from ..services.scope import visible_kbs
 
-    q = select(KnowledgeBase).where(KnowledgeBase.org_id.in_(await visible_org_ids(db, actor.user)))
-    if app:
-        q = q.where(KnowledgeBase.app_name == app)
-    return (await db.execute(q)).scalars().all()
+    return await visible_kbs(db, actor.user, app)
 
 
 @router.get("/api/v1/cli/kb/search")

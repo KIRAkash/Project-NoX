@@ -2,7 +2,20 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -312,6 +325,7 @@ class SpecChatMessage(Base):
     author = Column(String, nullable=False)                           # user | nox
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     body = Column(Text, nullable=False)
+    media_ids = Column(JSON, nullable=False, default=list)           # captures attached to this message (CP15)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -342,3 +356,78 @@ class MissionEvent(Base):
     type = Column(String, nullable=False)
     payload = Column(JSON, nullable=False, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+# ── NoX Shield (CP14) ─────────────────────────────────────────────────────────
+
+
+class ShieldFinding(Base):
+    """Something Model Armor or Sensitive Data Protection flagged. Stores a hash of the text, never the text."""
+
+    __tablename__ = "shield_findings"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=True, index=True)
+    kb_id = Column(UUID(as_uuid=True), ForeignKey("knowledge_bases.id", ondelete="CASCADE"), nullable=True, index=True)
+    mission_id = Column(UUID(as_uuid=True), ForeignKey("missions.id", ondelete="CASCADE"), nullable=True, index=True)
+    where = Column(String, nullable=False)       # ingest, ask, cowrite, mission_prompt, mcp, a2a, kb_commit
+    source = Column(String, nullable=True)       # the document or file it came from
+    category = Column(String, nullable=False)    # pi_and_jailbreak, malicious_uris, rai, sdp:<infoType>, …
+    confidence = Column(String, nullable=True)
+    excerpt_sha = Column(String, nullable=True)
+    action = Column(String, nullable=False)      # withheld | refused | blocked_commit | monitored
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+# ── Show NoX (CP15) ───────────────────────────────────────────────────────────
+
+
+class MediaKind(str, enum.Enum):
+    image = "image"
+    screenshot = "screenshot"
+    screen_recording = "screen_recording"
+    video = "video"
+    audio = "audio"
+
+
+class MediaStatus(str, enum.Enum):
+    uploading = "uploading"
+    analyzing = "analyzing"
+    ready = "ready"
+    failed = "failed"
+    withheld = "withheld"   # NoX Shield blocked it: shown to its uploader with the reason, never used in a prompt
+    deleted = "deleted"
+
+
+class MediaAsset(Base):
+    """A capture someone showed NoX: a screenshot, a screen recording, a video or a voice note.
+
+    A draft capture (`mission_id` null) belongs to its uploader until a mission is launched with it.
+    The file lives in Cloud Storage (a local path in development); what NoX saw and found is `observation`
+    and `grounding`, and `views` holds the same analysis rewritten per seat.
+    """
+
+    __tablename__ = "media_assets"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False, index=True)
+    mission_id = Column(UUID(as_uuid=True), ForeignKey("missions.id", ondelete="CASCADE"), nullable=True, index=True)
+    spec_role = Column(Enum(Role), nullable=True)                    # the file it was attached to, if any
+    chat_message_id = Column(UUID(as_uuid=True), ForeignKey("spec_chat_messages.id", ondelete="SET NULL"), nullable=True)
+    uploaded_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    uploaded_as = Column(Enum(Role), nullable=False)                 # the seat that captured it: live steps speak its words
+    kind = Column(Enum(MediaKind), nullable=False)
+    mime = Column(String, nullable=False)
+    bytes = Column(BigInteger, nullable=False)
+    duration_s = Column(Float, nullable=True)
+    width = Column(Integer, nullable=True)
+    height = Column(Integer, nullable=True)
+    clip_start_s = Column(Float, nullable=True)                      # trimmed in the preview: only this part is watched
+    clip_end_s = Column(Float, nullable=True)
+    storage_uri = Column(String, nullable=False)                     # gs://… in production, local://… in development
+    annotated_of = Column(UUID(as_uuid=True), ForeignKey("media_assets.id", ondelete="SET NULL"), nullable=True)
+    caption = Column(Text, nullable=True)
+    status = Column(Enum(MediaStatus), nullable=False, default=MediaStatus.uploading)
+    status_reason = Column(Text, nullable=True)                      # why it failed or was withheld, in plain words
+    observation = Column(JSON, nullable=True)                        # ai.schemas.MediaObservation
+    grounding = Column(JSON, nullable=True)                          # ai.schemas.MediaGrounding
+    views = Column(JSON, nullable=False, default=dict)               # {seat: SeatView}
+    usage = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    analyzed_at = Column(DateTime, nullable=True)
