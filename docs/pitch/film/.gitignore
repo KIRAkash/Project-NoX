@@ -1,0 +1,10 @@
+node_modules/
+package-lock.json
+fonts/
+logos/
+gsap.min.js
+stills/
+seg_*.mp4
+segs.txt
+cues.json
+soundtrack.wav
