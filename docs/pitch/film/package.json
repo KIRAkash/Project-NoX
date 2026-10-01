@@ -1,11 +1,13 @@
 {
   "name": "nox-film",
   "private": true,
-  "description": "The 90-second NoX film for the AI Builder Cup: a GSAP scene rendered frame by frame.",
+  "description": "The NoX film: three.js + GSAP scenes rendered frame by frame with Playwright.",
   "devDependencies": {
     "@fontsource-variable/manrope": "5.3.0",
     "@fontsource/instrument-serif": "5.3.0",
     "@fontsource/jetbrains-mono": "5.3.0",
-    "gsap": "3.15.0"
+    "gsap": "3.15.0",
+    "sharp": "0.35.5",
+    "three": "0.170.0"
   }
 }

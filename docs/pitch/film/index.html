@@ -2,49 +2,52 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>NoX — motion film</title>
+<title>NoX — film</title>
 <style>
-@font-face{font-family:'Instrument Serif';font-style:normal;font-weight:400;src:url(fonts/instrument-serif-latin-400-normal.woff2) format('woff2')}
-@font-face{font-family:'Instrument Serif';font-style:italic;font-weight:400;src:url(fonts/instrument-serif-latin-400-italic.woff2) format('woff2')}
-@font-face{font-family:'Manrope';font-style:normal;font-weight:200 800;src:url(fonts/manrope-latin-wght-normal.woff2) format('woff2')}
-@font-face{font-family:'JB';font-weight:400;src:url(fonts/jetbrains-mono-latin-400-normal.woff2) format('woff2')}
-@font-face{font-family:'JB';font-weight:500;src:url(fonts/jetbrains-mono-latin-500-normal.woff2) format('woff2')}
-@font-face{font-family:'JB';font-weight:600;src:url(fonts/jetbrains-mono-latin-600-normal.woff2) format('woff2')}
-@font-face{font-family:'JB';font-weight:700;src:url(fonts/jetbrains-mono-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Instrument Serif';font-style:normal;font-weight:400;src:url(vendor/fonts/instrument-serif-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Instrument Serif';font-style:italic;font-weight:400;src:url(vendor/fonts/instrument-serif-latin-400-italic.woff2) format('woff2')}
+@font-face{font-family:'Manrope';font-style:normal;font-weight:200 800;src:url(vendor/fonts/manrope-latin-wght-normal.woff2) format('woff2')}
+@font-face{font-family:'JB';font-weight:400;src:url(vendor/fonts/jetbrains-mono-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'JB';font-weight:500;src:url(vendor/fonts/jetbrains-mono-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'JB';font-weight:600;src:url(vendor/fonts/jetbrains-mono-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'JB';font-weight:700;src:url(vendor/fonts/jetbrains-mono-latin-700-normal.woff2) format('woff2')}
 :root{
-  --void:#03040A; --hull:#07080F; --deck:#0B0E1A;
-  --nox:#F7B542; --ember:#E9713C; --ice:#86B9EE; --verify:#5FD29F; --red:#FF5D6C;
+  --void:#03040A; --nox:#F7B542; --ember:#E9713C; --ice:#86B9EE; --verify:#5FD29F; --red:#FF5D6C;
   --ink:#ECEFF8; --muted:#A6AEC7; --faint:#7C86A3; --dim:#6E7793;
   --hair:rgba(143,160,204,.16); --hair2:rgba(143,160,204,.28);
   --biz:#E8C97A; --po:#A897F0; --eng:#5FCBD8; --dev:#86B9EE;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:1920px;height:1080px;overflow:hidden;background:#000}
-#stage{position:relative;width:1920px;height:1080px;overflow:hidden;background:var(--void);color:var(--ink);font-family:Manrope,sans-serif;-webkit-font-smoothing:antialiased}
-#bg{position:absolute;inset:0}
-.scene{position:absolute;inset:0;visibility:hidden;opacity:0}
-.cam{position:absolute;inset:0;transform-origin:0 0}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden;color:var(--ink);font-family:Manrope,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
+#gl{position:absolute;inset:0;z-index:0}
+#gl canvas{display:block}
+#ui{position:absolute;inset:0;z-index:2;perspective:2200px}
+.scene{position:absolute;inset:0;visibility:hidden;opacity:0;transform-style:preserve-3d}
+.cam{position:absolute;inset:0;transform-origin:0 0;transform-style:preserve-3d}
 .abs{position:absolute}
 .serif{font-family:'Instrument Serif',serif;font-weight:400}
 .mono{font-family:JB,monospace}
 em{font-style:italic}
 .gold{color:var(--nox)}
-.kicker{font-family:JB;font-weight:500;font-size:30px;letter-spacing:.2em;text-transform:uppercase;color:var(--nox);display:flex;align-items:center;gap:20px;white-space:nowrap}
-.kicker .bar{width:60px;height:2px;background:currentColor;opacity:.7}
-.title{font-family:'Instrument Serif';font-size:84px;line-height:1.02;letter-spacing:-.01em;white-space:nowrap}
-.lede{font-size:38px;color:var(--muted);font-weight:500;line-height:1.35}
+.kicker{font-family:JB;font-weight:600;font-size:30px;letter-spacing:.22em;text-transform:uppercase;color:var(--nox);display:flex;align-items:center;gap:20px;white-space:nowrap}
+.kicker .bar{width:60px;height:2px;background:currentColor;opacity:.75}
+.kicker .num{color:var(--faint)}
+.title{font-family:'Instrument Serif';font-size:84px;line-height:1.04;letter-spacing:-.01em;white-space:nowrap;text-shadow:0 4px 40px rgba(0,0,0,.5)}
 .center-x{left:0;right:0;text-align:center;justify-content:center}
-.vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 70% at 50% 50%,transparent 55%,rgba(0,0,0,.55) 100%);z-index:50}
-.bug{position:absolute;right:56px;bottom:34px;z-index:51;display:flex;align-items:center;font-weight:700;font-size:34px;opacity:0;visibility:hidden;letter-spacing:.01em}
+.vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 80% 75% at 50% 50%,transparent 58%,rgba(0,0,0,.5) 100%);z-index:50}
+.letterbox{position:absolute;left:0;right:0;height:0;background:#000;z-index:60}
+.bug{position:absolute;right:56px;bottom:34px;z-index:51;display:flex;align-items:center;font-weight:700;font-size:34px;opacity:0;visibility:hidden}
 .orbmini{display:inline-block;width:.74em;height:.74em;margin:0 3px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#FFF7E2,#FFDD82 42%,#F7B542 68%,#E9713C 100%);box-shadow:0 0 14px 3px rgba(247,181,66,.5)}
-.flash{position:absolute;inset:0;background:radial-gradient(circle at 50% 46%,#FFF6DD 0%,#FFD27A 30%,rgba(247,181,66,0) 75%);opacity:0;z-index:40;pointer-events:none}
+.flash{position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,#FFF8E6 0%,#FFE1A0 30%,rgba(247,181,66,.0) 80%);opacity:0;z-index:40;pointer-events:none}
+.whiteout{position:absolute;inset:0;background:#FFF6E4;opacity:0;z-index:41;pointer-events:none}
 .blackout{position:absolute;inset:0;background:#000;opacity:0;z-index:45;pointer-events:none}
+.glitchbar{position:absolute;left:0;right:0;height:40px;z-index:42;opacity:0;mix-blend-mode:screen}
 
-/* glass card */
-.glass{background:linear-gradient(180deg,rgba(32,38,62,.72),rgba(12,15,28,.86));border:1.5px solid var(--hair2);border-radius:28px;box-shadow:0 40px 120px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.07)}
-.caret{display:inline-block;width:.07em;height:.95em;vertical-align:-.12em;margin-left:.06em;background:var(--nox);box-shadow:0 0 12px var(--nox);visibility:hidden;opacity:0}
+.glass{background:linear-gradient(180deg,rgba(30,36,60,.78),rgba(10,13,26,.9));border:1.5px solid var(--hair2);border-radius:28px;box-shadow:0 40px 120px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.08)}
+.sheen{position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.10) 45%,transparent 55%);background-size:300% 100%;background-position:120% 0}
+.caret{display:inline-block;width:.07em;height:.95em;vertical-align:-.12em;margin-left:.06em;background:var(--nox);box-shadow:0 0 16px var(--nox);visibility:hidden;opacity:0}
 
-/* planets */
 .pl{position:absolute;transform-origin:50% 50%}
 .pl svg{overflow:visible;display:block}
 .pl-glow{position:absolute;inset:3%;border-radius:50%}
@@ -53,102 +56,108 @@ em{font-style:italic}
 /* S1 */
 #s1box{left:560px;top:372px;width:1210px;padding:44px 56px 46px}
 #s1box .lbl{font-size:34px;color:var(--muted);font-weight:500;margin-bottom:18px}
-#s1box .big{font-family:'Instrument Serif';font-size:80px;line-height:1.08;min-height:172px;color:#FFF8EA}
-#s1box .who{margin-top:24px;font-family:JB;font-size:30px;color:var(--biz);letter-spacing:.06em;opacity:0}
+#s1box .big{font-family:'Instrument Serif';font-size:82px;line-height:1.08;min-height:176px;color:#FFF8EA}
+#s1box .who{margin-top:22px;font-family:JB;font-size:30px;color:var(--biz);letter-spacing:.06em}
+#s1frame{position:absolute;left:560px;top:372px;width:1210px;height:386px;overflow:visible;pointer-events:none}
 
 /* S2 */
-.node-name{font-size:34px;font-weight:700}
+.node-name{font-size:34px;font-weight:800}
 .node-where{font-family:JB;font-size:28px;color:var(--faint);margin-top:6px}
-#s2quote{left:160px;right:160px;top:690px;text-align:center}
-#s2quote .who{font-family:JB;font-size:30px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:22px}
+#s2quote{left:140px;right:140px;top:690px;text-align:center}
+#s2quote .q{font-family:'Instrument Serif';font-size:74px;line-height:1.1;min-height:160px}
 #s2quote .qm{color:var(--biz);font-style:italic;margin:0 .08em}
-#s2quote .q{font-family:'Instrument Serif';font-size:72px;line-height:1.1;min-height:160px}
 #s2meter{left:510px;width:900px;top:950px;display:flex;align-items:center;gap:26px}
 #s2meter .l{font-family:JB;font-size:28px;letter-spacing:.18em;color:var(--faint)}
 #s2meter .track{flex:1;height:14px;border-radius:7px;background:rgba(143,160,204,.12);overflow:hidden}
-#s2meter .fill{height:100%;width:100%;border-radius:7px;background:linear-gradient(90deg,#FFE7A6,var(--nox));transform-origin:0 50%}
-#s2end{left:0;right:0;top:360px;text-align:center}
-#s2end .big{font-family:'Instrument Serif';font-size:118px;line-height:1.05;white-space:nowrap}
+#s2meter .fill{height:100%;width:100%;border-radius:7px;background:linear-gradient(90deg,#FFE7A6,var(--nox));transform-origin:0 50%;box-shadow:0 0 20px rgba(247,181,66,.6)}
+#s2end{left:0;right:0;top:350px;text-align:center}
+#s2end .big{font-family:'Instrument Serif';font-size:124px;line-height:1.05;white-space:nowrap}
 #s2end .neq{display:inline-block;color:#fff;margin:0 26px;position:relative}
 #s2end .sub{font-size:42px;color:var(--muted);margin-top:40px;font-weight:500}
 
 /* S3 */
 .chat{position:absolute;width:820px;height:296px;padding:28px 34px}
-.chat .hd{display:flex;align-items:center;gap:20px;font-size:32px;font-weight:700}
+.chat .hd{display:flex;align-items:center;gap:20px;font-size:32px;font-weight:800}
 .chat .ub{margin-top:22px;display:inline-block;padding:12px 22px;border-radius:20px 20px 20px 6px;background:rgba(143,160,204,.12);border:1px solid var(--hair);font-size:32px;color:#D7DCEA;font-weight:500}
 .chat .ab{margin-top:14px;margin-left:70px;display:block;width:max-content;padding:10px 24px;border-radius:20px 20px 6px 20px;border:1px solid var(--hair2);font-family:'Instrument Serif';font-style:italic;font-size:42px;color:#fff;background:rgba(143,160,204,.05)}
 .chat .ab .ai{font-family:JB;font-style:normal;font-size:26px;color:var(--faint);margin-right:14px;letter-spacing:.1em;vertical-align:6px}
-.pain{position:relative;display:flex;justify-content:flex-start;align-items:center;gap:34px;font-family:'Instrument Serif';font-size:76px;white-space:nowrap}
-.pain .ic{width:92px;height:92px;border-radius:24px;display:grid;place-items:center;background:rgba(233,113,60,.13);border:2px solid rgba(233,113,60,.5);color:var(--ember);font-family:JB;font-size:44px;font-weight:700}
+.pain{position:relative;display:flex;align-items:center;gap:34px;font-family:'Instrument Serif';font-size:80px;white-space:nowrap}
+.pain .ic{width:96px;height:96px;border-radius:26px;display:grid;place-items:center;background:rgba(233,113,60,.13);border:2px solid rgba(233,113,60,.55);color:var(--ember);box-shadow:0 0 40px rgba(233,113,60,.25)}
 
 /* S4 */
-#orb{position:absolute;left:960px;top:452px;width:250px;height:250px;border-radius:50%;
-  background:radial-gradient(circle at 34% 30%,#FFF7E2,#FFDD82 42%,#F7B542 68%,#E9713C 100%)}
-.oglow{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(255,214,120,.62) 0%,rgba(247,181,66,.36) 18%,rgba(233,113,60,.16) 38%,rgba(233,113,60,0) 68%)}
-#corona{position:absolute;left:960px;top:452px;width:1300px;height:1300px}
-.shock{position:absolute;left:960px;top:452px;width:300px;height:300px;border-radius:50%;border:4px solid rgba(255,221,130,.9);box-shadow:0 0 40px rgba(247,181,66,.7),inset 0 0 40px rgba(247,181,66,.5)}
-.wm{position:absolute;top:452px;font-weight:700;font-size:330px;line-height:1;color:#F4F1EA;letter-spacing:-.02em}
-#s4tag{left:0;right:0;top:700px;text-align:center;font-family:'Instrument Serif';font-size:76px;white-space:nowrap}
-.half{position:absolute;top:390px;width:790px;height:540px;padding:46px 54px}
+.wm{position:absolute;left:0;top:0;font-weight:700;font-size:330px;line-height:1;color:#FBF7EF;letter-spacing:-.02em;text-shadow:0 6px 40px rgba(20,8,0,.55)}
+#s4tag{left:0;right:0;top:700px;text-align:center;font-family:'Instrument Serif';font-size:78px;white-space:nowrap}
+.half{position:absolute;top:400px;width:790px;height:530px;padding:46px 54px;transform-origin:50% 100%}
 .half .k{font-family:JB;font-size:32px;letter-spacing:.22em;color:var(--nox);font-weight:600}
-.half .t{font-family:'Instrument Serif';font-size:96px;line-height:1;margin-top:16px}
+.half .t{font-family:'Instrument Serif';font-size:100px;line-height:1;margin-top:16px}
 .half .b{font-size:38px;line-height:1.38;color:var(--muted);margin-top:24px;font-weight:500}
-.half svg{position:absolute;right:40px;top:34px}
+.half svg.ic{position:absolute;right:40px;top:34px}
+
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:10px;font-family:JB;font-size:28px;padding:6px 16px;border-radius:12px;background:rgba(95,203,216,.12);color:var(--eng);border:1.5px solid rgba(95,203,216,.4);font-weight:500;white-space:nowrap}
+.chip.gold{background:rgba(247,181,66,.12);color:var(--nox);border-color:rgba(247,181,66,.45)}
+.chip.vio{background:rgba(168,151,240,.14);color:var(--po);border-color:rgba(168,151,240,.5)}
+.chip.grn{background:rgba(95,210,159,.14);color:var(--verify);border-color:rgba(95,210,159,.5)}
+.toast{position:absolute;display:flex;align-items:center;gap:18px;padding:18px 26px;border-radius:20px;background:linear-gradient(180deg,#1A2038,#0E1222);border:1.5px solid var(--hair2);box-shadow:0 30px 80px rgba(0,0,0,.6);font-size:30px;font-weight:700;white-space:nowrap;z-index:25}
+.toast img{width:44px;height:44px}
+.toast .s{font-family:JB;font-size:28px;font-weight:600;padding:4px 14px;border-radius:10px}
 
 /* S5 */
-.applabel{font-size:30px;font-weight:600;color:#fff;text-shadow:0 2px 12px #000}
-.teamlabel{font-family:JB;font-size:28px;letter-spacing:.2em;color:var(--faint);font-weight:500}
-.cpill{position:absolute;font-family:JB;font-size:28px;padding:6px 16px;border-radius:12px;background:rgba(5,8,16,.88);border:1.5px solid rgba(95,203,216,.6);color:var(--eng);white-space:nowrap}
+.label3d{position:absolute;left:0;top:0;white-space:nowrap;font-size:30px;font-weight:700;color:#fff;text-shadow:0 2px 14px #000,0 0 30px rgba(0,0,0,.8)}
+.team3d{position:absolute;left:0;top:0;font-family:JB;font-size:28px;letter-spacing:.24em;color:var(--muted);font-weight:600;white-space:nowrap;text-shadow:0 2px 12px #000}
+.cpill{position:absolute;left:0;top:0;font-family:JB;font-size:28px;padding:6px 16px;border-radius:12px;background:rgba(5,8,16,.9);border:1.5px solid rgba(95,203,216,.7);color:var(--eng);white-space:nowrap;box-shadow:0 0 30px rgba(95,203,216,.25)}
 .src{position:absolute;width:150px;text-align:center}
-.src .tile{width:126px;height:126px;margin:0 auto;border-radius:30px;display:grid;place-items:center;background:linear-gradient(180deg,rgba(40,46,72,.9),rgba(16,19,34,.95));border:1.5px solid var(--hair2);box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.src .stile{width:126px;height:126px;margin:0 auto;border-radius:30px;display:grid;place-items:center;background:linear-gradient(180deg,rgba(40,46,72,.92),rgba(16,19,34,.96));border:1.5px solid var(--hair2);box-shadow:0 20px 50px rgba(0,0,0,.5)}
 .src img{width:66px;height:66px;object-fit:contain}
-.src .n{font-size:30px;font-weight:600;margin-top:12px;color:#DDE2F0}
+.src .n{font-size:30px;font-weight:700;margin-top:12px;color:#DDE2F0}
 .traj{position:absolute;left:110px;right:110px;top:946px;display:flex;justify-content:space-between}
-.traj .st{display:flex;flex-direction:column;align-items:center;gap:12px;font-family:JB;font-size:29px;color:var(--dim);width:320px;font-weight:500}
+.traj .st{display:flex;flex-direction:column;align-items:center;gap:12px;font-family:JB;font-size:29px;color:var(--dim);width:320px;font-weight:600}
 .traj .st i{width:26px;height:26px;border-radius:50%;border:3px solid var(--dim);background:var(--void)}
-.agent{position:absolute;top:330px;width:400px;height:212px;padding:28px 30px}
+.traj .bar{position:absolute;left:160px;right:160px;top:12px;height:3px;background:rgba(143,160,204,.18);z-index:-1}
+.traj .bar b{position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(90deg,var(--nox),var(--verify));transform-origin:0 50%;transform:scaleX(0);box-shadow:0 0 14px var(--nox)}
+.agent{position:absolute;top:330px;width:400px;height:220px;padding:28px 30px}
 .agent .nm{font-size:38px;font-weight:800;line-height:1.1}
 .agent .tier{display:inline-block;margin-top:14px;font-family:JB;font-size:28px;padding:4px 14px;border-radius:10px;border:1.5px solid currentColor;font-weight:600}
 .agent .sb{font-family:JB;font-size:28px;color:var(--muted);margin-top:12px}
 #okf{left:110px;top:620px;width:930px;height:380px;padding:30px 40px;font-family:JB;font-size:31px;line-height:1.45;white-space:pre}
 .k1{color:var(--po)} .k2{color:#D7DCEA} .k3{color:var(--faint)} .k4{color:var(--eng)} .k5{color:var(--nox)}
-#stat{left:1120px;top:600px;width:720px}
-#stat .num{font-family:'Instrument Serif';font-size:250px;line-height:.9;color:var(--nox);text-shadow:0 0 60px rgba(247,181,66,.35)}
-#stat .l1{font-size:44px;font-weight:700;margin-top:8px}
+#stat{left:1120px;top:592px;width:720px}
+#stat .num{font-family:'Instrument Serif';font-size:260px;line-height:.9;color:var(--nox);text-shadow:0 0 70px rgba(247,181,66,.45)}
+#stat .l1{font-size:44px;font-weight:800;margin-top:8px}
 #stat .l2{font-family:JB;font-size:30px;color:var(--muted);margin-top:14px}
 
-/* S6/S8 orbit */
-.olabel{position:absolute;text-align:center;white-space:nowrap;transform:translateX(-50%)}
-.olabel .n{font-size:36px;font-weight:800}
-.olabel .h{font-family:JB;font-size:28px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:4px}
-.badge{position:absolute;width:76px;height:76px;border-radius:50%;display:grid;place-items:center;font-size:44px;font-weight:800;color:#06140D;background:var(--verify);box-shadow:0 0 30px rgba(95,210,159,.7);border:4px solid #03040A}
+/* S6/S8 */
+.olabel{position:absolute;left:0;top:0;text-align:center;white-space:nowrap;z-index:3000}
+.olabel .n{font-size:36px;font-weight:800;text-shadow:0 0 8px #03040A,0 0 16px #03040A,0 0 26px #03040A,0 2px 16px #000}
+.olabel .h{font-family:JB;font-size:28px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:4px;text-shadow:0 0 8px #03040A,0 0 16px #03040A,0 0 26px #03040A}
+.badge{position:absolute;left:0;top:0;width:76px;height:76px;border-radius:50%;display:grid;place-items:center;font-size:44px;font-weight:800;color:#06140D;background:var(--verify);box-shadow:0 0 30px rgba(95,210,159,.8);border:4px solid #03040A}
 .badge.x{background:var(--red);color:#fff;box-shadow:0 0 30px rgba(255,93,108,.8)}
-#cap{left:410px;width:1100px;top:668px;text-align:center}
-#cap .w{font-family:JB;font-size:30px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:10px}
-#cap .c{font-family:'Instrument Serif';font-size:62px;line-height:1.08}
+#cap{left:360px;width:1200px;top:668px;text-align:center}
+#cap .w{font-family:JB;font-size:30px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:10px;font-weight:600}
+#cap .c{font-family:'Instrument Serif';font-size:64px;line-height:1.08;text-shadow:0 4px 30px rgba(0,0,0,.6)}
 .jira{position:absolute;left:0;right:0;top:964px;display:flex;justify-content:center;align-items:center;gap:22px;font-family:JB;font-size:30px;color:var(--dim)}
 .jira img{width:40px;height:40px}
 .jira .s{padding:8px 20px;border-radius:12px;border:1.5px solid transparent}
 .jira .s.on{color:#fff;border-color:var(--ice);background:rgba(134,185,238,.14)}
-.jira .s.done{color:#06140D;background:var(--verify);border-color:var(--verify);font-weight:700}
+.jira .s.done{color:#06140D;background:var(--verify);border-color:var(--verify);font-weight:700;box-shadow:0 0 30px rgba(95,210,159,.6)}
 
 /* S7 seats */
 #hud{position:absolute;left:50%;transform:translateX(-50%);top:34px;padding:12px 30px;border-radius:999px;background:rgba(6,8,16,.82);border:1.5px solid var(--hair);display:flex;justify-content:center;align-items:center;gap:20px;font-family:JB;font-size:29px;z-index:20;visibility:hidden;opacity:0}
-#hud .step{display:flex;align-items:center;gap:14px;color:var(--dim);font-weight:500}
-#hud .step i{width:20px;height:20px;border-radius:50%;background:currentColor;box-shadow:0 0 0 rgba(0,0,0,0)}
+#hud .step{display:flex;align-items:center;gap:14px;color:var(--dim);font-weight:600}
+#hud .step i{width:20px;height:20px;border-radius:50%;background:currentColor}
 #hud .ln{width:70px;height:2px;background:rgba(143,160,204,.25)}
 .seatL{position:absolute;left:84px;top:150px;width:580px}
 .seatL .nm{font-family:'Instrument Serif';font-size:92px;line-height:1;margin-top:330px;white-space:nowrap}
-.seatL .home{font-family:JB;font-size:30px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:16px}
+.seatL .home{font-family:JB;font-size:30px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:16px;font-weight:600}
 .seatL .file{font-family:JB;font-size:30px;color:var(--faint);margin-top:10px}
 .seatL .call{font-family:'Instrument Serif';font-style:italic;font-size:54px;line-height:1.08;margin-top:46px}
 .win{position:absolute;left:700px;top:132px;width:1140px;height:850px;border-radius:26px;overflow:hidden;
-  background:linear-gradient(180deg,#12162A,#0A0D19);border:1.5px solid var(--hair2);box-shadow:0 50px 140px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.06)}
-.win .top{height:78px;display:flex;align-items:center;gap:18px;padding:0 30px;border-bottom:1.5px solid var(--hair);font-size:30px;font-weight:700;background:rgba(255,255,255,.02)}
+  background:linear-gradient(180deg,rgba(20,24,44,.94),rgba(10,13,25,.96));border:1.5px solid var(--hair2);box-shadow:0 50px 140px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.02),inset 0 1px 0 rgba(255,255,255,.07)}
+.win .top{height:78px;display:flex;align-items:center;gap:18px;padding:0 30px;border-bottom:1.5px solid var(--hair);font-size:30px;font-weight:800;background:rgba(255,255,255,.025)}
 .win .top .dots{display:flex;gap:10px}.win .top .dots i{width:16px;height:16px;border-radius:50%;background:#2A3050}
 .win .top .pill{margin-left:auto;font-family:JB;font-size:28px;padding:5px 16px;border-radius:12px;font-weight:600}
 .tabs{display:flex;gap:6px;padding:12px 22px 0;border-bottom:1.5px solid var(--hair);height:76px}
-.tab{display:flex;align-items:center;gap:10px;padding:0 20px;font-family:JB;font-size:28px;color:var(--dim);border-radius:14px 14px 0 0;font-weight:500}
+.tab{display:flex;align-items:center;gap:10px;padding:0 20px;font-family:JB;font-size:28px;color:var(--dim);border-radius:14px 14px 0 0;font-weight:600}
 .tab.on{color:#fff;background:rgba(255,255,255,.05);box-shadow:inset 0 -4px 0 var(--seat)}
 .tab svg{width:24px;height:24px}
 .doc{position:absolute;left:0;right:0;top:156px;bottom:104px;overflow:hidden}
@@ -158,191 +167,164 @@ em{font-style:italic}
 .doc .ac{display:flex;gap:20px;font-size:36px;line-height:1.4;color:#DDE2EF;font-weight:500;margin:6px 0}
 .doc .ac .k{font-family:JB;font-weight:700;color:var(--seat);flex:none;font-size:32px;padding-top:4px}
 .tag{font-family:JB;font-size:26px;font-weight:600;padding:4px 14px;border-radius:10px;letter-spacing:.04em}
-.chip{display:inline-flex;align-items:center;gap:10px;font-family:JB;font-size:28px;padding:6px 16px;border-radius:12px;background:rgba(95,203,216,.12);color:var(--eng);border:1.5px solid rgba(95,203,216,.4);font-weight:500;white-space:nowrap}
-.chip.gold{background:rgba(247,181,66,.12);color:var(--nox);border-color:rgba(247,181,66,.45)}
-.chip.vio{background:rgba(168,151,240,.14);color:var(--po);border-color:rgba(168,151,240,.5)}
-.chip.grn{background:rgba(95,210,159,.14);color:var(--verify);border-color:rgba(95,210,159,.5)}
-.foot{position:absolute;left:0;right:0;bottom:0;height:104px;display:flex;align-items:center;padding:0 30px 0 40px;border-top:1.5px solid var(--hair);font-size:30px;color:var(--muted);font-weight:600;gap:14px}
+.wfoot{position:absolute;left:0;right:0;bottom:0;height:104px;display:flex;align-items:center;padding:0 30px 0 40px;border-top:1.5px solid var(--hair);font-size:30px;color:var(--muted);font-weight:600;gap:14px}
 .approve{margin-left:auto;font-size:32px;font-weight:800;padding:14px 34px;border-radius:16px;color:#0B0D16;background:var(--seat);box-shadow:0 0 30px color-mix(in srgb,var(--seat) 45%,transparent);display:flex;align-items:center;gap:12px}
 .approve .ok{display:none}
-.cur{position:relative;display:inline-block;width:5px;height:1.05em;vertical-align:-.16em;margin-left:4px;background:var(--nox);box-shadow:0 0 14px var(--nox);visibility:hidden;opacity:0}
+.cur{position:relative;display:inline-block;width:5px;height:1.05em;vertical-align:-.16em;margin-left:4px;background:var(--nox);box-shadow:0 0 16px var(--nox);visibility:hidden;opacity:0}
 .cur b{position:absolute;left:-2px;top:1.2em;font-family:JB;font-size:26px;font-weight:700;padding:2px 10px;border-radius:0 8px 8px 8px;background:var(--nox);color:#1A1204;white-space:nowrap;line-height:1.3}
 .cur.me{background:var(--seat);box-shadow:0 0 14px var(--seat)}
 .cur.me b{background:var(--seat);color:#0B0D16}
-.hl{background:linear-gradient(transparent 8%,color-mix(in srgb,var(--seat) 22%,transparent) 8% 92%,transparent 92%);border-radius:6px}
-.ptr{position:absolute;z-index:30;visibility:hidden;opacity:0}
+.hl{background:linear-gradient(transparent 8%,color-mix(in srgb,var(--seat) 24%,transparent) 8% 92%,transparent 92%);border-radius:6px}
+.ptr{position:absolute;left:0;top:0;z-index:30;visibility:hidden;opacity:0}
 .ptr .lab{position:absolute;right:30px;top:58px;font-size:28px;font-weight:800;padding:6px 14px;border-radius:10px;color:#0B0D16;white-space:nowrap}
-.ripple{position:absolute;width:60px;height:60px;border-radius:50%;border:4px solid var(--verify);visibility:hidden;opacity:0}
-.toast{position:absolute;display:flex;align-items:center;gap:18px;padding:18px 26px;border-radius:20px;background:linear-gradient(180deg,#1A2038,#0E1222);border:1.5px solid var(--hair2);box-shadow:0 30px 80px rgba(0,0,0,.6);font-size:30px;font-weight:700;white-space:nowrap;z-index:25}
-.toast img{width:44px;height:44px}
-.toast .s{font-family:JB;font-size:28px;font-weight:600;padding:4px 14px;border-radius:10px}
-/* eng */
-.mapwin{height:520px}
-.ask{position:absolute;left:700px;top:676px;width:1140px;height:306px;border-radius:26px;padding:26px 36px;background:linear-gradient(180deg,#141A30,#0B0E1B);border:1.5px solid rgba(95,203,216,.45);box-shadow:0 40px 120px rgba(0,0,0,.7)}
-.ask .q{font-size:36px;font-weight:700;display:flex;align-items:center;gap:16px}
+.ripple{position:absolute;left:0;top:0;width:60px;height:60px;border-radius:50%;border:4px solid var(--verify);visibility:hidden;opacity:0;z-index:29}
+.ask{position:absolute;left:700px;top:676px;width:1140px;height:306px;border-radius:26px;padding:26px 36px;background:linear-gradient(180deg,rgba(20,26,48,.95),rgba(11,14,27,.96));border:1.5px solid rgba(95,203,216,.45);box-shadow:0 40px 120px rgba(0,0,0,.7)}
+.ask .q{font-size:36px;font-weight:800;display:flex;align-items:center;gap:16px}
 .ask .steps{display:flex;gap:14px;margin-top:18px}
 .ask .a{font-size:35px;line-height:1.4;color:#DDE2EF;margin-top:16px;font-weight:500}
-/* dev */
 .term{font-family:JB;font-size:33px;line-height:1.56;padding:26px 40px;color:#D9DEEC;white-space:pre}
 .term .pr{color:var(--dev)} .term .ok{color:var(--verify)} .term .dm{color:var(--faint)} .term .gd{color:var(--nox)}
 .term .big{font-size:42px;font-weight:700;color:#fff}
 .term .row{opacity:0;visibility:hidden}
-.agents{position:absolute;left:700px;top:820px;width:1140px;display:flex;flex-wrap:wrap;align-items:center;column-gap:40px;row-gap:16px;font-size:31px;font-weight:600;color:#D7DCEA;white-space:nowrap}
-.agents .lb{flex-basis:100%;font-family:JB;color:var(--faint);font-size:28px;letter-spacing:.14em}
+.agents{position:absolute;left:700px;top:820px;width:1140px;display:flex;flex-wrap:wrap;align-items:center;column-gap:40px;row-gap:16px;font-size:31px;font-weight:700;color:#D7DCEA;white-space:nowrap}
+.agents .lb{flex-basis:100%;font-family:JB;color:var(--faint);font-size:28px;letter-spacing:.14em;font-weight:600}
 .agents .a{display:flex;align-items:center;gap:12px}
 .agents img{width:42px;height:42px;object-fit:contain}
 
 /* S9 */
-.ftile{position:absolute;width:540px;height:236px;padding:30px 34px;border-radius:26px}
+.ftile{position:absolute;width:540px;height:236px;padding:30px 34px;border-radius:26px;transform-origin:50% 100%}
 .ftile .ic{width:76px;height:76px;border-radius:22px;display:grid;place-items:center;float:left;margin-right:24px}
 .ftile .tt{font-size:42px;font-weight:800;line-height:76px}
 .ftile .tx{clear:both;font-size:31px;line-height:1.36;color:var(--muted);font-weight:500;padding-top:18px}
-.tech{position:absolute;left:0;right:0;top:880px;display:flex;justify-content:center;align-items:center;gap:46px;font-size:34px;font-weight:700;color:#E6EAF4}
+.tech{position:absolute;left:0;right:0;top:880px;display:flex;justify-content:center;align-items:center;gap:46px;font-size:34px;font-weight:800;color:#E6EAF4}
 .tech .t{display:flex;align-items:center;gap:14px}
 .tech img{width:48px;height:48px;object-fit:contain}
 .tech .sq{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-family:JB;font-size:22px;font-weight:700}
-.prin{position:relative;display:flex;justify-content:flex-start;align-items:center;gap:30px;font-family:'Instrument Serif';font-size:82px;white-space:nowrap}
-.prin .ck{width:70px;height:70px;border-radius:50%;display:grid;place-items:center;background:rgba(95,210,159,.14);border:2px solid rgba(95,210,159,.6);color:var(--verify);font-family:Manrope;font-size:38px;font-weight:800}
+.prin{position:relative;display:flex;align-items:center;gap:30px;font-family:'Instrument Serif';font-size:84px;white-space:nowrap}
+.prin .ck{width:72px;height:72px;flex:none}
 .logos{position:absolute;left:0;right:0;top:880px;display:flex;justify-content:center;align-items:center;gap:54px}
-.logos .l{display:flex;align-items:center;gap:14px;font-size:32px;font-weight:700;color:#DDE2F0}
+.logos .l{display:flex;align-items:center;gap:14px;font-size:32px;font-weight:800;color:#DDE2F0}
 .logos img{width:50px;height:50px;object-fit:contain}
-
-/* S10 */
 #s10a{left:0;right:0;top:300px;text-align:center}
-#s10a .l1{font-family:'Instrument Serif';font-size:120px;line-height:1.05}
-#s10a .l2{font-family:'Instrument Serif';font-style:italic;font-size:84px;color:var(--nox);margin-top:18px}
+#s10a .l1{font-family:'Instrument Serif';font-size:124px;line-height:1.05}
+#s10a .l2{font-family:'Instrument Serif';font-style:italic;font-size:86px;color:var(--nox);margin-top:18px}
 </style>
 </head>
 <body>
 <div id="stage">
-  <canvas id="bg" width="1920" height="1080"></canvas>
+  <div id="gl"></div>
+  <div id="ui">
 
-  <!-- ============ S1: one sentence ============ -->
-  <section class="scene" id="s1"><div class="kicker abs center-x" id="s1k" style="top:196px;z-index:2"><span class="bar"></span>Every change starts as one sentence<span class="bar"></span></div><div class="cam" id="s1cam">
-    <div class="pl" id="s1pl" data-role="business" data-size="250" style="left:300px;top:560px"></div>
-    <div class="abs glass" id="s1box">
-      <div class="lbl">What would you like to change?</div>
-      <div class="big"><span id="s1text"></span><span class="caret" id="s1car"></span></div>
-      <div class="who" id="s1who">— a business user, in plain words</div>
+  <!-- S1 -->
+  <section class="scene" id="s1">
+    <div class="kicker abs center-x" id="s1k" style="top:196px"><span class="bar"></span><span id="s1kt">Every change starts as one sentence</span><span class="bar"></span></div>
+    <div class="cam" id="s1cam">
+      <div class="pl" id="s1pl" data-role="business" data-size="250" style="left:300px;top:560px"></div>
+      <div class="abs glass" id="s1box"><div class="sheen" id="s1sheen"></div>
+        <div class="lbl">What would you like to change?</div>
+        <div class="big"><span id="s1text"></span><span class="caret" id="s1car"></span></div>
+        <div class="who" id="s1who">— a business user, in plain words</div>
+      </div>
+      <svg id="s1frame" viewBox="0 0 1210 386"><rect x="1" y="1" width="1208" height="384" rx="28" fill="none" stroke="#F7B542" stroke-width="3" id="s1rect"/></svg>
     </div>
-  </div></section>
+  </section>
 
-  <!-- ============ S2: lost in translation ============ -->
+  <!-- S2 -->
   <section class="scene" id="s2"><div class="cam" id="s2cam">
-    <div class="kicker abs" id="s2k" style="left:110px;top:70px;color:var(--ember)">The problem<span class="bar"></span>Lost in translation</div>
-    <div class="title abs" id="s2t" style="left:110px;top:122px;font-size:74px">A requirement travels like a game of <em>telephone</em>.</div>
+    <div class="kicker abs" id="s2k" style="left:110px;top:70px;color:var(--ember)"><span class="num">01</span><span class="bar"></span>The problem · lost in translation</div>
+    <div class="title abs" id="s2t" style="left:110px;top:122px;font-size:76px">A requirement travels like a game of <em>telephone</em>.</div>
     <svg class="abs" id="s2line" width="1920" height="1080" style="left:0;top:0">
       <defs><linearGradient id="s2g" x1="0" x2="1"><stop offset="0" stop-color="#F7B542"/><stop offset=".5" stop-color="#E9713C"/><stop offset="1" stop-color="#FF5D6C"/></linearGradient></defs>
       <line x1="260" y1="420" x2="1660" y2="420" stroke="rgba(143,160,204,.22)" stroke-width="3" stroke-dasharray="10 12"/>
-      <line id="s2prog" x1="260" y1="420" x2="1660" y2="420" stroke="url(#s2g)" stroke-width="5" stroke-linecap="round" stroke-dasharray="1400" stroke-dashoffset="1400"/>
+      <line id="s2prog" x1="260" y1="420" x2="1660" y2="420" stroke="url(#s2g)" stroke-width="5" stroke-linecap="round"/>
     </svg>
-    <div class="abs" id="s2cap" style="left:0;top:0;width:30px;height:30px;border-radius:50%;background:radial-gradient(circle,#fff,#FFD27A 40%,rgba(247,181,66,0) 70%);"></div>
     <div id="s2nodes"></div>
     <div class="abs" id="s2quote"><div class="q"><span class="qm" id="s2qa">“</span><span id="s2q"></span><span class="qm" id="s2qb">”</span></div></div>
     <div class="abs" id="s2meter"><span class="l">INTENT</span><div class="track"><div class="fill" id="s2fill"></div></div></div>
     <div class="abs" id="s2end">
-      <div class="big"><span style="color:var(--ember)">What shipped</span><span class="neq" id="s2neq">≠</span><span style="color:var(--nox)">what was meant.</span></div>
+      <div class="big"><span id="s2w1" style="color:var(--ember)">What shipped</span><span class="neq" id="s2neq">≠</span><span id="s2w2" style="color:var(--nox)">what was meant.</span></div>
       <div class="sub" id="s2sub">Every handoff rebuilds the context, and loses some of it.</div>
     </div>
   </div></section>
 
-  <!-- ============ S3: AI everywhere ============ -->
+  <!-- S3 -->
   <section class="scene" id="s3"><div class="cam" id="s3cam">
-    <div class="kicker abs" id="s3k" style="left:110px;top:70px;color:var(--ember)">The problem<span class="bar"></span>AI everywhere</div>
-    <div class="title abs" id="s3t" style="left:110px;top:122px;font-size:74px">Everyone uses AI. <em>Nobody shares the context.</em></div>
+    <div class="kicker abs" id="s3k" style="left:110px;top:70px;color:var(--ember)"><span class="num">02</span><span class="bar"></span>The problem · AI everywhere</div>
+    <div class="title abs" id="s3t" style="left:110px;top:122px;font-size:76px">Everyone uses AI. <em>Nobody shares the context.</em></div>
+    <svg class="abs" id="s3links" width="1920" height="1080" style="left:0;top:0"></svg>
     <div id="s3chats"></div>
-    <div id="s3pains" style="position:absolute;left:50%;top:300px;transform:translateX(-50%);display:flex;flex-direction:column;gap:56px">
-    <div class="pain" id="s3p1"><span class="ic"><svg width="50" height="50" viewBox="0 0 24 24"><path d="M19.5 12 A7.5 7.5 0 1 1 16.8 6.2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M17.6 2.6 L17.2 6.8 L13 6.4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Context is rebuilt at every seat.</div>
-    <div class="pain" id="s3p2"><span class="ic"><svg width="50" height="50" viewBox="0 0 24 24"><path d="M5 2.5 H14 L19 7.5 V21.5 H5 Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M8.5 12 Q10 10.5 11.5 12 T14.5 12 M8.5 16 Q10 14.5 11.5 16 T14.5 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>Wikis drift away from the code.</div>
-    <div class="pain" id="s3p3"><span class="ic"><svg width="50" height="50" viewBox="0 0 24 24"><path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg></span>Nobody verifies the original intent.</div>
+    <div id="s3pains" style="position:absolute;left:50%;top:290px;transform:translateX(-50%);display:flex;flex-direction:column;gap:58px">
+      <div class="pain" id="s3p1"><span class="ic"><svg width="52" height="52" viewBox="0 0 24 24"><path d="M19.5 12 A7.5 7.5 0 1 1 16.8 6.2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M17.6 2.6 L17.2 6.8 L13 6.4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="pt">Context is rebuilt at every seat.</span></div>
+      <div class="pain" id="s3p2"><span class="ic"><svg width="52" height="52" viewBox="0 0 24 24"><path d="M5 2.5 H14 L19 7.5 V21.5 H5 Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M8.5 12 Q10 10.5 11.5 12 T14.5 12 M8.5 16 Q10 14.5 11.5 16 T14.5 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span class="pt">Wikis drift away from the code.</span></div>
+      <div class="pain" id="s3p3"><span class="ic"><svg width="52" height="52" viewBox="0 0 24 24"><path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg></span><span class="pt">Nobody verifies the original intent.</span></div>
     </div>
   </div></section>
 
-  <!-- ============ S4: meet NoX ============ -->
+  <!-- S4 -->
   <section class="scene" id="s4"><div class="cam" id="s4cam">
-    <div id="s4logo" class="abs" style="left:0;top:0;width:1920px;height:1080px">
-      <div class="oglow" id="orbglow" style="left:960px;top:452px;width:1100px;height:1100px"></div>
-      <svg id="corona" viewBox="-650 -650 1300 1300"></svg>
-      <div class="shock" id="shock1"></div><div class="shock" id="shock2"></div>
-      <div class="wm" id="wmN" style="left:960px">N</div>
-      <div class="wm" id="wmX" style="left:960px">X</div>
-      <div id="orb"></div>
-    </div>
+    <div class="wm" id="wmN">N</div><div class="wm" id="wmX">X</div>
     <div class="abs" id="s4tag">From a business sentence to <em class="gold">verified, shipped code.</em></div>
-    <div class="half glass" id="hA" style="left:150px">
-      <svg width="190" height="150" viewBox="0 0 190 150"><ellipse cx="95" cy="75" rx="88" ry="34" fill="none" stroke="rgba(247,181,66,.5)" stroke-width="2.5"/><ellipse cx="95" cy="75" rx="56" ry="20" fill="none" stroke="rgba(134,185,238,.5)" stroke-width="2.5"/><circle cx="95" cy="75" r="16" fill="#F7B542"/><circle cx="151" cy="66" r="9" fill="#86B9EE"/><circle cx="18" cy="82" r="8" fill="#A897F0"/><circle cx="60" cy="92" r="7" fill="#5FCBD8"/></svg>
+    <div class="half glass" id="hA" style="left:150px"><div class="sheen"></div>
+      <svg class="ic" width="190" height="150" viewBox="0 0 190 150"><ellipse cx="95" cy="75" rx="88" ry="34" fill="none" stroke="rgba(247,181,66,.55)" stroke-width="2.5"/><ellipse cx="95" cy="75" rx="56" ry="20" fill="none" stroke="rgba(134,185,238,.55)" stroke-width="2.5"/><circle cx="95" cy="75" r="16" fill="#F7B542"/><circle cx="151" cy="66" r="9" fill="#86B9EE"/><circle cx="18" cy="82" r="8" fill="#A897F0"/><circle cx="60" cy="92" r="7" fill="#5FCBD8"/></svg>
       <div class="k">ATLAS</div><div class="t">The map</div>
       <div class="b">A live, cited code wiki for every application in the enterprise, checked against the code on every push.</div>
       <div style="display:flex;gap:14px;margin-top:30px"><span class="chip gold">Open Knowledge Format</span><span class="chip">contract map</span></div>
     </div>
-    <div class="half glass" id="hB" style="left:980px">
-      <svg width="190" height="150" viewBox="0 0 190 150"><ellipse cx="95" cy="80" rx="84" ry="44" fill="none" stroke="rgba(143,160,204,.35)" stroke-width="2.5"/><path d="M11 80 A84 44 0 0 1 179 80" fill="none" stroke="#F7B542" stroke-width="4"/><path d="M179 80 A84 44 0 0 1 11 80" fill="none" stroke="#5FD29F" stroke-width="4" stroke-dasharray="6 8"/><circle cx="11" cy="80" r="11" fill="#E8C97A"/><circle cx="60" cy="40" r="10" fill="#A897F0"/><circle cx="130" cy="40" r="10" fill="#5FCBD8"/><circle cx="179" cy="80" r="11" fill="#86B9EE"/></svg>
+    <div class="half glass" id="hB" style="left:980px"><div class="sheen"></div>
+      <svg class="ic" width="190" height="150" viewBox="0 0 190 150"><ellipse cx="95" cy="80" rx="84" ry="44" fill="none" stroke="rgba(143,160,204,.35)" stroke-width="2.5"/><path d="M11 80 A84 44 0 0 1 179 80" fill="none" stroke="#F7B542" stroke-width="4"/><path d="M179 80 A84 44 0 0 1 11 80" fill="none" stroke="#5FD29F" stroke-width="4" stroke-dasharray="6 8"/><circle cx="11" cy="80" r="11" fill="#E8C97A"/><circle cx="60" cy="40" r="10" fill="#A897F0"/><circle cx="130" cy="40" r="10" fill="#5FCBD8"/><circle cx="179" cy="80" r="11" fill="#86B9EE"/></svg>
       <div class="k">MISSIONS</div><div class="t">The journey</div>
       <div class="b">One change, carried from a business sentence to merged code, then verified back by the same people.</div>
       <div style="display:flex;gap:14px;margin-top:30px"><span class="chip gold">4 seats</span><span class="chip vio">/nox</span><span class="chip grn">verified in reverse</span></div>
     </div>
   </div></section>
 
-  <!-- ============ S5: Atlas ============ -->
-  <section class="scene" id="s5"><div class="cam" id="s5cam">
+  <!-- S5 Atlas -->
+  <section class="scene" id="s5">
     <div id="s5a" class="abs" style="inset:0">
-      <svg class="abs" id="s5svg" width="1920" height="1080" style="left:0;top:0"></svg>
-      <div id="s5apps"></div>
-      <div class="kicker abs" id="s5k" style="left:110px;top:70px">Atlas<span class="bar"></span>The map</div>
-      <div class="title abs" id="s5t" style="left:110px;top:122px;font-size:78px">A living map of the <em>whole enterprise</em>.</div>
+      <div id="s5labels"></div>
+      <div class="kicker abs" id="s5k" style="left:110px;top:70px"><span class="num">03</span><span class="bar"></span>Atlas · the map</div>
+      <div class="title abs" id="s5t" style="left:110px;top:122px;font-size:80px">A living map of the <em>whole enterprise</em>.</div>
     </div>
     <div id="s5b" class="abs" style="inset:0;visibility:hidden;opacity:0">
-      <svg class="abs" id="s5bsvg" width="1920" height="1080" style="left:0;top:0"></svg>
-      <div class="kicker abs" style="left:110px;top:70px">Atlas<span class="bar"></span>Code wiki</div>
-      <div class="title abs" style="left:110px;top:122px;font-size:78px">Built from what your teams <em>already wrote</em>.</div>
-      <div class="pl" id="s5core" style="left:960px;top:650px"></div>
-      <div class="abs applabel" id="s5corel" style="left:960px;top:785px;font-size:38px;transform:translateX(-50%)">mini-auth-service</div>
+      <div class="kicker abs" id="s5bk" style="left:110px;top:70px"><span class="num">03</span><span class="bar"></span>Atlas · code wiki</div>
+      <div class="title abs" id="s5bt" style="left:110px;top:122px;font-size:80px">Built from what your teams <em>already wrote</em>.</div>
+      <div class="abs label3d" id="s5corel" style="font-size:40px">mini-auth-service</div>
       <div id="s5srcs"></div>
-      <div class="toast" id="s5shield" style="left:1250px;top:260px;border-color:rgba(255,93,108,.6)"><span style="font-size:40px;color:var(--red)">⛨</span><div><div>NoX Shield</div><div style="font-family:JB;font-size:28px;color:var(--red);font-weight:500">prompt injection withheld</div></div></div>
-      <div class="toast" id="s5sync" style="left:1210px;top:740px;border-color:rgba(95,210,159,.6)"><span style="font-size:36px;color:var(--verify)">⟳</span><div>Kept true on every push</div></div>
-      <div class="traj" id="s5traj"></div>
+      <div class="toast" id="s5shield" style="left:110px;top:790px;border-color:rgba(255,93,108,.65)"><svg width="44" height="44" viewBox="0 0 24 24" style="color:var(--red)"><path d="M12 2.5 L20 5.5 V11 C20 16 16.5 19.8 12 21.5 C7.5 19.8 4 16 4 11 V5.5 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 9 L15 15 M15 9 L9 15" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg><div><div>NoX Shield</div><div style="font-family:JB;font-size:28px;color:var(--red);font-weight:600">prompt injection withheld</div></div></div>
+      <div class="toast" id="s5sync" style="left:1380px;top:800px;border-color:rgba(95,210,159,.65)"><span style="font-size:36px;color:var(--verify)">⟳</span><div>Kept true on every push</div></div>
+      <div class="traj" id="s5traj"><div class="bar"><b id="trajbar"></b></div></div>
     </div>
     <div id="s5c" class="abs" style="inset:0;visibility:hidden;opacity:0">
       <svg class="abs" id="s5csvg" width="1920" height="1080" style="left:0;top:0"></svg>
-      <div class="kicker abs" style="left:110px;top:70px">Google ADK<span class="bar"></span>Gemini</div>
-      <div class="title abs" style="left:110px;top:122px;font-size:78px">Written by a <em>team of agents</em>.</div>
+      <div class="kicker abs" id="s5ck" style="left:110px;top:70px"><span class="num">03</span><span class="bar"></span>Google ADK · Gemini</div>
+      <div class="title abs" id="s5ct" style="left:110px;top:122px;font-size:80px">Written by a <em>team of agents</em>.</div>
       <div id="s5agents"></div>
       <div class="abs glass" id="okf"></div>
       <div class="abs" id="stat"><div class="num"><span id="statn">1.0</span>×</div><div class="l1">faster knowledge-base builds</div><div class="l2">29 s vs 252 s · 4× fewer tokens</div></div>
     </div>
-  </div></section>
+  </section>
 
-  <!-- ============ S6 + S8: the trajectory ============ -->
-  <section class="scene" id="s6"><div class="cam" id="s6cam">
-    <div class="kicker abs" id="s6k" style="left:110px;top:70px">Missions<span class="bar"></span>The journey</div>
-    <div class="title abs" id="s6t" style="left:110px;top:122px;font-size:78px">One change. Four seats. <em>One trajectory.</em></div>
-    <div class="kicker abs" id="s8k" style="left:110px;top:70px;color:var(--verify)">Verify<span class="bar"></span>In reverse</div>
-    <div class="title abs" id="s8t" style="left:110px;top:122px;font-size:78px">Then it comes back, <em>to the same people</em>.</div>
-    <svg class="abs" id="osvg" width="1920" height="1080" style="left:0;top:0">
-      <defs>
-        <linearGradient id="fwd" x1="0" x2="1"><stop offset="0" stop-color="#E8C97A"/><stop offset=".35" stop-color="#A897F0"/><stop offset=".7" stop-color="#5FCBD8"/><stop offset="1" stop-color="#86B9EE"/></linearGradient>
-      </defs>
-      <ellipse cx="960" cy="640" rx="700" ry="240" fill="none" stroke="rgba(143,160,204,.18)" stroke-width="3" stroke-dasharray="8 12"/>
-      <path id="arcTop" d="M260 640 A700 240 0 0 1 1660 640" fill="none" stroke="url(#fwd)" stroke-width="6" stroke-linecap="round"/>
-      <path id="arcBot" d="M1660 640 A700 240 0 0 1 260 640" fill="none" stroke="#5FD29F" stroke-width="6" stroke-linecap="round"/>
-    </svg>
-    <div id="comet"></div>
+  <!-- S6 + S8 orbit -->
+  <section class="scene" id="s6">
+    <div class="kicker abs" id="s6k" style="left:110px;top:70px"><span class="num">04</span><span class="bar"></span>Missions · the journey</div>
+    <div class="title abs" id="s6t" style="left:110px;top:122px;font-size:80px">One change. Four seats. <em>One trajectory.</em></div>
+    <div class="kicker abs" id="s8k" style="left:110px;top:70px;color:var(--verify)"><span class="num">05</span><span class="bar"></span>Verify · in reverse</div>
+    <div class="title abs" id="s8t" style="left:110px;top:122px;font-size:80px">Then it comes back, <em>to the same people</em>.</div>
     <div id="oplanets"></div>
     <div class="abs" id="cap"><div class="w" id="capw"></div><div class="c" id="capc"></div></div>
-    <div class="jira" id="jira"><img src="logos/jira.svg"><span>APEX-213</span><span class="s" id="j1">To Do</span>›<span class="s" id="j2">In Progress</span>›<span class="s" id="j3">In Review</span>›<span class="s" id="j4">Done</span></div>
-  </div></section>
+    <div class="jira" id="jira"><img src="vendor/logos/jira.svg"><span>APEX-213</span><span class="s" id="j1">To Do</span>›<span class="s" id="j2">In Progress</span>›<span class="s" id="j3">In Review</span>›<span class="s" id="j4">Done</span></div>
+  </section>
 
-  <!-- ============ S7: the four seats ============ -->
+  <!-- S7 seats -->
   <div id="hud"></div>
-
   <section class="scene" id="sb" style="--seat:var(--biz)"><div class="cam" id="sbcam">
     <div class="seatL"><div class="pl" data-role="business" data-size="270" style="left:290px;top:180px"></div>
       <div class="nm" style="color:var(--biz)">Business user</div><div class="home">Request desk</div><div class="file">writes 01-business.md</div>
-      <div class="call" id="sbcall" style="color:var(--biz)">Plain words.<br>No endpoints. No jargon.</div></div>
+      <div class="call" style="color:var(--biz)">Plain words.<br>No endpoints. No jargon.</div></div>
     <div class="win" id="sbwin">
       <div class="top"><span class="dots"><i></i><i></i><i></i></span>NOX-1 · Block brute-force logins<span class="pill" style="background:rgba(232,201,122,.16);color:var(--biz)">Business</span></div>
       <div class="tabs" data-on="0"></div>
-      <div class="doc"><div class="doc-in" id="sbdoc">
+      <div class="doc"><div class="doc-in">
         <div class="h">What changes for customers</div>
         <div class="p"><span id="sb1"></span><span class="cur" id="sb1c"><b>NoX</b></span></div>
         <div class="p"><span id="sb2"></span><span class="cur" id="sb2c"><b>NoX</b></span></div>
@@ -350,7 +332,7 @@ em{font-style:italic}
         <div class="p"><span id="sb3"></span><span class="cur" id="sb3c"><b>NoX</b></span></div>
         <div style="display:flex;gap:16px;margin-top:22px" id="sbchips"><span class="chip gold">▶ 0:42 · your screen capture</span><span class="chip grn">✓ checklist: 3 items</span></div>
       </div></div>
-      <div class="foot"><span id="sbstat">✦ Drafted with NoX</span><div class="approve"><span class="ok">✓</span><span class="lbl">Approve</span></div></div>
+      <div class="wfoot"><span id="sbstat">✦ Drafted with NoX</span><div class="approve"><span class="ok">✓</span><span class="lbl">Approve</span></div></div>
     </div>
   </div></section>
 
@@ -361,7 +343,7 @@ em{font-style:italic}
     <div class="win" id="spwin">
       <div class="top"><span class="dots"><i></i><i></i><i></i></span>NOX-1 · Block brute-force logins<span class="pill" style="background:rgba(168,151,240,.16);color:var(--po)">Product</span></div>
       <div class="tabs" data-on="1"></div>
-      <div class="doc"><div class="doc-in" id="spdoc">
+      <div class="doc"><div class="doc-in">
         <div class="h">Acceptance criteria</div>
         <div class="ac"><span class="k">AC-1</span><span><span id="sp1"></span><span class="cur" id="sp1c"><b>NoX</b></span></span></div>
         <div class="ac"><span class="k">AC-2</span><span><span id="sp2"></span><span class="cur" id="sp2c"><b>NoX</b></span></span></div>
@@ -371,16 +353,16 @@ em{font-style:italic}
         <div class="p"><span id="sp4"></span><span class="cur" id="sp4c"><b>NoX</b></span></div>
         <div style="margin-top:14px" id="spcite"><span class="chip">kb:mini-auth-service/session</span></div>
       </div></div>
-      <div class="foot"><span>✦ Drafted with NoX · grounded in the Atlas</span><div class="approve"><span class="ok">✓</span><span class="lbl">Approve</span></div></div>
+      <div class="wfoot"><span>✦ Drafted with NoX · grounded in the Atlas</span><div class="approve"><span class="ok">✓</span><span class="lbl">Approve</span></div></div>
     </div>
-    <div class="toast" id="spjira" style="left:84px;top:900px"><img src="logos/jira.svg"><span>APEX-213</span><span class="s" style="background:rgba(255,93,108,.18);color:#FF8A95">P1</span><span class="s" style="background:rgba(134,185,238,.16);color:var(--ice)">created</span></div>
+    <div class="toast" id="spjira" style="left:84px;top:900px"><img src="vendor/logos/jira.svg"><span>APEX-213</span><span class="s" style="background:rgba(255,93,108,.18);color:#FF8A95">P1</span><span class="s" style="background:rgba(134,185,238,.16);color:var(--ice)">created</span></div>
   </div></section>
 
   <section class="scene" id="se" style="--seat:var(--eng)"><div class="cam" id="secam">
     <div class="seatL"><div class="pl" data-role="engineering" data-size="270" style="left:290px;top:180px"></div>
       <div class="nm" style="color:var(--eng)">Engineering lead</div><div class="home">Flight director</div><div class="file">writes 03-engineering.md</div>
       <div class="call" style="color:var(--eng)">See every caller<br>before you change it.</div></div>
-    <div class="win mapwin" id="sewin">
+    <div class="win" id="sewin" style="height:520px">
       <div class="top"><span class="dots"><i></i><i></i><i></i></span>Blast radius · contract map<div class="approve" id="seapp" style="padding:8px 24px;font-size:28px;margin-left:auto"><span class="ok">✓</span><span class="lbl">Approve design</span></div></div>
       <svg id="semap" width="1140" height="442" style="position:absolute;left:0;top:78px"></svg>
     </div>
@@ -389,7 +371,7 @@ em{font-style:italic}
       <div class="steps" id="sesteps"><span class="chip gold">search_kb</span><span class="chip gold">find_interfaces</span><span class="chip gold">read_kb_page</span></div>
       <div class="a"><span id="se2"></span><span class="cur" id="se2c"><b>NoX</b></span></div>
     </div>
-    <div class="toast" id="sejira" style="left:84px;top:900px"><img src="logos/jira.svg"><span>APEX-213</span><span class="s" style="background:rgba(134,185,238,.16);color:var(--ice)">In Progress</span></div>
+    <div class="toast" id="sejira" style="left:84px;top:900px"><img src="vendor/logos/jira.svg"><span>APEX-213</span><span class="s" style="background:rgba(134,185,238,.16);color:var(--ice)">In Progress</span></div>
   </div></section>
 
   <section class="scene" id="sd" style="--seat:var(--dev)"><div class="cam" id="sdcam">
@@ -397,1140 +379,56 @@ em{font-style:italic}
       <div class="nm" style="color:var(--dev)">Developer</div><div class="home">Build bay</div><div class="file">writes 04-developer.md</div>
       <div class="call" style="color:var(--dev)">One command loads<br>the whole mission.</div></div>
     <div class="win" id="sdwin" style="height:660px">
-      <div class="top"><span class="dots"><i></i><i></i><i></i></span><img src="logos/antigravity.svg" style="width:36px;height:36px">Google Antigravity · mini-auth-service<span class="pill" style="background:rgba(134,185,238,.16);color:var(--dev)">Developer</span></div>
+      <div class="top"><span class="dots"><i></i><i></i><i></i></span><img src="vendor/logos/antigravity.svg" style="width:36px;height:36px">Google Antigravity · mini-auth-service<span class="pill" style="background:rgba(134,185,238,.16);color:var(--dev)">Developer</span></div>
       <div class="term" id="sdterm"></div>
     </div>
     <div class="agents" id="sdagents"><span class="lb">WORKS IN ANY CODING AGENT</span>
-      <span class="a"><img src="logos/antigravity.svg">Antigravity</span><span class="a"><img src="logos/cursor.svg">Cursor</span><span class="a"><img src="logos/codex.svg">Codex</span><span class="a"><img src="logos/copilot.svg">Copilot</span><span class="a"><img src="logos/claude.svg">Claude Code</span></div>
+      <span class="a"><img src="vendor/logos/antigravity.svg">Antigravity</span><span class="a"><img src="vendor/logos/cursor.svg">Cursor</span><span class="a"><img src="vendor/logos/codex.svg">Codex</span><span class="a"><img src="vendor/logos/copilot.svg">Copilot</span><span class="a"><img src="vendor/logos/claude.svg">Claude Code</span></div>
   </div></section>
 
-  <!-- pointer + ripple shared by seats -->
   <div class="ptr" id="ptr"><svg width="54" height="64" viewBox="0 0 27 32"><path d="M2 2 L2 26 L8.5 20 L13 30 L17 28.2 L12.6 18.6 L21 18.4 Z" fill="var(--pc,#fff)" stroke="#0B0D16" stroke-width="2" stroke-linejoin="round"/></svg><span class="lab" id="ptrlab">You</span></div>
   <div class="ripple" id="ripple"></div>
 
-  <!-- ============ S9: platform ============ -->
+  <!-- S9 -->
   <section class="scene" id="s9"><div class="cam" id="s9cam">
     <div id="s9a" class="abs" style="inset:0">
-      <div class="kicker abs" style="left:110px;top:70px">Agentic AI<span class="bar"></span>on Google Cloud</div>
-      <div class="title abs" style="left:110px;top:122px;font-size:78px">Built for a <em>real enterprise</em>.</div>
+      <div class="kicker abs" id="s9k" style="left:110px;top:70px"><span class="num">06</span><span class="bar"></span>Agentic AI · on Google Cloud</div>
+      <div class="title abs" id="s9t" style="left:110px;top:122px;font-size:80px">Built for a <em>real enterprise</em>.</div>
       <div id="s9tiles"></div>
       <div class="tech" id="s9tech"></div>
     </div>
     <div id="s9b" class="abs" style="inset:0;visibility:hidden;opacity:0">
-      <div class="kicker abs center-x" style="top:120px;color:var(--verify)"><span class="bar"></span>Trust by design<span class="bar"></span></div>
+      <div class="kicker abs center-x" id="s9bk" style="top:120px;color:var(--verify)"><span class="bar"></span>Trust by design<span class="bar"></span></div>
       <div style="position:absolute;left:50%;top:220px;transform:translateX(-50%);display:flex;flex-direction:column;gap:40px">
-      <div class="prin" id="pr1"><span class="ck">✓</span>People own every decision.</div>
-      <div class="prin" id="pr2"><span class="ck">✓</span>Grounded and cited, or it doesn’t ship.</div>
-      <div class="prin" id="pr3"><span class="ck">✓</span>Scope is set by NoX, never the model.</div>
-      <div class="prin" id="pr4"><span class="ck">✓</span>Everything lands in Git.</div></div>
+        <div class="prin" id="pr1"></div><div class="prin" id="pr2"></div><div class="prin" id="pr3"></div><div class="prin" id="pr4"></div>
+      </div>
       <div class="logos" id="s9logos"></div>
     </div>
   </div></section>
 
-  <!-- ============ S10: close ============ -->
+  <!-- S10 -->
   <section class="scene" id="s10"><div class="cam" id="s10cam">
-    <div class="abs" id="s10a"><div class="l1">Four people. Four files.</div><div class="l2">One sentence, all the way to code and back.</div></div>
-    <div id="s10logo" class="abs" style="inset:0">
-      <div class="oglow" id="s10glow" style="left:960px;top:470px;width:900px;height:900px"></div>
-      <div class="abs" id="s10orb" style="left:960px;top:470px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#FFF7E2,#FFDD82 42%,#F7B542 68%,#E9713C 100%)"></div>
-      <div class="wm" id="s10N" style="left:960px;top:470px;font-size:264px">N</div>
-      <div class="wm" id="s10X" style="left:960px;top:470px;font-size:264px">X</div>
-      <div class="abs center-x" id="s10l1" style="top:680px;font-family:'Instrument Serif';font-size:60px;display:flex">From a business sentence to <em class="gold" style="margin-left:.25em">verified, shipped code.</em></div>
-      <div class="abs center-x kicker" id="s10l2" style="top:800px;color:var(--muted);font-size:30px"><span class="bar"></span>AI Builder Cup 2026 · Built with Google Antigravity<span class="bar"></span></div>
-    </div>
+    <div class="abs" id="s10a"><div class="l1" id="s10l1a">Four people. Four files.</div><div class="l2" id="s10l2a">One sentence, all the way to code and back.</div></div>
+    <div class="wm" id="s10N" style="font-size:264px">N</div><div class="wm" id="s10X" style="font-size:264px">X</div>
+    <div class="abs center-x" id="s10l1" style="top:680px;font-family:'Instrument Serif';font-size:62px;display:flex;white-space:nowrap">From a business sentence to&nbsp;<em class="gold">verified, shipped code.</em></div>
+    <div class="abs center-x kicker" id="s10l2" style="top:800px;color:var(--muted);font-size:30px"><span class="bar"></span>AI Builder Cup 2026 · Built with Google Antigravity<span class="bar"></span></div>
   </div></section>
 
+  </div>
+  <div class="glitchbar" id="gb1"></div><div class="glitchbar" id="gb2"></div><div class="glitchbar" id="gb3"></div>
   <div class="flash" id="flash"></div>
+  <div class="whiteout" id="whiteout"></div>
   <div class="blackout" id="blackout"></div>
   <div class="vignette"></div>
   <div class="bug" id="bug">N<span class="orbmini"></span>X</div>
 </div>
 
-<script src="gsap.min.js"></script>
-<script>
-"use strict";
-/* ------------------------------------------------------------------ *
- * Deterministic motion film. Everything is a function of time:
- * window.renderFrame(t) seeks the master timeline, runs per-frame hooks
- * (orbits, comets, glitches) and redraws the star field.
- * window.__cues lists the sound cues the soundtrack script syncs to.
- * ------------------------------------------------------------------ */
-const DUR = 90;
-let HOPS_;
-const tl = gsap.timeline({ paused: true, defaults: { ease: "power3.out" } });
-const hooks = [];
-const cues = [];
-const cue = (type, t, extra = {}) => cues.push({ type, t: +t.toFixed(3), ...extra });
-const $ = (s) => document.querySelector(s);
-const $$ = (s) => Array.from(document.querySelectorAll(s));
-const W = 1920, H = 1080;
-
-/* ---------- deterministic randomness ---------- */
-function hash(a, b = 0) { let h = (a * 374761393 + b * 668265263) ^ 0x5bd1e995; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
-function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-
-/* ---------- roles & planets ---------- */
-const ROLES = {
-  business:    { hue: "#E8C97A", s: ["#FFF3CF", "#E8C97A", "#8C6A22"], f: "ring" },
-  product:     { hue: "#A897F0", s: ["#E6E0FF", "#A897F0", "#4F3F9E"], f: "moon" },
-  engineering: { hue: "#5FCBD8", s: ["#D6F7FB", "#5FCBD8", "#1F6B75"], f: "plain" },
-  developer:   { hue: "#86B9EE", s: ["#E3F0FF", "#86B9EE", "#2D5C91"], f: "bands" },
-};
-let uidN = 0;
-function planetSVG(role, face = true) {
-  const R = ROLES[role]; const [light, base, shadow] = R.s; const ink = "#10131F"; const u = "p" + (uidN++);
-  const eye = (x, y) => `<g transform="translate(${x} ${y})"><g class="eye"><ellipse rx="4.4" ry="4.9" fill="${ink}"/><circle cx="-1.5" cy="-1.8" r="1.45" fill="#fff"/></g></g>`;
-  let back = "", front = "", props = "";
-  if (R.f === "ring") {
-    back = `<g transform="rotate(-16 50 50)"><path d="M-37.5 50 A87.5 21 0 0 1 137.5 50" fill="none" stroke="${base}" stroke-opacity=".8" stroke-width="4"/></g>`;
-    front = `<g transform="rotate(-16 50 50)"><path d="M-37.5 50 A87.5 21 0 0 0 137.5 50" fill="none" stroke="${base}" stroke-opacity=".8" stroke-width="4"/></g>`;
-  }
-  if (R.f === "bands") {
-    front = `<g transform="rotate(-16 50 50)"><ellipse cx="50" cy="50" rx="77.5" ry="16" fill="none" stroke="${light}" stroke-opacity=".6" stroke-width="1.8" clip-path="url(#${u}bh)"/></g>`;
-  }
-  let body = `<circle cx="50" cy="50" r="50" fill="url(#${u}g)"/>`;
-  if (R.f === "bands") {
-    let st = ""; for (let i = -6; i < 9; i++) st += `<rect x="-40" y="${i * 16}" width="180" height="4" fill="${shadow}" fill-opacity=".28"/><rect x="-40" y="${i * 16 + 4}" width="180" height="3" fill="${light}" fill-opacity=".14"/>`;
-    body += `<g clip-path="url(#${u}c)"><g transform="rotate(-8 50 50)">${st}</g></g>`;
-  }
-  body += `<circle cx="50" cy="50" r="50" fill="url(#${u}sh)"/>`;
-  if (R.f === "moon") props += `<circle cx="96" cy="12" r="10" fill="url(#${u}m)"/>`;
-  if (face) {
-    const ey = role === "product"
-      ? `${eye(37, 45)}<g transform="translate(60 45)"><g class="lid" transform="scale(1 0.72)"><g class="eye"><ellipse rx="4.4" ry="4.9" fill="${ink}"/><circle cx="-1.5" cy="-1.8" r="1.45" fill="#fff"/></g></g></g>`
-      : eye(37, 45) + eye(60, 45);
-    props += `<g class="eyes">${ey}</g>`;
-    if (role === "business") {
-      props += `<g transform="translate(0 3)"><g class="specs"><path d="M27 51.5 Q50 70 73 51.5" fill="none" stroke="${shadow}" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="0.1 2.3"/><g fill="${light}" fill-opacity=".18" stroke="${ink}" stroke-width="1.9" stroke-linejoin="round"><path d="M29.5 50 H44.5 A7.5 6.4 0 0 1 29.5 50 Z"/><path d="M52.5 50 H67.5 A7.5 6.4 0 0 1 52.5 50 Z"/></g><g fill="none" stroke="${ink}" stroke-width="1.9" stroke-linecap="round"><path d="M44.5 50.4 Q48.5 47.8 52.5 50.4"/><path d="M29.5 50 L26.5 51.5"/><path d="M67.5 50 L73 51.5"/></g></g></g>
-      <g class="bulb"><g transform="translate(62 -44) scale(1.35) translate(-62 34)">
-        <circle class="bulb-halo" cx="62" cy="-10" r="24" fill="url(#${u}halo)" opacity="0"/>
-        <path d="M62 -34 V-21" stroke="${ink}" stroke-width="1.1"/>
-        <rect x="58.6" y="-21.5" width="6.8" height="5.5" rx="1.2" fill="${shadow}" stroke="${ink}" stroke-width=".8"/>
-        <path class="bulb-glass" d="M59 -16 C59 -13.5 54.5 -12 54.5 -7.5 A7.5 7.5 0 0 0 69.5 -7.5 C69.5 -12 65 -13.5 65 -16 Z" fill="${light}" fill-opacity=".22" stroke="${light}" stroke-width="1.1" stroke-linejoin="round"/>
-        <path class="filament" d="M60.3 -15.5 V-10.5 L61.2 -8.5 L62 -10.5 L62.8 -8.5 L63.7 -10.5 V-15.5" fill="none" stroke="${shadow}" stroke-width=".8"/>
-      </g></g>`;
-    }
-    if (role === "product") {
-      props += `<path class="brow" d="M55 36.2 Q60 33.6 65.2 36.4" fill="none" stroke="${ink}" stroke-width="1.9" stroke-linecap="round"/>
-      <g transform="translate(83 82)"><g class="pencil" transform="rotate(-62)"><rect x="0" y="-2.4" width="4" height="4.8" rx="1.2" fill="${light}" stroke="${shadow}" stroke-width=".6"/><rect x="4" y="-2.4" width="2" height="4.8" fill="${shadow}"/><rect x="6" y="-2.4" width="17" height="4.8" fill="${base}" stroke="${shadow}" stroke-width=".6"/><path d="M23 -2.4 L29 0 L23 2.4 Z" fill="${light}" stroke="${shadow}" stroke-width=".6"/><path d="M27.2 -.75 L29 0 L27.2 .75 Z" fill="${ink}"/></g></g>
-      <path class="check" d="M99 92 L104 97.5 L115 84" fill="none" stroke="${light}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="30" stroke-dashoffset="30"/>`;
-    }
-    if (role === "engineering") {
-      props += `<path d="M7.5 42 C3 -22 97 -22 92.5 42" fill="none" stroke="${ink}" stroke-width="6" stroke-linecap="round"/>
-      <path d="M11 30 C12 -8 88 -8 89 30" fill="none" stroke="#2A3050" stroke-width="2.4" stroke-linecap="round"/>
-      <g class="mic"><path d="M6 62 C6 76 26 78 40 69.5" fill="none" stroke="${ink}" stroke-width="2.6" stroke-linecap="round"/><ellipse cx="43.5" cy="68" rx="5.2" ry="3.9" fill="${ink}"/><circle class="mic-led" cx="46.4" cy="68.6" r="1.1" fill="#7CF0B0"/></g>
-      <rect x="-4" y="38" width="16" height="28" rx="7.5" fill="${ink}"/><rect x="-1.5" y="42" width="6" height="20" rx="3" fill="${base}"/>
-      <rect x="88" y="38" width="16" height="28" rx="7.5" fill="${ink}"/><rect x="95.5" y="42" width="6" height="20" rx="3" fill="${base}"/>
-      <g fill="none" stroke="${light}" stroke-linecap="round"><path class="signal" d="M-8 45 Q-12 52 -8 59" stroke-width="1.8" opacity="0"/><path class="signal" d="M-13.5 40 Q-20 52 -13.5 64" stroke-width="1.6" opacity="0"/><path class="signal" d="M-19 35 Q-28 52 -19 69" stroke-width="1.4" opacity="0"/></g>`;
-    }
-    if (role === "developer") {
-      props += `<g fill="${light}" fill-opacity=".14" stroke="${ink}" stroke-width="2.1"><circle cx="37" cy="45" r="8.6"/><circle cx="60" cy="45" r="8.6"/></g>
-      <g fill="none" stroke="${ink}" stroke-width="2.1" stroke-linecap="round"><path d="M45.6 43.6 Q48.5 40.8 51.4 43.6"/><path d="M28.4 43.5 L13 40.5"/><path d="M68.6 43.5 L85 40.5"/></g>
-      <g class="code" opacity="0" font-family="JB, monospace" font-size="13" font-weight="700" fill="${light}"><text x="50" y="-8" text-anchor="middle">&lt;/&gt;</text></g>`;
-    }
-  }
-  return `<svg viewBox="0 0 100 100" width="100%" height="100%">
-    <defs>
-      <radialGradient id="${u}g" cx=".32" cy=".28" r=".8"><stop offset="0" stop-color="${light}"/><stop offset=".46" stop-color="${base}"/><stop offset="1" stop-color="${shadow}"/></radialGradient>
-      <radialGradient id="${u}sh" cx=".3" cy=".25" r=".85"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".42"/></radialGradient>
-      <radialGradient id="${u}m" cx=".35" cy=".3"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="${light}"/><stop offset="1" stop-color="${shadow}"/></radialGradient>
-      <radialGradient id="${u}halo"><stop offset="0" stop-color="${light}" stop-opacity=".95"/><stop offset=".45" stop-color="${base}" stop-opacity=".4"/><stop offset="1" stop-color="${base}" stop-opacity="0"/></radialGradient>
-      <clipPath id="${u}c"><circle cx="50" cy="50" r="49.6"/></clipPath>
-      <clipPath id="${u}bh"><rect x="-60" y="50" width="220" height="80"/></clipPath>
-    </defs>${back}${body}${front}${props}</svg>`;
-}
-function appPlanetSVG(hue) {
-  const u = "a" + (uidN++);
-  return `<svg viewBox="0 0 100 100" width="100%" height="100%"><defs><radialGradient id="${u}" cx=".32" cy=".28" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".18" stop-color="${hue}"/><stop offset="1" stop-color="#0B0E1A"/></radialGradient></defs><circle cx="50" cy="50" r="50" fill="url(#${u})"/></svg>`;
-}
-function mountPlanet(el, role, size, face = true) {
-  el.style.width = el.style.height = size + "px";
-  const glow = document.createElement("div");
-  glow.className = "pl-glow";
-  glow.style.boxShadow = `0 0 ${size * 0.42}px ${size * 0.05}px ${ROLES[role].hue}55`;
-  el.appendChild(glow);
-  const s = document.createElement("div");
-  s.style.cssText = "position:relative;width:100%;height:100%";
-  s.innerHTML = planetSVG(role, face);
-  el.appendChild(s);
-  gsap.set(el, { xPercent: -50, yPercent: -50 });
-}
-$$(".pl[data-role]").forEach((el) => mountPlanet(el, el.dataset.role, +el.dataset.size));
-
-/* ---------- helpers on the master timeline ---------- */
-function sceneIn(sel, t, d = 0.6) { tl.fromTo(sel, { autoAlpha: 0 }, { autoAlpha: 1, duration: d, ease: "power1.out" }, t); }
-function sceneOut(sel, t, d = 0.5) { tl.to(sel, { autoAlpha: 0, duration: d, ease: "power1.in" }, t); }
-function pop(sel, t, from = {}, d = 0.7, ease = "back.out(1.7)") {
-  tl.fromTo(sel, { autoAlpha: 0, y: 30, scale: 0.92, ...from }, { autoAlpha: 1, x: 0, y: 0, scale: 1, rotation: 0, duration: d, ease }, t);
-}
-function rise(sel, t, d = 0.8, dy = 40, stagger = 0) {
-  tl.fromTo(sel, { autoAlpha: 0, y: dy }, { autoAlpha: 1, y: 0, duration: d, ease: "power3.out", stagger }, t);
-}
-function typeText(el, text, t, dur, { caret = null, human = false, sound = true, hold = 0.3 } = {}) {
-  el = typeof el === "string" ? $(el) : el;
-  const o = { n: 0 };
-  el.textContent = "";
-  tl.to(o, { n: text.length, duration: dur, ease: "none", onUpdate() { el.textContent = text.slice(0, Math.round(o.n)); } }, t);
-  if (caret) { tl.set(caret, { autoAlpha: 1 }, t); tl.set(caret, { autoAlpha: 0 }, t + dur + hold); }
-  if (sound) cue(human ? "typeH" : "typeA", t, { d: dur, n: text.length });
-}
-const GLYPHS = "!<>-_\\/[]{}—=+*^?#ABCDEFGHJKLMNPQRSTUVWXYZ0123456789";
-function scr(from, to, p, salt) {
-  const L = Math.max(from.length, to.length); let out = "";
-  const step = Math.floor(p * 26);
-  for (let i = 0; i < L; i++) {
-    const th = (i / L) * 0.6 + hash(i, salt) * 0.3;
-    if (p >= th + 0.1) out += to[i] || "";
-    else if (p >= th - 0.12) { const c = (to[i] || from[i] || " "); out += c === " " ? " " : GLYPHS[Math.floor(hash(i + step * 97, salt) * GLYPHS.length)]; }
-    else out += from[i] || "";
-  }
-  return out;
-}
-function scramble(el, from, to, t, dur, salt = 1) {
-  el = typeof el === "string" ? $(el) : el;
-  const o = { p: 0 };
-  tl.to(o, { p: 1, duration: dur, ease: "none", onUpdate() { el.textContent = o.p >= 1 ? to : scr(from, to, o.p, salt); } }, t);
-  cue("glitch", t, { d: dur * 0.8 });
-}
-function counter(el, from, to, t, dur, dec = 1) {
-  el = typeof el === "string" ? $(el) : el;
-  const o = { v: from };
-  tl.to(o, { v: to, duration: dur, ease: "power2.out", onUpdate() { el.textContent = o.v.toFixed(dec); } }, t);
-}
-/* camera: put world point (px,py) at screen point (qx,qy) with scale s */
-function cam(sel, t, d, s, px, py, qx = px, qy = py, ease = "power2.inOut") {
-  tl.to(sel, { scale: s, x: qx - s * px, y: qy - s * py, duration: d, ease }, t);
-}
-function camSet(sel, t, s, px, py, qx = px, qy = py) { tl.set(sel, { scale: s, x: qx - s * px, y: qy - s * py }, t); }
-function blink(el, t) { tl.to(el.querySelectorAll(".eye"), { scaleY: 0.08, duration: 0.07, yoyo: true, repeat: 1, ease: "power1.in", transformOrigin: "50% 50%" }, t); }
-
-/* ---------- background: star field, nebula, warp ---------- */
-const bg = { neb: 0.0, h1: [247, 181, 66], h2: [134, 185, 238], travel: 0, warp: 0, starA: 0, zoom: 0 };
-const nebs = [[0, 0], [0, 0]];
-const ctx = $("#bg").getContext("2d");
-const R0 = rng(7);
-const STARS = Array.from({ length: 760 }, () => ({ x: R0() * W, y: R0() * H, z: 0.15 + R0() * 0.85, p: R0() * 6.28, f: 0.6 + R0() * 2.2, c: R0() }));
-const WARP = Array.from({ length: 260 }, () => ({ a: R0() * 6.283, s: 0.4 + R0() * 0.9, o: R0(), w: 0.6 + R0() * 1.8 }));
-function lerpC(a, b, k) { return a.map((v, i) => Math.round(v + (b[i] - v) * k)); }
-function drawBg(t) {
-  ctx.fillStyle = "#03040A"; ctx.fillRect(0, 0, W, H);
-  // nebula
-  const n = bg.neb;
-  if (n > 0.001) {
-    const blobs = [
-      [W * (0.22 + 0.04 * Math.sin(t * 0.07)), H * (0.3 + 0.05 * Math.cos(t * 0.05)), 900, bg.h1, 0.16],
-      [W * (0.8 + 0.04 * Math.cos(t * 0.06)), H * (0.72 + 0.05 * Math.sin(t * 0.08)), 1000, bg.h2, 0.14],
-      [W * 0.55, H * 1.05, 1100, lerpC(bg.h1, bg.h2, 0.5), 0.08],
-    ];
-    for (const [x, y, r, c, a] of blobs) {
-      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]},${a * n})`);
-      g.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]},0)`);
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    }
-  }
-  // stars
-  const A = bg.starA;
-  if (A > 0.001) {
-    const cx = W / 2, cy = H * 0.45;
-    for (const s of STARS) {
-      let x = s.x - s.z * (t * 10 + bg.travel);
-      x = ((x % W) + W) % W;
-      let y = s.y;
-      // zoom: push outward from centre
-      if (bg.zoom) { const k = 1 + bg.zoom * s.z * 1.4; x = cx + (x - cx) * k; y = cy + (y - cy) * k; }
-      const tw = 0.55 + 0.45 * Math.sin(t * s.f + s.p);
-      const a = A * tw * (0.25 + 0.75 * s.z);
-      const r = 0.5 + s.z * 1.6;
-      const col = s.c < 0.12 ? "255,221,150" : s.c < 0.24 ? "170,200,255" : "236,239,248";
-      const streak = bg.travelV || 0;
-      if (streak > 0.5) {
-        ctx.strokeStyle = `rgba(${col},${a})`; ctx.lineWidth = r;
-        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + streak * s.z, y); ctx.stroke();
-      } else {
-        ctx.fillStyle = `rgba(${col},${a})`;
-        ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.fill();
-        if (s.z > 0.9 && tw > 0.85) { ctx.fillStyle = `rgba(${col},${a * 0.15})`; ctx.beginPath(); ctx.arc(x, y, r * 4, 0, 6.283); ctx.fill(); }
-      }
-    }
-  }
-  // warp lines (hyperspace burst)
-  if (bg.warp > 0.001) {
-    const cx = W / 2, cy = 452;
-    ctx.lineCap = "round";
-    for (const w of WARP) {
-      const ph = (t * w.s * 1.6 + w.o) % 1;
-      const r1 = 60 + ph * ph * 1500, r2 = r1 + (40 + ph * 420) * bg.warp;
-      const a = bg.warp * Math.min(1, ph * 3) * 0.75;
-      ctx.strokeStyle = `rgba(255,${200 + Math.round(w.o * 50)},${120 + Math.round(w.o * 100)},${a})`;
-      ctx.lineWidth = w.w * (0.5 + ph);
-      ctx.beginPath(); ctx.moveTo(cx + Math.cos(w.a) * r1, cy + Math.sin(w.a) * r1); ctx.lineTo(cx + Math.cos(w.a) * r2, cy + Math.sin(w.a) * r2); ctx.stroke();
-    }
-  }
-}
-function bgTo(t, d, vars, ease = "power1.inOut") { tl.to(bg, { ...vars, duration: d, ease }, t); }
-function hueTo(t, d, h1, h2) {
-  const o = { k: 0 }; let from1 = null, from2 = null;
-  tl.to(o, { k: 1, duration: d, ease: "power1.inOut", onStart() { from1 = bg.h1.slice(); from2 = bg.h2.slice(); },
-    onUpdate() { if (!from1) { from1 = bg.h1.slice(); from2 = bg.h2.slice(); } bg.h1 = lerpC(from1, h1, o.k); bg.h2 = lerpC(from2, h2, o.k); } }, t);
-}
-const HEX = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
-
-/* travel: a quick sideways rush of the star field (with streaks) */
-function rush(t, d = 0.8, dist = 900) {
-  tl.to(bg, { travel: `+=${dist}`, duration: d, ease: "power2.inOut" }, t);
-  tl.to(bg, { travelV: 60, duration: d / 2, ease: "power2.in" }, t);
-  tl.to(bg, { travelV: 0, duration: d / 2, ease: "power2.out" }, t + d / 2);
-  cue("whoosh", t, { d });
-}
-bg.travelV = 0;
-
-/* ================================================================== *
- * S1 — one sentence (0 – 6)
- * ================================================================== */
-(() => {
-  const T0 = 0;
-  bgTo(0, 1.6, { starA: 1, neb: 0.7 });
-  hueTo(0, 0.1, HEX("#E8C97A"), HEX("#86B9EE"));
-  sceneIn("#s1", 0.2, 0.6);
-  const SENT = "Lock an account for 15 minutes after 5 failed password attempts.";
-  camSet("#s1cam", 0, 1.55, 616, 520, 760, 560);
-  rise("#s1k", 0.35, 0.9, 20);
-  pop("#s1pl", 0.6, { scale: 0.4, y: 80 }, 1.0, "back.out(1.4)");
-  cue("pop", 0.7);
-  pop("#s1box", 0.75, { scale: 0.96, y: 40 }, 0.9, "power3.out");
-  typeText("#s1text", SENT, 1.35, 2.9, { caret: "#s1car", human: true, hold: 0.6 });
-  cam("#s1cam", 1.3, 3.3, 1.0, 960, 540);
-  blink($("#s1pl"), 2.6);
-  // the idea lands: bulb lights up
-  const pl = $("#s1pl");
-  tl.to(pl.querySelector(".bulb-glass"), { attr: { "fill-opacity": 1 }, duration: 0.35 }, 4.35)
-    .to(pl.querySelector(".bulb-halo"), { opacity: 1, duration: 0.45 }, 4.35)
-    .to(pl.querySelector(".specs"), { y: -7.5, duration: 0.45, ease: "back.out(1.8)" }, 4.45)
-    .to(pl.querySelector(".bulb"), { keyframes: { rotation: [7, -5, 2.5, 0] }, duration: 0.9, ease: "sine.inOut", svgOrigin: "62 -44" }, 4.35);
-  cue("ding", 4.35, { note: 0 });
-  rise("#s1who", 4.5, 0.7, 14);
-  tl.to("#s1box", { boxShadow: "0 40px 120px rgba(0,0,0,.55),0 0 0 2px rgba(247,181,66,.65),0 0 80px rgba(247,181,66,.35)", duration: 0.6 }, 4.4);
-  // exit: everything shrinks into a capsule that flies to stage left
-  tl.to("#s1cam", { scale: 0.35, x: 960 - 0.35 * 960 - 640, y: 540 - 0.35 * 540 - 120, autoAlpha: 0, duration: 0.7, ease: "power3.in" }, 5.35);
-  cue("whoosh", 5.35, { d: 0.7 });
-  tl.set("#s1", { autoAlpha: 0 }, 6.05);
-})();
-
-/* ================================================================== *
- * S2 — lost in translation (6 – 16)
- * ================================================================== */
-(() => {
-  const NODES = [
-    { role: "business", name: "Business user", where: "in a meeting", x: 260 },
-    { role: "product", name: "Product owner", where: "writes a ticket", x: 610 },
-    { role: "engineering", name: "Engineering lead", where: "asks around", x: 960 },
-    { role: "developer", name: "Developer", where: "a day in the code", x: 1310 },
-    { role: null, name: "Shipped", where: "vs. the ticket", x: 1660 },
-  ];
-  const Y = 420;
-  const host = $("#s2nodes");
-  NODES.forEach((n, i) => {
-    const pl = document.createElement("div");
-    pl.className = "pl"; pl.id = "s2n" + i;
-    pl.style.left = n.x + "px"; pl.style.top = Y + "px";
-    host.appendChild(pl);
-    if (n.role) mountPlanet(pl, n.role, 150);
-    else {
-      pl.style.width = pl.style.height = "150px"; gsap.set(pl, { xPercent: -50, yPercent: -50 });
-      pl.innerHTML = `<div style="width:100%;height:100%;border-radius:36px;display:grid;place-items:center;background:linear-gradient(180deg,#23283E,#11152A);border:2px solid rgba(233,113,60,.55);box-shadow:0 0 50px rgba(233,113,60,.25);font-size:76px;color:var(--ember);font-weight:800;transform:rotate(45deg) scale(.78)"><span style="transform:rotate(-45deg)">✓</span></div>`;
-    }
-    const lab = document.createElement("div");
-    lab.className = "plabel"; lab.id = "s2l" + i;
-    lab.style.left = n.x + "px"; lab.style.top = (Y + 100) + "px";
-    lab.innerHTML = `<div class="node-name" style="color:${n.role ? ROLES[n.role].hue : "var(--ember)"}">${n.name}</div><div class="node-where">${n.where}</div>`;
-    host.appendChild(lab);
-  });
-  const QUOTES = [
-    "Lock an account for 15 minutes after 5 failed password attempts.",
-    "APEX-212: add a login lockout.",
-    "Who calls /login? Let’s rate-limit it.",
-    "Return 429 after 5 requests a minute.",
-    "Ticket closed.",
-  ];
-  const WHO = ["Business user · in a meeting", "Product owner · writes a ticket", "Engineering lead · asks around", "Developer · a day in the code", "Shipped · checked against the ticket"];
-  const HUES = ["var(--biz)", "var(--po)", "var(--eng)", "var(--dev)", "var(--ember)"];
-  $("#s2q").textContent = QUOTES[0];
-  sceneIn("#s2", 5.9, 0.4);
-  hueTo(6, 2, HEX("#E9713C"), HEX("#A897F0"));
-  rise(["#s2k", "#s2t"], 6.1, 0.8, 30, 0.12);
-  NODES.forEach((n, i) => { pop("#s2n" + i, 6.2 + i * 0.12, { scale: 0.3, y: 0 }, 0.7, "back.out(2)"); rise("#s2l" + i, 6.35 + i * 0.12, 0.6, 16); });
-  cue("pop", 6.2); cue("pop", 6.45); cue("pop", 6.7);
-  rise("#s2quote", 6.6, 0.7, 24);
-  [1, 2, 3, 4].forEach((i) => tl.to(["#s2n" + i, "#s2l" + i], { opacity: 0.4, duration: 0.4 }, 6.9));
-  HOPS_ = [7.4, 9.0, 10.6, 12.2];
-  HOPS_.forEach((h, i) => tl.to(["#s2n" + (i + 1), "#s2l" + (i + 1)], { opacity: 1, duration: 0.3 }, h + 0.35));
-  rise("#s2meter", 6.8, 0.7, 16);
-  // capsule travels hop by hop
-  gsap.set("#s2cap", { x: 260 - 15, y: Y - 15, scale: 1.6 });
-  tl.fromTo("#s2cap", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3 }, 6.4);
-  const HOPS = HOPS_;
-  const meter = [1, 0.7, 0.46, 0.24, 0.08];
-  HOPS.forEach((h, i) => {
-    tl.to("#s2cap", { x: NODES[i + 1].x - 15, duration: 0.55, ease: "power2.inOut" }, h);
-    tl.to("#s2prog", { attr: { "stroke-dashoffset": 1400 - 350 * (i + 1) }, duration: 0.55, ease: "power2.inOut" }, h);
-    cue("whoosh", h, { d: 0.5, soft: true });
-    tl.fromTo("#s2n" + (i + 1), { scale: 1 }, { scale: 1.18, duration: 0.18, yoyo: true, repeat: 1, ease: "power1.out" }, h + 0.5);
-    scramble("#s2q", QUOTES[i], QUOTES[i + 1], h + 0.35, 0.75, i + 3);
-    tl.to(["#s2qa", "#s2qb"], { color: HUES[i + 1], duration: 0.3 }, h + 0.4);
-    tl.to(["#s2n" + i, "#s2l" + i], { opacity: 0.4, duration: 0.4 }, h + 0.3);
-    tl.to("#s2fill", { scaleX: meter[i + 1], duration: 0.6, ease: "power2.out" }, h + 0.45);
-    if (i >= 1) tl.to("#s2fill", { background: i >= 2 ? "linear-gradient(90deg,#E9713C,#FF5D6C)" : "linear-gradient(90deg,#F7B542,#E9713C)", duration: 0.5 }, h + 0.45);
-  });
-  tl.to("#s2q", { color: "#FFB3A0", duration: 0.4 }, 12.6);
-  // verdict
-  tl.to(["#s2nodes", "#s2line", "#s2cap", "#s2quote", "#s2meter", "#s2k", "#s2t"], { autoAlpha: 0, y: -30, duration: 0.5, ease: "power2.in", stagger: 0.03 }, 13.45);
-  pop("#s2end .big", 13.85, { scale: 1.25, y: 0 }, 0.6, "power3.out");
-  cue("impact", 13.85, { soft: true });
-  rise("#s2sub", 14.35, 0.7, 20);
-  // glitch on the ≠
-  const neq = $("#s2neq");
-  hooks.push((t) => {
-    if (t < 13.8 || t > 16) return;
-    const k = Math.floor(t * 30);
-    const on = hash(k, 5) > 0.55 || (t > 13.85 && t < 14.2);
-    const dx = on ? (hash(k, 9) - 0.5) * 22 : 0;
-    neq.style.textShadow = on ? `${dx}px 0 #FF2D55, ${-dx}px 0 #2DE2FF` : "0 0 30px rgba(255,255,255,.3)";
-    neq.style.transform = on ? `translateX(${(hash(k, 3) - 0.5) * 10}px) skewX(${(hash(k, 4) - 0.5) * 12}deg)` : "none";
-  });
-  cue("glitch", 14.6, { d: 0.25 }); cue("glitch", 15.2, { d: 0.2 });
-  tl.to("#s2end", { autoAlpha: 0, scale: 0.9, duration: 0.45, ease: "power2.in" }, 15.55);
-  tl.set("#s2", { autoAlpha: 0 }, 16.0);
-})();
-
-/* ================================================================== *
- * S3 — AI everywhere, context nowhere (16 – 23)
- * ================================================================== */
-(() => {
-  const CH = [
-    ["business", "Business user", "Turn my email into a requirement.", "Here’s a polished paragraph…", 110, 270],
-    ["product", "Product owner", "Write acceptance criteria for this.", "Given… when… then…", 990, 270],
-    ["engineering", "Engineering lead", "Which systems does this touch?", "I can’t see your systems.", 110, 600],
-    ["developer", "Developer", "What did the business actually want?", "Could you paste the ticket?", 990, 600],
-  ];
-  const host = $("#s3chats");
-  CH.forEach(([role, name, q, a, x, y], i) => {
-    const d = document.createElement("div");
-    d.className = "chat glass"; d.id = "s3c" + i;
-    d.style.left = x + "px"; d.style.top = y + "px";
-    d.innerHTML = `<div class="hd"><span style="position:relative;width:76px;height:64px;flex:none"><div class="pl" style="left:38px;top:32px"></div></span><span style="color:${ROLES[role].hue}">${name}</span><span class="mono" style="margin-left:auto;font-size:26px;color:var(--faint);font-weight:500">private chat</span></div>
-      <div class="ub">${q}</div><div class="ab" id="s3a${i}"><span class="ai">AI</span><span class="txt"></span></div>`;
-    host.appendChild(d);
-    const pl = d.querySelector(".pl"); mountPlanet(pl, role, 64, false);
-  });
-  sceneIn("#s3", 15.95, 0.3);
-  hueTo(16, 2, HEX("#E9713C"), HEX("#5FCBD8"));
-  rise(["#s3k", "#s3t"], 16.05, 0.8, 30, 0.12);
-  CH.forEach((c, i) => {
-    const t = 16.45 + i * 0.32;
-    pop("#s3c" + i, t, { scale: 0.85, y: 50 }, 0.7, "back.out(1.4)");
-    cue("pop", t);
-    rise(`#s3c${i} .ub`, t + 0.25, 0.4, 10);
-    tl.fromTo(`#s3a${i}`, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2 }, t + 0.6);
-    typeText($(`#s3a${i} .txt`), c[3], t + 0.65, 0.55, { sound: i % 2 === 0 });
-  });
-  // the silos drift apart, tinted red
-  tl.to(["#s3c0", "#s3c2"], { x: -40, duration: 1.2, ease: "power2.inOut" }, 18.9);
-  tl.to(["#s3c1", "#s3c3"], { x: 40, duration: 1.2, ease: "power2.inOut" }, 18.9);
-  tl.to(["#s3c0", "#s3c1"], { y: -20, duration: 1.2, ease: "power2.inOut" }, 18.9);
-  tl.to(["#s3c2", "#s3c3"], { y: 20, duration: 1.2, ease: "power2.inOut" }, 18.9);
-  tl.to(".chat", { borderColor: "rgba(255,93,108,.55)", duration: 0.6 }, 19.0);
-  tl.to(["#s3chats", "#s3k", "#s3t"], { autoAlpha: 0, scale: 0.94, duration: 0.45, ease: "power2.in" }, 19.75);
-  ["#s3p1", "#s3p2", "#s3p3"].forEach((p, i) => {
-    tl.fromTo(p, { autoAlpha: 0, x: 180, filter: "blur(10px)" }, { autoAlpha: 1, x: 0, filter: "blur(0px)", duration: 0.55, ease: "power3.out" }, 20.1 + i * 0.55);
-    cue("hit", 20.1 + i * 0.55);
-  });
-  // everything is sucked into a point
-  tl.to(["#s3p1", "#s3p2", "#s3p3"], { scale: 0.05, y: (i) => [150, 0, -150][i], autoAlpha: 0, duration: 0.6, ease: "power3.in", stagger: 0.03 }, 22.25);
-  bgTo(21.9, 1.0, { neb: 0, starA: 0.25 });
-  tl.set("#s3", { autoAlpha: 0 }, 22.95);
-  cue("riser", 21.6, { d: 2.4 });
-})();
-
-/* ================================================================== *
- * S4 — meet NoX (23 – 30)
- * ================================================================== */
-(() => {
-  ["#orb", "#orbglow", "#corona", "#shock1", "#shock2", "#wmN", "#wmX"].forEach((s) => gsap.set(s, { xPercent: -50, yPercent: -50 }));
-  { let r = `<defs><radialGradient id="rayg" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="650"><stop offset=".12" stop-color="#FFDD82" stop-opacity=".55"/><stop offset=".4" stop-color="#FFDD82" stop-opacity=".18"/><stop offset="1" stop-color="#FFDD82" stop-opacity="0"/></radialGradient></defs><g fill="url(#rayg)">`;
-    const R2 = rng(11);
-    for (let i = 0; i < 72; i++) { const a = (i / 72) * Math.PI * 2 + R2() * 0.04, w = 0.004 + R2() * 0.01, L = 380 + R2() * 270;
-      r += `<path d="M0 0 L${(Math.cos(a - w) * L).toFixed(1)} ${(Math.sin(a - w) * L).toFixed(1)} L${(Math.cos(a + w) * L).toFixed(1)} ${(Math.sin(a + w) * L).toFixed(1)} Z"/>`; }
-    $("#corona").innerHTML = r + "</g>"; }
-  sceneIn("#s4", 22.95, 0.05);
-  // a spark gathers
-  tl.fromTo("#orb", { scale: 0.02, autoAlpha: 1 }, { scale: 0.12, duration: 1.0, ease: "power2.in" }, 23.0);
-  tl.fromTo("#orbglow", { scale: 0.05, autoAlpha: 1 }, { scale: 0.25, duration: 1.0, ease: "power2.in" }, 23.0);
-  tl.to("#orbglow", { scale: 1, duration: 0.8, ease: "elastic.out(1,0.6)" }, 24.0);
-  tl.fromTo("#corona", { scale: 0.2, autoAlpha: 0, rotation: 0 }, { scale: 0.5, autoAlpha: 0.6, rotation: 40, duration: 1.0, ease: "power2.in" }, 23.0);
-  bgTo(23.0, 1.0, { warp: 0.6 }, "power2.in");
-  // IGNITION at 24.0
-  tl.to("#orb", { scale: 1, duration: 0.7, ease: "elastic.out(1,0.55)" }, 24.0);
-  tl.to("#corona", { scale: 1, autoAlpha: 1, rotation: 120, duration: 1.6, ease: "power2.out" }, 24.0);
-  tl.fromTo("#flash", { opacity: 0 }, { opacity: 1, duration: 0.08, ease: "none" }, 24.0);
-  tl.to("#flash", { opacity: 0, duration: 0.9, ease: "power2.out" }, 24.08);
-  gsap.set(["#shock1", "#shock2"], { autoAlpha: 0 });
-  tl.fromTo("#shock1", { scale: 0.4, autoAlpha: 1 }, { scale: 7, autoAlpha: 0, duration: 1.4, ease: "power2.out", immediateRender: false }, 24.0);
-  tl.fromTo("#shock2", { scale: 0.4, autoAlpha: 0.8 }, { scale: 4.5, autoAlpha: 0, duration: 1.6, ease: "power2.out", immediateRender: false }, 24.15);
-  bgTo(24.0, 0.1, { warp: 1.2, starA: 1, neb: 0.9 }, "none");
-  hueTo(24.0, 0.2, HEX("#F7B542"), HEX("#E9713C"));
-  bgTo(24.1, 1.6, { warp: 0 }, "power2.out");
-  cue("impact", 24.0);
-  // N and X slide out from behind the sun
-  tl.fromTo("#wmN", { x: 0, autoAlpha: 0 }, { x: -265, autoAlpha: 1, duration: 0.9, ease: "power4.out" }, 24.35);
-  tl.fromTo("#wmX", { x: 0, autoAlpha: 0 }, { x: 262, autoAlpha: 1, duration: 0.9, ease: "power4.out" }, 24.35);
-  cue("whoosh", 24.3, { d: 0.6, soft: true });
-  tl.to("#corona", { rotation: 260, duration: 5, ease: "none" }, 25.6);
-  // tagline
-  tl.fromTo("#s4tag", { autoAlpha: 0, y: 30, filter: "blur(8px)" }, { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 0.9 }, 25.1);
-  // logo rises, two halves appear
-  tl.to("#s4logo", { scale: 0.42, y: -260, duration: 0.9, ease: "power3.inOut", transformOrigin: "960px 452px" }, 26.6);
-  tl.to("#s4tag", { y: -560, scale: 0.62, autoAlpha: 0, duration: 0.7, ease: "power3.in" }, 26.55);
-  tl.fromTo("#hA", { autoAlpha: 0, x: -140, rotationY: 25 }, { autoAlpha: 1, x: 0, rotationY: 0, duration: 0.9, ease: "power3.out" }, 26.95);
-  tl.fromTo("#hB", { autoAlpha: 0, x: 140 }, { autoAlpha: 1, x: 0, duration: 0.9, ease: "power3.out" }, 27.15);
-  cue("pop", 27.0); cue("pop", 27.2);
-  bgTo(26.6, 1.2, { neb: 0.6 });
-  hueTo(26.6, 1.2, HEX("#F7B542"), HEX("#86B9EE"));
-  // dive into the Atlas card
-  cam("#s4cam", 29.25, 0.75, 2.6, 545, 660, 960, 540, "power3.in");
-  tl.to("#s4", { autoAlpha: 0, duration: 0.3 }, 29.7);
-  cue("whoosh", 29.25, { d: 0.75 });
-})();
-
-/* ================================================================== *
- * S5 — Atlas (30 – 42)
- * ================================================================== */
-const ORG = { cx: 960, cy: 650 };
-const TEAMS = [
-  { name: "TRADING", rx: 300, ry: 105 },
-  { name: "POST-TRADE", rx: 540, ry: 190 },
-  { name: "PLATFORM", rx: 770, ry: 270 },
-];
-const APPS = [
-  { id: "ome", name: "order-matching-engine", team: 0, a: 188, hue: "#F0877E", sp: 0.6 },
-  { id: "mdg", name: "market-data-gateway", team: 0, a: 343, hue: "#86B9EE", sp: 0.6 },
-  { id: "tss", name: "trade-settlement-system", team: 1, a: 158, hue: "#5FD29F", sp: 0.5 },
-  { id: "csm", name: "compliance-surveillance-monitor", team: 1, a: 213, hue: "#EC8FC2", sp: 0.5, up: true },
-  { id: "mas", name: "mini-auth-service", team: 2, a: 303, hue: "#F7B542", sp: 0.4 },
-];
-const LINKS = [["ome", "tss"], ["ome", "csm"], ["mdg", "mas", "POST /auth/login"]];
-function appPos(app, t) {
-  const T = TEAMS[app.team];
-  const a = ((app.a + (t - 30) * app.sp) * Math.PI) / 180;
-  return { x: ORG.cx + T.rx * Math.cos(a), y: ORG.cy + T.ry * Math.sin(a) };
-}
-(() => {
-  const svg = $("#s5svg");
-  let s = `<defs><radialGradient id="sun"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#E6E0FF"/><stop offset="1" stop-color="#A897F0" stop-opacity="0"/></radialGradient>
-    <linearGradient id="lk" x1="0" x2="1"><stop offset="0" stop-color="#5FCBD8"/><stop offset="1" stop-color="#86B9EE"/></linearGradient></defs>`;
-  TEAMS.forEach((T, i) => { s += `<ellipse class="ring" id="ring${i}" cx="${ORG.cx}" cy="${ORG.cy}" rx="${T.rx}" ry="${T.ry}" fill="none" stroke="rgba(143,160,204,.32)" stroke-width="2.5" stroke-dasharray="${2 * Math.PI * Math.sqrt((T.rx * T.rx + T.ry * T.ry) / 2)}"/>`; });
-  LINKS.forEach((l, i) => { s += `<path id="lk${i}" fill="none" stroke="url(#lk)" stroke-width="3.5" stroke-dasharray="10 12" opacity="0"/><circle id="lkp${i}" r="7" fill="#D6F7FB" opacity="0"/>`; });
-  s += `<circle id="sunglow" cx="${ORG.cx}" cy="${ORG.cy}" r="120" fill="url(#sun)" opacity=".55"/><circle id="suncore" cx="${ORG.cx}" cy="${ORG.cy}" r="34" fill="#F3F0FF"/>`;
-  svg.innerHTML = s;
-  const host = $("#s5apps");
-  host.innerHTML = `<div class="abs" id="orgl" style="left:${ORG.cx}px;top:${ORG.cy + 50}px;transform:translateX(-50%);font-size:34px;font-weight:800;white-space:nowrap">Apex Holdings</div>` +
-    TEAMS.map((T, i) => `<div class="abs teamlabel" id="tl${i}" style="left:${ORG.cx}px;top:${ORG.cy + T.ry + 10}px;transform:translateX(-50%)">${T.name}</div>`).join("") +
-    APPS.map((a) => `<div class="abs" id="ap_${a.id}" style="left:0;top:0;width:0;height:0"><div class="ap" style="position:absolute;left:-34px;top:-34px;width:68px;height:68px;filter:drop-shadow(0 0 18px ${a.hue}88)">${appPlanetSVG(a.hue)}</div><div class="applabel" style="position:absolute;left:0;top:${a.up ? -88 : 42}px;transform:translateX(-50%);white-space:nowrap">${a.name}</div></div>`).join("") +
-    LINKS.filter((l) => l[2]).map((l, i) => `<div class="cpill" id="cp${i}">${l[2]}</div>`).join("") +
-    `<div class="cpill" id="cpT" style="left:300px;top:628px;transform:translate(-50%,-50%)">nte.trades.matched</div>`;
-  gsap.set("#tl2", { y: -6 });
-  sceneIn("#s5", 29.75, 0.35);
-  tl.fromTo("#s5cam", { scale: 1.25, x: -240, y: -135 }, { scale: 1, x: 0, y: 0, duration: 1.4, ease: "power3.out" }, 29.75);
-  hueTo(30, 1.5, HEX("#A897F0"), HEX("#5FCBD8"));
-  rise(["#s5k", "#s5t"], 30.0, 0.8, 30, 0.1);
-  tl.fromTo(["#suncore", "#sunglow"], { scale: 0, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.8, ease: "back.out(2)", svgOrigin: `${ORG.cx} ${ORG.cy}` }, 30.0);
-  rise("#orgl", 30.3, 0.5, 10);
-  TEAMS.forEach((T, i) => {
-    const el = $("#ring" + i); const L = el.getAttribute("stroke-dasharray");
-    tl.fromTo(el, { attr: { "stroke-dashoffset": L } }, { attr: { "stroke-dashoffset": 0 }, duration: 1.0, ease: "power2.inOut" }, 30.15 + i * 0.18);
-    rise("#tl" + i, 30.6 + i * 0.15, 0.5, 10);
-  });
-  APPS.forEach((a, i) => {
-    tl.fromTo(`#ap_${a.id} .ap`, { scale: 0, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.6, ease: "back.out(2.2)" }, 30.7 + i * 0.13);
-    tl.fromTo(`#ap_${a.id} .applabel`, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.45 }, 30.85 + i * 0.13);
-    cue("tick", 30.7 + i * 0.13);
-  });
-  LINKS.forEach((l, i) => {
-    tl.fromTo("#lk" + i, { opacity: 0 }, { opacity: 0.95, duration: 0.5 }, 31.8 + i * 0.15);
-    tl.fromTo("#lkp" + i, { opacity: 0 }, { opacity: 1, duration: 0.3 }, 31.9 + i * 0.15);
-  });
-  cue("shimmer", 31.8, { d: 1.2 });
-  tl.fromTo(["#cpT", "#cp0"], { autoAlpha: 0, scale: 0.7 }, { autoAlpha: 1, scale: 1, duration: 0.5, stagger: 0.2, ease: "back.out(2)" }, 32.3);
-  const pills = LINKS.map((l, i) => (l[2] ? $("#cp" + LINKS.filter((x, j) => x[2] && j < i).length) : null));
-  hooks.push((t) => {
-    if (t < 29.7 || t > 34.6) return;
-    const P = {}; APPS.forEach((a) => { P[a.id] = appPos(a, t); gsap.set("#ap_" + a.id, { x: P[a.id].x, y: P[a.id].y }); });
-    LINKS.forEach((l, i) => {
-      const A = P[l[0]], B = P[l[1]];
-      const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
-      const dx = B.x - A.x, dy = B.y - A.y; const len = Math.hypot(dx, dy);
-      const cx = mx - (dy / len) * 40, cy = my + (dx / len) * 40;
-      $("#lk" + i).setAttribute("d", `M${A.x} ${A.y} Q${cx} ${cy} ${B.x} ${B.y}`);
-      $("#lk" + i).setAttribute("stroke-dashoffset", -t * 40);
-      const u = (t * 0.45 + i * 0.27) % 1;
-      const px = (1 - u) * (1 - u) * A.x + 2 * (1 - u) * u * cx + u * u * B.x, py = (1 - u) * (1 - u) * A.y + 2 * (1 - u) * u * cy + u * u * B.y;
-      $("#lkp" + i).setAttribute("cx", px); $("#lkp" + i).setAttribute("cy", py);
-      if (pills[i]) { pills[i].style.left = (B.x + 150) + "px"; pills[i].style.top = (B.y + 135) + "px"; pills[i].style.transform = "translate(-50%,-50%)"; }
-    });
-  });
-
-  /* --- B: sources → knowledge base (33.6 – 37.7) --- */
-  // camera dives into mini-auth-service
-  tl.to("#s5a", { scale: 2.6, autoAlpha: 0, duration: 0.8, ease: "power3.in", transformOrigin: "1400px 430px" }, 33.55);
-  cue("whoosh", 33.55, { d: 0.8 });
-  const core = $("#s5core");
-  core.style.width = core.style.height = "220px"; gsap.set(core, { xPercent: -50, yPercent: -50 });
-  core.innerHTML = `<div style="position:absolute;inset:4%;border-radius:50%;box-shadow:0 0 120px 20px rgba(247,181,66,.35)"></div>` + appPlanetSVG("#F7B542");
-  const SRC = [["github", "GitHub", 360, 420], ["confluence", "Confluence", 600, 350], ["jira", "Jira", 840, 318], ["notion", "Notion", 1080, 318], ["slack", "Slack", 1320, 350], [null, "Uploads", 1560, 420]];
-  $("#s5srcs").innerHTML = SRC.map(([k, n, x, y], i) => `<div class="src" id="src${i}" style="left:${x - 75}px;top:${y - 63}px"><div class="tile">${k ? `<img src="logos/${k}.svg">` : `<svg width="60" height="66" viewBox="0 0 30 33"><path d="M4 1 H19 L27 9 V31 H4 Z" fill="none" stroke="#DDE2F0" stroke-width="2.2" stroke-linejoin="round"/><path d="M19 1 V9 H27" fill="none" stroke="#DDE2F0" stroke-width="2.2"/><path d="M10 18 H21 M10 23 H18" stroke="#F7B542" stroke-width="2.2" stroke-linecap="round"/></svg>`}</div><div class="n">${n}</div></div>`).join("");
-  let bs = `<defs><linearGradient id="beam" x1="0" x2="1"><stop offset="0" stop-color="#86B9EE" stop-opacity=".1"/><stop offset="1" stop-color="#F7B542" stop-opacity=".9"/></linearGradient></defs>`;
-  SRC.forEach(([k, n, x, y], i) => {
-    bs += `<path id="bm${i}" d="M${x} ${y + 110} Q${(x + 960) / 2} ${(y + 110 + 650) / 2 + 30} 960 650" fill="none" stroke="${i === 1 ? "#FF5D6C" : "#86B9EE"}" stroke-opacity=".55" stroke-width="3" stroke-dasharray="6 14" opacity="0"/>`;
-    for (let j = 0; j < 4; j++) bs += `<circle class="dot${i}" r="${5 - j * 0.6}" fill="${i === 1 ? "#FF8A95" : "#FFE7A6"}" opacity="0"/>`;
-  });
-  $("#s5bsvg").innerHTML = bs;
-  sceneIn("#s5b", 34.1, 0.4);
-  hueTo(34.0, 1.2, HEX("#F7B542"), HEX("#86B9EE"));
-  tl.fromTo("#s5b .kicker, #s5b .title", { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.1 }, 34.15);
-  tl.fromTo(core, { scale: 0.2, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.8, ease: "back.out(1.6)" }, 34.1);
-  rise("#s5corel", 34.4, 0.5, 10);
-  SRC.forEach((s_, i) => {
-    pop("#src" + i, 34.3 + i * 0.1, { scale: 0.5, y: 0 }, 0.6, "back.out(2)");
-    tl.fromTo("#bm" + i, { opacity: 0 }, { opacity: 1, duration: 0.4 }, 34.6 + i * 0.1);
-  });
-  cue("pop", 34.3); cue("pop", 34.6);
-  const dotsOn = { v: 0 };
-  tl.to(dotsOn, { v: 1, duration: 0.4 }, 34.7);
-  tl.to(dotsOn, { v: 0, duration: 0.4 }, 37.0);
-  const BM = SRC.map((s_, i) => $("#bm" + i));
-  hooks.push((t) => {
-    if (t < 34 || t > 37.9) return;
-    BM.forEach((p, i) => {
-      p.setAttribute("stroke-dashoffset", -t * 60);
-      const L = p.getTotalLength();
-      const blocked = i === 1 && t > 35.35;
-      p.parentNode.querySelectorAll(".dot" + i).forEach((d, j) => {
-        let u = (t * 0.7 + j * 0.25 + i * 0.13) % 1;
-        if (blocked) u = Math.min(u, 0.42);
-        const pt = p.getPointAtLength(u * L);
-        d.setAttribute("cx", pt.x); d.setAttribute("cy", pt.y);
-        d.setAttribute("opacity", dotsOn.v * (blocked ? 0.35 : 1) * Math.sin(u * Math.PI));
-      });
-    });
-    gsap.set(core, { rotation: 0, scale: 1 + 0.025 * Math.sin(t * 5) });
-  });
-  // shield withholds the planted runbook
-  tl.to("#bm1", { attr: { "stroke-dasharray": "2 10" }, stroke: "#FF5D6C", duration: 0.2 }, 35.35);
-  tl.to("#src1 .tile", { borderColor: "rgba(255,93,108,.9)", boxShadow: "0 0 40px rgba(255,93,108,.55)", duration: 0.3 }, 35.35);
-  tl.fromTo("#s5shield", { autoAlpha: 0, x: 60 }, { autoAlpha: 1, x: 0, duration: 0.5 }, 35.4);
-  gsap.set("#s5shield", { left: 110, top: 790 });
-  cue("alert", 35.4);
-  // trajectory
-  const ST = ["In the Void", "Scanning Nebula", "Compiling Stars", "Awaiting Launch", "In Orbit"];
-  $("#s5traj").innerHTML = ST.map((s_, i) => `<div class="st" id="st${i}"><i></i><span>${s_}</span></div>`).join("");
-  rise("#s5traj", 34.6, 0.6, 20);
-  ST.forEach((s_, i) => {
-    const t = 34.8 + i * 0.55;
-    const c = i === 4 ? "#5FD29F" : "#F7B542";
-    tl.to(`#st${i}`, { color: c, duration: 0.25 }, t);
-    tl.to(`#st${i} i`, { borderColor: c, backgroundColor: c, boxShadow: `0 0 24px ${c}`, scale: 1.25, duration: 0.25 }, t);
-    if (i < 4) tl.to(`#st${i} i`, { scale: 1, duration: 0.3 }, t + 0.3);
-    cue("tick", t);
-  });
-  tl.to(core.firstChild, { boxShadow: "0 0 140px 30px rgba(95,210,159,.45)", duration: 0.5 }, 37.0);
-  tl.fromTo("#s5sync", { autoAlpha: 0, x: -50 }, { autoAlpha: 1, x: 0, duration: 0.5 }, 37.0);
-  gsap.set("#s5sync", { left: 1390, top: 800 });
-  cue("ding", 37.0, { note: 2 });
-  tl.to("#s5b", { autoAlpha: 0, x: -200, duration: 0.5, ease: "power2.in" }, 37.6);
-  rush(37.55, 0.9, 700);
-
-  /* --- C: the agent team (38 – 42) --- */
-  const AG = [
-    ["Cartographer", "DEEP", "maps the codebase", "#A897F0", 110],
-    ["Page writers ×N", "PARALLEL", "one shared cache", "#86B9EE", 560],
-    ["Reviewer ⇄ gate", "LOOP", "fixes what fails", "#5FCBD8", 1010],
-    ["OKF bundle → PR", "REVIEWED", "people merge it", "#5FD29F", 1460],
-  ];
-  $("#s5agents").innerHTML = AG.map(([n, tier, sub, c, x], i) => `<div class="agent glass" id="ag${i}" style="left:${x}px;border-color:${c}55"><div class="nm">${n}</div><div class="tier" style="color:${c}">${tier}</div><div class="sb">${sub}</div></div>`).join("");
-  let cs = "";
-  [0, 1, 2].forEach((i) => {
-    const x1 = AG[i][4] + 400, x2 = AG[i + 1][4];
-    cs += `<line x1="${x1 + 4}" y1="436" x2="${x2 - 6}" y2="436" stroke="rgba(143,160,204,.35)" stroke-width="3"/><path d="M${x2 - 16} 427 L${x2 - 4} 436 L${x2 - 16} 445" fill="none" stroke="rgba(143,160,204,.6)" stroke-width="3"/><circle id="pk${i}" cx="${x1}" cy="436" r="9" fill="#FFE7A6" opacity="0"/>`;
-  });
-  // writer fan (parallel pages) above writers box
-  for (let j = 0; j < 5; j++) { const x = 600 + j * 66; cs += `<g class="pg" opacity="0"><rect x="${x}" y="262" width="48" height="60" rx="6" fill="rgba(134,185,238,.18)" stroke="#86B9EE" stroke-width="2"/><path d="M${x + 9} ${279} H${x + 39} M${x + 9} ${291} H${x + 33} M${x + 9} ${303} H${x + 37}" stroke="#86B9EE" stroke-width="2.4" stroke-linecap="round"/></g>`; }
-  $("#s5csvg").innerHTML = cs;
-  $("#okf").innerHTML =
-    `<span class="k3">---</span>\n<span class="k1">type:</span> <span class="k2">Interface Reference</span>\n<span class="k1">title:</span> <span class="k2">Login API</span>\n<span class="k1">sources:</span> <span class="k2">[src/auth.py]</span>\n<span class="k3">---</span>\n<span class="k5">## POST /api/v1/auth/login</span>\n<span class="k2">Called by </span><span class="k4">[[kb:market-data-gateway/auth]]</span>`;
-  sceneIn("#s5c", 37.95, 0.4);
-  hueTo(38, 1.2, HEX("#A897F0"), HEX("#5FD29F"));
-  tl.fromTo("#s5c .kicker, #s5c .title", { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.1 }, 38.0);
-  AG.forEach((a, i) => {
-    const t = 38.2 + i * 0.42;
-    pop("#ag" + i, t, { scale: 0.8, y: 40 }, 0.6, "back.out(1.8)");
-    tl.to("#ag" + i, { boxShadow: `0 0 0 2px ${a[3]}, 0 0 60px ${a[3]}66`, duration: 0.3, yoyo: true, repeat: 1 }, t + 0.25);
-    cue("tick", t + 0.1);
-    if (i < 3) {
-      tl.fromTo("#pk" + i, { attr: { cx: a[4] + 400 }, opacity: 1 }, { attr: { cx: AG[i + 1][4] - 6 }, duration: 0.42, ease: "power1.inOut" }, t + 0.3);
-      tl.to("#pk" + i, { opacity: 0, duration: 0.1 }, t + 0.72);
-    }
-  });
-  tl.fromTo(".pg", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.35, stagger: 0.07, ease: "back.out(2)" }, 38.75);
-  tl.fromTo("#okf", { autoAlpha: 0, y: 60 }, { autoAlpha: 1, y: 0, duration: 0.7 }, 39.4);
-  tl.fromTo("#stat", { autoAlpha: 0, x: 60 }, { autoAlpha: 1, x: 0, duration: 0.7 }, 39.6);
-  counter("#statn", 1, 8.7, 39.7, 1.4, 1);
-  cue("count", 39.7, { d: 1.4 });
-  tl.to("#s5", { autoAlpha: 0, duration: 0.45 }, 41.6);
-})();
-
-/* ================================================================== *
- * S6 — the trajectory (42 – 46) and S8 — verify in reverse (70 – 78)
- * ================================================================== */
-const EC = { cx: 960, cy: 640, rx: 700, ry: 240 };
-const ept = (a) => ({ x: EC.cx + EC.rx * Math.cos(a), y: EC.cy + EC.ry * Math.sin(a) });
-const OP = [
-  { role: "business", name: "Business user", home: "Request desk", a: Math.PI },
-  { role: "product", name: "Product owner", home: "Product board", a: Math.PI * 4 / 3 },
-  { role: "engineering", name: "Engineering lead", home: "Flight director", a: Math.PI * 5 / 3 },
-  { role: "developer", name: "Developer", home: "Build bay", a: Math.PI * 2 },
-];
-(() => {
-  const host = $("#oplanets");
-  OP.forEach((p, i) => {
-    const P = ept(p.a);
-    const d = document.createElement("div"); d.className = "pl"; d.id = "op" + i;
-    d.style.left = P.x + "px"; d.style.top = P.y + "px"; host.appendChild(d);
-    mountPlanet(d, p.role, 150);
-    const l = document.createElement("div"); l.className = "olabel"; l.id = "ol" + i;
-    l.style.left = P.x + "px"; l.style.top = (P.y + 100) + "px";
-    l.innerHTML = `<div class="n" style="color:${ROLES[p.role].hue}">${p.name}</div><div class="h">${p.home}</div>`;
-    host.appendChild(l);
-    const b = document.createElement("div"); b.className = "badge"; b.id = "ob" + i; b.textContent = "✓";
-    b.style.left = (P.x + 30) + "px"; b.style.top = (P.y - 100) + "px"; host.appendChild(b);
-    gsap.set(b, { autoAlpha: 0 });
-  });
-  // comet with a trail of ghosts
-  const cm = $("#comet");
-  const NG = 28, gs = (i) => (i === 0 ? 46 : 30 - i * 0.85);
-  cm.innerHTML = Array.from({ length: NG }, (_, i) => `<div class="abs cg" style="left:0;top:0;width:${gs(i)}px;height:${gs(i)}px;border-radius:50%;background:radial-gradient(circle,${i === 0 ? "#fff" : "var(--cc,#FFD27A)"},var(--cc,#FFD27A) ${i === 0 ? 30 : 10}%,transparent 70%);opacity:${i === 0 ? 1 : (1 - i / NG) * 0.55}"></div>`).join("");
-  const ghosts = Array.from(cm.children);
-  const comet = { a: Math.PI, on: 0, c: "#FFD27A", hist: [] };
-  window.__comet = comet;
-  hooks.push((t) => {
-    // trail positions are derived from the timeline at slightly earlier times, so they stay deterministic
-    if (comet.on < 0.01) { cm.style.opacity = 0; return; }
-    cm.style.opacity = comet.on;
-    cm.style.setProperty("--cc", comet.c);
-    const now = comet.a;
-    ghosts.forEach((g, i) => {
-      const a = trailAt(t - i * 0.011);
-      const P = ept(a); const s = gs(i);
-      g.style.transform = `translate(${P.x - s / 2}px,${P.y - s / 2}px)`;
-    });
-  });
-  // comet angle is a pure function of time, defined by keyframes below
-  const KEYS = []; // [t, angle]
-  function trailAt(t) {
-    if (!KEYS.length) return comet.a;
-    if (t <= KEYS[0][0]) return KEYS[0][1];
-    for (let i = 1; i < KEYS.length; i++) {
-      if (t <= KEYS[i][0]) {
-        const [t0, a0, e] = KEYS[i - 1], [t1, a1] = KEYS[i];
-        let k = (t - t0) / (t1 - t0); k = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-        return a0 + (a1 - a0) * k;
-      }
-    }
-    return KEYS[KEYS.length - 1][1];
-  }
-  window.__cometKeys = KEYS;
-  const key = (t, a) => KEYS.push([t, a]);
-
-  /* --- S6 (41.9 – 46) --- */
-  sceneIn("#s6", 41.95, 0.4);
-  gsap.set(["#s8k", "#s8t", "#arcBot", "#cap", "#jira"], { autoAlpha: 0 });
-  hueTo(42, 1.5, HEX("#E8C97A"), HEX("#A897F0"));
-  tl.fromTo("#s6cam", { scale: 1.15, x: -144, y: -81 }, { scale: 1, x: 0, y: 0, duration: 1.2, ease: "power3.out" }, 41.95);
-  rise(["#s6k", "#s6t"], 42.0, 0.8, 30, 0.1);
-  const topL = $("#arcTop").getTotalLength();
-  gsap.set("#arcTop", { attr: { "stroke-dasharray": topL, "stroke-dashoffset": topL } });
-  OP.forEach((p, i) => {
-    const t = 42.3 + i * 0.25;
-    pop("#op" + i, t, { scale: 0.2, y: 0 }, 0.8, "back.out(2)");
-    rise("#ol" + i, t + 0.15, 0.5, 14);
-    cue("pop", t);
-    blink($("#op" + i), 43.6 + i * 0.3);
-  });
-  // forward packet along the top arc
-  key(0, Math.PI); key(43.6, Math.PI); key(45.4, Math.PI * 2);
-  tl.to(comet, { on: 1, duration: 0.3 }, 43.5);
-  tl.to("#arcTop", { attr: { "stroke-dashoffset": 0 }, duration: 1.8, ease: "power2.inOut" }, 43.6);
-  cue("whoosh", 43.6, { d: 1.8, soft: true });
-  [1, 2, 3].forEach((i) => tl.fromTo("#op" + i, { scale: 1 }, { scale: 1.15, duration: 0.15, yoyo: true, repeat: 1 }, 43.6 + (i / 3) * 1.8 - 0.1));
-  tl.to(comet, { on: 0, duration: 0.3 }, 45.5);
-  // dive into the business seat
-  cam("#s6cam", 45.35, 0.7, 2.2, 260, 640, 380, 330, "power3.in");
-  tl.to("#s6", { autoAlpha: 0, duration: 0.3 }, 45.75);
-  cue("whoosh", 45.4, { d: 0.6 });
-
-  /* --- S8 (69.9 – 78) --- */
-  tl.set("#s6cam", { scale: 1, x: 0, y: 0 }, 69.0);
-  tl.set(["#s6k", "#s6t"], { autoAlpha: 0 }, 69.0);
-  tl.set("#arcTop", { attr: { "stroke-dashoffset": 0 } }, 69.0);
-  sceneIn("#s6", 69.95, 0.45);
-  hueTo(70, 1.2, HEX("#5FD29F"), HEX("#86B9EE"));
-  tl.fromTo("#s6cam", { scale: 1.12, x: -0.12 * 1660, y: -0.12 * 640 }, { scale: 1, x: 0, y: 0, duration: 1.0, ease: "power3.out" }, 69.95);
-  rise(["#s8k", "#s8t"], 70.05, 0.7, 30, 0.1);
-  const botL = $("#arcBot").getTotalLength();
-  gsap.set("#arcBot", { attr: { "stroke-dasharray": botL, "stroke-dashoffset": botL } });
-  tl.fromTo("#jira", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.5 }, 70.3);
-  tl.set("#j3", { className: "s on" }, 70.3);
-  tl.set("#cap", { autoAlpha: 1 }, 70.5);
-  tl.set("#arcBot", { autoAlpha: 1 }, 70.5);
-  const TAU = Math.PI * 2;
-  // angles on the bottom arc beneath each seat
-  const A_DEV = TAU, A_ENG = TAU + Math.PI / 3, A_PO = TAU + 2 * Math.PI / 3, A_BIZ = TAU + Math.PI;
-  key(69.9, A_DEV); key(70.7, A_DEV); key(71.6, A_ENG); key(72.3, A_ENG); key(73.2, A_PO);
-  key(73.85, A_PO); key(74.45, A_DEV); key(74.7, A_DEV); key(75.3, A_PO); key(75.55, A_PO); key(76.25, A_BIZ);
-  tl.fromTo(comet, { on: 0 }, { on: 1, duration: 0.3, immediateRender: false }, 70.5);
-  tl.set(comet, { c: "#9DF5C8" }, 70.5);
-  const caption = (t, who, color, text, size = 62) => {
-    tl.to("#cap", { autoAlpha: 0, y: -14, duration: 0.15 }, t - 0.15);
-    tl.call(() => {}, null, t);
-    const w = $("#capw"), c = $("#capc"); const o = { k: 0 };
-    tl.to(o, { k: 1, duration: 0.01, onUpdate() { if (o.k >= 1) { w.textContent = who; w.style.color = color; c.innerHTML = text; c.style.fontSize = size + "px"; } } }, t);
-    tl.fromTo("#cap", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.35, immediateRender: false }, t);
-  };
-  const check = (i, t, bad = false) => {
-    tl.fromTo("#ob" + i, { autoAlpha: 0, scale: 0.2, rotation: -40 }, { autoAlpha: 1, scale: 1, rotation: 0, duration: 0.5, ease: "back.out(2.5)", immediateRender: false }, t);
-    tl.fromTo("#op" + i, { scale: 1 }, { scale: 1.16, duration: 0.15, yoyo: true, repeat: 1, immediateRender: false }, t);
-    cue(bad ? "error" : "ding", t, { note: i });
-  };
-  // developer
-  tl.to("#arcBot", { attr: { "stroke-dashoffset": botL * (1 - 1 / 6) }, duration: 0.9, ease: "power2.inOut" }, 70.7);
-  check(3, 70.75);
-  caption(70.75, "Developer", "var(--dev)", "The code matches the build spec.");
-  check(2, 72.0);
-  caption(72.0, "Engineering lead", "var(--eng)", "No contract broke.");
-  tl.to("#arcBot", { attr: { "stroke-dashoffset": botL * 0.5 }, duration: 1.3, ease: "power2.inOut" }, 71.6);
-  // product owner sends it back once
-  tl.set("#ob1", { className: "badge x", textContent: "✕" }, 73.15);
-  check(1, 73.2, true);
-  tl.set(comet, { c: "#FF8A95" }, 73.2);
-  caption(73.2, "Product owner", "var(--red)", "Not met. Sent back, with a note.");
-  tl.to("#s6cam", { keyframes: { x: [-14, 12, -8, 5, 0] }, duration: 0.4, ease: "none" }, 73.2);
-  tl.fromTo("#op3", { scale: 1 }, { scale: 1.2, duration: 0.15, yoyo: true, repeat: 1, immediateRender: false }, 74.45);
-  tl.set(comet, { c: "#9DF5C8" }, 74.5);
-  tl.to("#ob1", { autoAlpha: 0, scale: 0.4, duration: 0.15 }, 75.1);
-  tl.set("#ob1", { className: "badge", textContent: "✓" }, 75.27);
-  check(1, 75.3);
-  caption(75.3, "Product owner", "var(--po)", "Every criterion met.");
-  tl.to("#arcBot", { attr: { "stroke-dashoffset": 0 }, duration: 0.95, ease: "power2.inOut" }, 75.3);
-  check(0, 76.25);
-  caption(76.25, "Business user", "var(--biz)", "<em>“My sentence is now true.”</em>", 92);
-  tl.fromTo("#op0 .bulb-halo", { opacity: 0 }, { opacity: 1, duration: 0.4, immediateRender: false }, 76.25);
-  tl.to(comet, { on: 0, duration: 0.4 }, 76.4);
-  tl.set("#j3", { className: "s" }, 76.6);
-  tl.set("#j4", { className: "s done" }, 76.6);
-  tl.fromTo("#j4", { scale: 1 }, { scale: 1.25, duration: 0.18, yoyo: true, repeat: 1, immediateRender: false }, 76.6);
-  cue("success", 76.3);
-  tl.to("#s6", { autoAlpha: 0, duration: 0.5 }, 77.55);
-})();
-
-/* ================================================================== *
- * S7 — the four seats (46 – 70)
- * ================================================================== */
-(() => {
-  // shared HUD
-  const SEATS = [["Business", "var(--biz)"], ["Product", "var(--po)"], ["Engineering", "var(--eng)"], ["Developer", "var(--dev)"]];
-  $("#hud").innerHTML = SEATS.map(([n], i) => `${i ? '<span class="ln"></span>' : ""}<span class="step" id="hs${i}"><i></i>${n}</span>`).join("");
-  // tabs
-  const LOCK = `<svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 10.5 V7.5 a3.5 3.5 0 0 1 7 0 V10.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
-  const TABS = ["01 business", "02 product", "03 engineering", "04 developer"];
-  $$(".tabs").forEach((el) => { const on = +el.dataset.on; el.innerHTML = TABS.map((n, i) => `<div class="tab ${i === on ? "on" : ""}">${i === on ? "" : LOCK}${n}</div>`).join(""); });
-
-  const S = [46.0, 52.0, 58.0, 64.0];
-  tl.fromTo("#hud", { autoAlpha: 0, y: -20 }, { autoAlpha: 1, y: 0, duration: 0.5 }, 46.1);
-  S.forEach((t, i) => {
-    tl.to("#hs" + i, { color: SEATS[i][1], duration: 0.3 }, t);
-    tl.to("#hs" + i + " i", { boxShadow: "0 0 18px currentColor", scale: 1.3, duration: 0.3 }, t);
-    tl.to("#hs" + i, { color: "#5FD29F", duration: 0.3 }, t + 5.6);
-    tl.to("#hs" + i + " i", { scale: 1, boxShadow: "0 0 0px rgba(0,0,0,0)", duration: 0.3 }, t + 5.6);
-  });
-  tl.to("#hud", { autoAlpha: 0, duration: 0.4 }, 69.6);
-
-  const ptr = $("#ptr");
-  const hud = (t, on) => tl.to("#hud", { autoAlpha: on ? 1 : 0, duration: 0.3 }, t);
-  const seatEnter = (id, t, hueA, hueB) => {
-    sceneIn(id, t, 0.35);
-    hueTo(t, 0.8, HEX(hueA), HEX(hueB));
-    tl.fromTo(`${id} .seatL .pl`, { scale: 0.3, autoAlpha: 0, x: -60 }, { scale: 1, autoAlpha: 1, x: 0, duration: 0.8, ease: "back.out(1.6)" }, t + 0.05);
-    tl.fromTo(`${id} .seatL .nm, ${id} .seatL .home, ${id} .seatL .file`, { autoAlpha: 0, x: -40 }, { autoAlpha: 1, x: 0, duration: 0.6, stagger: 0.08 }, t + 0.15);
-    tl.fromTo(`${id} .win, ${id} .ask`, { autoAlpha: 0, x: 220, rotationY: -14, transformPerspective: 1600 }, { autoAlpha: 1, x: 0, rotationY: 0, duration: 0.8, ease: "power3.out", stagger: 0.1 }, t + 0.1);
-    cue("whoosh", t, { d: 0.5, soft: true });
-  };
-  const seatExit = (id, t) => {
-    tl.to(`${id} .cam`, { x: -260, autoAlpha: 0, duration: 0.45, ease: "power2.in" }, t);
-    tl.set(id, { autoAlpha: 0 }, t + 0.46);
-  };
-  const callout = (id, t) => tl.fromTo(`${id} .seatL .call`, { autoAlpha: 0, y: 24, filter: "blur(6px)" }, { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 0.7 }, t);
-  // the person's cursor clicks Approve
-  const approve = (id, t, label, color) => {
-    const btn = $(`${id} .approve`);
-    // approve button sits at the window's bottom-right
-    const win = $(`${id} .win`);
-    const bx = 700 + 1140 - 30 - 110, by = parseFloat(getComputedStyle(win).top) + parseFloat(win.style.height || 850) - 52;
-    tl.set(ptr, { "--pc": color }, t - 0.6);
-    tl.set("#ptrlab", { textContent: label, backgroundColor: color }, t - 0.6);
-    tl.fromTo(ptr, { autoAlpha: 0, x: bx + 260, y: by + 180 }, { autoAlpha: 1, x: bx, y: by, duration: 0.6, ease: "power3.out" }, t - 0.6);
-    tl.to(ptr, { scale: 0.85, duration: 0.08, yoyo: true, repeat: 1, transformOrigin: "0 0" }, t);
-    tl.fromTo("#ripple", { autoAlpha: 1, x: bx - 30, y: by - 30, scale: 0.3 }, { autoAlpha: 0, scale: 3.2, duration: 0.6, ease: "power2.out" }, t);
-    tl.to(btn, { backgroundColor: "#5FD29F", boxShadow: "0 0 40px rgba(95,210,159,.7)", duration: 0.2 }, t);
-    tl.set(btn.querySelector(".ok"), { display: "inline" }, t);
-    tl.set(btn.querySelector(".lbl"), { textContent: "Approved" }, t);
-    tl.fromTo(btn, { scale: 1 }, { scale: 1.1, duration: 0.12, yoyo: true, repeat: 1, immediateRender: false }, t);
-    tl.to(ptr, { autoAlpha: 0, duration: 0.3 }, t + 0.5);
-    cue("click", t); cue("ding", t + 0.05, { note: 3 });
-  };
-
-  /* --- Business user (46 – 52) --- */
-  seatEnter("#sb", 45.95, "#E8C97A", "#F7B542");
-  const sbPl = $("#sb .seatL .pl");
-  camSet("#sbcam", 45.95, 1, 0, 0);
-  cam("#sbcam", 46.5, 0.9, 1.5, 700, 262, 105, 0); hud(46.45, 0);
-  typeText("#sb1", "After five wrong passwords in a row, the account pauses for 15 minutes.", 46.9, 1.6, { caret: "#sb1c" });
-  typeText("#sb2", "People who sign in normally notice nothing.", 48.55, 0.95, { caret: "#sb2c" });
-  typeText("#sb3", "Stop attackers guessing passwords.", 49.55, 0.75, { caret: "#sb3c" });
-  cam("#sbcam", 49.75, 0.9, 1, 0, 0, 0, 0); hud(50.3, 1);
-  tl.fromTo("#sbchips .chip", { autoAlpha: 0, scale: 0.6 }, { autoAlpha: 1, scale: 1, duration: 0.4, stagger: 0.12, ease: "back.out(2)" }, 50.3);
-  cue("pop", 50.3);
-  callout("#sb", 49.8);
-  tl.to(sbPl.querySelector(".bulb-glass"), { attr: { "fill-opacity": 1 }, duration: 0.3 }, 46.9);
-  tl.to(sbPl.querySelector(".bulb-halo"), { opacity: 1, duration: 0.3 }, 46.9);
-  blink(sbPl, 48.2);
-  approve("#sb", 51.15, "Business user", "#E8C97A");
-  tl.set("#sbstat", { textContent: "✓ Approved by the business user", color: "#5FD29F" }, 51.15);
-  seatExit("#sb", 51.6);
-  rush(51.6, 0.8, 600);
-
-  /* --- Product owner (52 – 58) --- */
-  seatEnter("#sp", 51.95, "#A897F0", "#E8C97A");
-  const spPl = $("#sp .seatL .pl");
-  camSet("#spcam", 51.95, 1, 0, 0);
-  cam("#spcam", 52.45, 0.8, 1.5, 700, 262, 105, 0); hud(52.4, 0);
-  typeText("#sp1", "5 failed attempts lock the account for 15 minutes.", 52.75, 1.05, { caret: "#sp1c" });
-  typeText("#sp2", "A successful sign-in resets the counter.", 53.85, 0.85, { caret: "#sp2c" });
-  cam("#spcam", 54.5, 1.4, 1.56, 700, 300, 80, 0);
-  typeText("#sp3", "Lockout must not reveal whether the username exists.", 54.75, 1.3, { caret: "#sp3c", human: true });
-  tl.to(spPl.querySelector(".pencil"), { rotation: -18, x: 4, y: 3, duration: 0.3, yoyo: true, repeat: 3 }, 54.75);
-  tl.to(spPl.querySelector(".check"), { attr: { "stroke-dashoffset": 0 }, duration: 0.3 }, 56.1);
-  tl.to(spPl.querySelector(".brow"), { y: -3, rotation: -6, duration: 0.3, transformOrigin: "50% 50%" }, 54.8);
-  cam("#spcam", 56.1, 0.8, 1, 0, 0, 0, 0); hud(56.6, 1);
-  typeText("#sp4", "Brute-force sign-ins blocked per day.", 56.15, 0.7, { caret: "#sp4c" });
-  tl.fromTo("#spcite", { autoAlpha: 0, x: -20 }, { autoAlpha: 1, x: 0, duration: 0.4 }, 56.8);
-  tl.fromTo("#spjira", { autoAlpha: 0, y: -40, scale: 0.9 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(2)" }, 56.55);
-  cue("pop", 56.55);
-  callout("#sp", 56.2);
-  approve("#sp", 57.2, "Product owner", "#A897F0");
-  seatExit("#sp", 57.6);
-  rush(57.6, 0.8, 600);
-
-  /* --- Engineering lead (58 – 64) --- */
-  seatEnter("#se", 57.95, "#5FCBD8", "#86B9EE");
-  const sePl = $("#se .seatL .pl");
-  // contract map inside the window
-  const M = { mas: [570, 215, "#F7B542", "mini-auth-service", 46], mdg: [200, 95, "#86B9EE", "market-data-gateway", 30], ome: [230, 330, "#F0877E", "order-matching-engine", 30], tss: [930, 100, "#5FD29F", "trade-settlement-system", 30], csm: [930, 330, "#EC8FC2", "compliance-…-monitor", 30] };
-  let ms = `<defs><filter id="gl"><feGaussianBlur stdDeviation="6"/></filter></defs>`;
-  [["mdg", "mas", 1], ["ome", "mdg", 0], ["ome", "csm", 0], ["tss", "csm", 0]].forEach(([a, b, hot], i) => {
-    ms += `<line id="ml${i}" x1="${M[a][0]}" y1="${M[a][1]}" x2="${M[b][0]}" y2="${M[b][1]}" stroke="${hot ? "#5FCBD8" : "rgba(143,160,204,.3)"}" stroke-width="${hot ? 5 : 3}" stroke-dasharray="10 10"/>`;
-  });
-  ms += `<circle id="mring" cx="570" cy="215" r="80" fill="none" stroke="#5FCBD8" stroke-width="3" opacity=".7"/>`;
-  Object.entries(M).forEach(([k, [x, y, c, n, r]]) => {
-    ms += `<g id="mn_${k}"><circle cx="${x}" cy="${y}" r="${r + 10}" fill="${c}" opacity=".25" filter="url(#gl)"/><circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/><text x="${x}" y="${y + r + 38}" text-anchor="middle" fill="#ECEFF8" font-family="Manrope" font-weight="700" font-size="${k === "mas" ? 32 : 28}">${n}</text></g>`;
-  });
-  ms += `<g id="mpill" opacity="0"><rect x="307" y="80" width="226" height="44" rx="12" fill="#05080F" stroke="#5FCBD8" stroke-width="2"/><text x="420" y="110" text-anchor="middle" fill="#5FCBD8" font-family="JB" font-size="24" font-weight="600">POST /auth/login</text></g>`;
-  $("#semap").innerHTML = ms;
-  camSet("#secam", 57.95, 1, 0, 0);
-  tl.fromTo("#semap g[id^=mn_]", { opacity: 0, scale: 0.4, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: 0.5, stagger: 0.08, ease: "back.out(2)" }, 58.4);
-  tl.fromTo("#mring", { attr: { r: 50 }, opacity: 0 }, { attr: { r: 120 }, opacity: 0.8, duration: 0.8, ease: "power2.out" }, 58.6);
-  hooks.push((t) => { if (t < 57.9 || t > 64.2) return; for (let i = 0; i < 4; i++) $("#ml" + i).setAttribute("stroke-dashoffset", -t * 50); const r = 95 + 25 * ((t * 0.8) % 1); $("#mring").setAttribute("r", r); $("#mring").setAttribute("opacity", 0.8 * (1 - ((t * 0.8) % 1))); });
-  cam("#secam", 58.95, 0.8, 1.5, 700, 380, 105, 0); hud(58.9, 0);
-  typeText("#se1", "Which services call the login endpoint?", 59.2, 1.1, { caret: "#se1c", human: true });
-  tl.fromTo("#sesteps .chip", { autoAlpha: 0, x: -20 }, { autoAlpha: 1, x: 0, duration: 0.3, stagger: 0.2 }, 60.4);
-  cue("tick", 60.4); cue("tick", 60.6); cue("tick", 60.8);
-  typeText("#se2", "market-data-gateway calls POST /api/v1/auth/login. Keep that contract unchanged.", 61.0, 1.5, { caret: "#se2c" });
-  cam("#secam", 62.0, 0.9, 1, 0, 0, 0, 0); hud(62.5, 1);
-  tl.to("#mpill", { opacity: 1, duration: 0.3 }, 62.0);
-  tl.fromTo("#mn_mdg", { scale: 1 }, { scale: 1.25, duration: 0.2, yoyo: true, repeat: 1, svgOrigin: "200 95", immediateRender: false }, 62.0);
-  tl.to(sePl.querySelector(".mic"), { rotation: -7, duration: 0.4, ease: "back.out(2)", svgOrigin: "6 62" }, 59.1);
-  tl.to(sePl.querySelectorAll(".signal"), { opacity: 1, duration: 0.25, stagger: 0.12 }, 59.3);
-  tl.to(sePl.querySelectorAll(".signal"), { opacity: 0, duration: 0.25, stagger: 0.12 }, 60.0);
-  tl.to(sePl.querySelector(".mic-led"), { opacity: 0.15, duration: 0.12, repeat: 5, yoyo: true, ease: "none" }, 59.3);
-  callout("#se", 62.1);
-  tl.fromTo("#sejira", { autoAlpha: 0, y: -40, scale: 0.9 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(2)" }, 63.35);
-  cue("pop", 63.35);
-  // approve sits on the map window (shorter) — reuse helper with a custom target below
-  (() => {
-    const t = 63.2, bx = 1735, by = 175;
-    tl.set(ptr, { "--pc": "#5FCBD8" }, t - 0.6);
-    tl.set("#ptrlab", { textContent: "Engineering lead", backgroundColor: "#5FCBD8" }, t - 0.6);
-    tl.fromTo(ptr, { autoAlpha: 0, x: bx + 260, y: by + 200 }, { autoAlpha: 1, x: bx, y: by, duration: 0.6, ease: "power3.out", immediateRender: false }, t - 0.6);
-    tl.fromTo("#ripple", { autoAlpha: 1, x: bx - 30, y: by - 30, scale: 0.3 }, { autoAlpha: 0, scale: 3.2, duration: 0.6, ease: "power2.out", immediateRender: false }, t);
-    tl.to(ptr, { autoAlpha: 0, duration: 0.3 }, t + 0.5);
-    const btn = $("#seapp");
-    tl.to(btn, { backgroundColor: "#5FD29F", boxShadow: "0 0 40px rgba(95,210,159,.7)", duration: 0.2 }, t);
-    tl.set(btn.querySelector(".ok"), { display: "inline" }, t);
-    tl.set(btn.querySelector(".lbl"), { textContent: "Approved" }, t);
-    tl.fromTo(btn, { scale: 1 }, { scale: 1.1, duration: 0.12, yoyo: true, repeat: 1, immediateRender: false }, t);
-    cue("click", t); cue("ding", t + 0.05, { note: 3 });
-  })();
-  gsap.set("#ripple", { autoAlpha: 0 });
-  // design approved stamp on the map
-  seatExit("#se", 63.6);
-  rush(63.6, 0.8, 600);
-
-  /* --- Developer (64 – 70) --- */
-  seatEnter("#sd", 63.95, "#86B9EE", "#5FCBD8");
-  const sdPl = $("#sd .seatL .pl");
-  const LINES = [
-    ["big", `<span class="pr">~/mini-auth-service ›</span> <span id="sdcmd"></span><span class="cur me" id="sdcc" style="--seat:var(--dev)"><b>Developer</b></span>`],
-    ["", `<span class="gd">●</span> nox context NOX-1`],
-    ["", `  <span class="ok">✓</span> 4 approved spec files`],
-    ["", `  <span class="ok">✓</span> knowledge-base pages · contracts`],
-    ["", `<span class="gd">●</span> edit  <span class="dm">src/</span>config.py  <span class="dm">src/</span>auth.py  <span class="dm">src/</span>main.py`],
-    ["", `<span class="gd">●</span> test  <span class="ok">all passing ✓</span>`],
-    ["", `<span class="ok">✓ PR opened</span>  NOX-1: lock accounts after 5 fails`],
-    ["", `<span class="gd">⛨ NoX guard</span>  architecture rules respected`],
-    ["", `<span class="pr">›</span> nox complete NOX-1  <span class="dm">→ back up the chain</span>`],
-  ];
-  $("#sdterm").innerHTML = LINES.map(([c, h], i) => `<div class="row ${c}" id="tr${i}">${h}</div>`).join("");
-  camSet("#sdcam", 63.95, 1, 0, 0);
-  tl.set("#tr0", { autoAlpha: 1 }, 64.3);
-  cam("#sdcam", 64.35, 0.7, 1.9, 740, 268, 160, 400); hud(64.3, 0);
-  typeText("#sdcmd", "/nox NOX-1", 64.6, 0.65, { caret: "#sdcc", human: true });
-  cam("#sdcam", 65.4, 1.0, 1.5, 700, 132, 105, 30);
-  [1, 2, 3, 4, 5, 6, 7].forEach((i) => {
-    const t = 65.35 + (i - 1) * 0.38;
-    tl.fromTo("#tr" + i, { autoAlpha: 0, x: -24 }, { autoAlpha: 1, x: 0, duration: 0.25 }, t);
-    cue("tick", t);
-  });
-  cue("typeA", 65.35, { d: 2.6, n: 120 });
-  tl.to(sdPl.querySelector(".code"), { opacity: 1, y: -3, duration: 0.35 }, 64.6);
-  blink(sdPl, 66.2);
-  cam("#sdcam", 67.9, 0.9, 1, 0, 0, 0, 0); hud(68.4, 1);
-  tl.fromTo("#tr8", { autoAlpha: 0, x: -24 }, { autoAlpha: 1, x: 0, duration: 0.25 }, 68.15);
-  cue("typeH", 68.15, { d: 0.4, n: 18 });
-  tl.fromTo("#sdagents", { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.6 }, 67.4);
-  tl.fromTo("#sdagents .a", { autoAlpha: 0, scale: 0.6 }, { autoAlpha: 1, scale: 1, duration: 0.4, stagger: 0.1, ease: "back.out(2)" }, 67.5);
-  callout("#sd", 67.0);
-  cue("success", 66.9, { soft: true });
-  tl.to("#sd .cam", { autoAlpha: 0, scale: 0.96, duration: 0.45, ease: "power2.in" }, 69.45);
-  tl.set("#sd", { autoAlpha: 0 }, 69.92);
-  cue("whoosh", 69.5, { d: 0.6 });
-})();
-
-/* ================================================================== *
- * S9 — the platform (78 – 86)
- * ================================================================== */
-(() => {
-  const ICON = {
-    shield: `<svg width="44" height="44" viewBox="0 0 24 24"><path d="M12 2.5 L20 5.5 V11 C20 16 16.5 19.8 12 21.5 C7.5 19.8 4 16 4 11 V5.5 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8.5 11.8 L11 14.3 L15.8 9.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-    play: `<svg width="44" height="44" viewBox="0 0 24 24"><rect x="2.5" y="4.5" width="19" height="15" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 9 L15.5 12 L10 15 Z" fill="currentColor"/></svg>`,
-    link: `<svg width="44" height="44" viewBox="0 0 24 24"><path d="M4 8 H16 M12 4 L16 8 L12 12 M20 16 H8 M12 12 L8 16 L12 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-    laptop: `<svg width="44" height="44" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2 19.5 H22" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`,
-    search: `<svg width="44" height="44" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M15.5 15.5 L21 21" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`,
-    chart: `<svg width="44" height="44" viewBox="0 0 24 24"><path d="M4 20 V4 M4 20 H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 16 V12 M12 16 V8 M16 16 V10" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>`,
-  };
-  const T = [
-    ["shield", "NoX Shield", "Model Armor screens every source, question and chat.", "#FF8A95"],
-    ["play", "Show NoX", "Record your screen. Gemini watches and writes the request.", "#F7B542"],
-    ["link", "MCP + A2A", "Any coding agent gets the same knowledge and permissions.", "#5FCBD8"],
-    ["laptop", "NoX Local", "Gemma on a laptop. The code never leaves the building.", "#A897F0"],
-    ["search", "Hybrid search", "gemini-embedding-2 vectors fused with full-text.", "#86B9EE"],
-    ["chart", "Impact", "Every mission measured: time per stage, send-backs, AI cost.", "#5FD29F"],
-  ];
-  $("#s9tiles").innerHTML = T.map(([ic, tt, tx, c], i) => {
-    const x = 110 + (i % 3) * 580, y = 300 + Math.floor(i / 3) * 268;
-    return `<div class="ftile glass" id="tile${i}" style="left:${x}px;top:${y}px;border-color:${c}44"><div class="ic" style="color:${c};background:${c}1F;border:2px solid ${c}66">${ICON[ic]}</div><div class="tt">${tt}</div><div class="tx">${tx}</div></div>`;
-  }).join("");
-  $("#s9tech").innerHTML = `<span class="t"><img src="logos/gemini.svg">Gemini</span><span class="t"><span class="sq" style="background:#4285F4;color:#fff">ADK</span>Agent Development Kit</span><span class="t"><span class="sq" style="background:#A897F0;color:#120A2A">G</span>Gemma</span><span class="t"><img src="logos/google-cloud.svg">Cloud Run</span><span class="t"><span class="sq" style="background:#F7B542;color:#1A1204">OK</span>Open Knowledge Format</span>`;
-  $("#s9logos").innerHTML = ["github:GitHub", "jira:Jira", "confluence:Confluence", "notion:Notion", "slack:Slack"].map((s) => { const [k, n] = s.split(":"); return `<span class="l"><img src="logos/${k}.svg">${n}</span>`; }).join("");
-  sceneIn("#s9", 77.95, 0.4);
-  hueTo(78, 1.2, HEX("#4285F4"), HEX("#F7B542"));
-  tl.fromTo("#s9a .kicker, #s9a .title", { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.1 }, 78.0);
-  T.forEach((x, i) => {
-    const t = 78.35 + i * 0.22;
-    tl.fromTo("#tile" + i, { autoAlpha: 0, y: 60, rotationX: -35, transformPerspective: 1400, transformOrigin: "50% 100%" }, { autoAlpha: 1, y: 0, rotationX: 0, duration: 0.7, ease: "back.out(1.4)" }, t);
-    cue("pop", t);
-  });
-  tl.fromTo("#s9tech .t", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.1 }, 79.8);
-  tl.to("#s9a", { autoAlpha: 0, scale: 1.06, duration: 0.5, ease: "power2.in" }, 81.95);
-  cue("whoosh", 81.95, { d: 0.6 });
-  sceneIn("#s9b", 82.3, 0.3);
-  hueTo(82.3, 1.0, HEX("#5FD29F"), HEX("#F7B542"));
-  ["#pr1", "#pr2", "#pr3", "#pr4"].forEach((p, i) => {
-    const t = 82.45 + i * 0.5;
-    tl.fromTo(p, { autoAlpha: 0, y: 40, filter: "blur(8px)" }, { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 0.6 }, t);
-    tl.fromTo(p + " .ck", { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 0.5, ease: "back.out(2.5)" }, t + 0.1);
-    cue("ding", t + 0.1, { note: i });
-  });
-  tl.fromTo("#s9logos .l", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.08 }, 84.4);
-  tl.to("#s9", { autoAlpha: 0, duration: 0.5 }, 85.6);
-})();
-
-/* ================================================================== *
- * S10 — close (86 – 90)
- * ================================================================== */
-(() => {
-  ["#s10orb", "#s10glow", "#s10N", "#s10X"].forEach((s) => gsap.set(s, { xPercent: -50, yPercent: -50 }));
-  sceneIn("#s10", 85.95, 0.4);
-  hueTo(86, 1.0, HEX("#F7B542"), HEX("#E9713C"));
-  tl.fromTo("#s10a .l1", { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: 0.8 }, 86.05);
-  tl.fromTo("#s10a .l2", { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: 0.8 }, 86.6);
-  gsap.set(["#s10orb", "#s10glow", "#s10N", "#s10X", "#s10l1", "#s10l2"], { autoAlpha: 0 });
-  tl.fromTo("#s10glow", { autoAlpha: 1, scale: 0 }, { scale: 1, duration: 0.9, ease: "elastic.out(1,0.6)", immediateRender: false }, 88.1);
-  tl.to("#s10a", { autoAlpha: 0, y: -60, duration: 0.5, ease: "power2.in" }, 87.75);
-  tl.fromTo("#s10orb", { autoAlpha: 1, scale: 0 }, { scale: 1, duration: 0.8, ease: "elastic.out(1,0.6)", immediateRender: false }, 88.1);
-  tl.fromTo("#flash", { opacity: 0 }, { opacity: 0.7, duration: 0.06, immediateRender: false }, 88.1);
-  tl.to("#flash", { opacity: 0, duration: 0.8 }, 88.16);
-  cue("impact", 88.1, { soft: true });
-  tl.fromTo("#s10N", { autoAlpha: 0, x: 0 }, { autoAlpha: 1, x: -215, duration: 0.8, ease: "power4.out", immediateRender: false }, 88.3);
-  tl.fromTo("#s10X", { autoAlpha: 0, x: 0 }, { autoAlpha: 1, x: 212, duration: 0.8, ease: "power4.out", immediateRender: false }, 88.3);
-  tl.fromTo("#s10l1", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.6, immediateRender: false }, 88.7);
-  tl.fromTo("#s10l2", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.6, immediateRender: false }, 89.0);
-  bgTo(88.1, 0.1, { warp: 0.7 }, "none");
-  bgTo(88.2, 1.4, { warp: 0 }, "power2.out");
-  tl.to("#blackout", { opacity: 1, duration: 0.45, ease: "power1.in" }, 89.55);
-})();
-
-/* broadcast bug */
-tl.fromTo("#bug", { autoAlpha: 0 }, { autoAlpha: 0.75, duration: 0.6 }, 30.2);
-tl.to("#bug", { autoAlpha: 0, duration: 0.3 }, 45.5);
-tl.to("#bug", { autoAlpha: 0.75, duration: 0.5 }, 70.3);
-tl.to("#bug", { autoAlpha: 0, duration: 0.4 }, 85.6);
-tl.set({}, {}, DUR);
-
-/* ---------- frame API ---------- */
-window.__cues = cues;
-window.__dur = DUR;
-window.renderFrame = (t) => {
-  tl.seek(t, false);
-  const c = window.__comet; if (c && window.__cometKeys) { /* angle from keys */ }
-  hooks.forEach((h) => h(t));
-  drawBg(t);
-};
-window.__ready = document.fonts.ready.then(() => Promise.all(Array.from(document.images).map((im) => im.complete ? 1 : new Promise((r) => { im.onload = im.onerror = r; })))).then(() => true);
-// live preview when opened directly in a browser
-if (!/[?&]render/.test(location.search)) {
-  const t0 = parseFloat((location.hash || "#0").slice(1)) || 0;
-  const start = performance.now();
-  const loop = () => { const t = t0 + (performance.now() - start) / 1000; window.renderFrame(t % DUR); requestAnimationFrame(loop); };
-  window.__ready.then(loop);
-}
-</script>
+<script src="vendor/gsap.min.js"></script>
+<script src="vendor/SplitText.min.js"></script>
+<script src="vendor/ScrambleTextPlugin.min.js"></script>
+<script src="vendor/DrawSVGPlugin.min.js"></script>
+<script src="vendor/CustomEase.min.js"></script>
+<script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>
