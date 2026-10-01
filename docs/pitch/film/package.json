@@ -1,0 +1,11 @@
+{
+  "name": "nox-film",
+  "private": true,
+  "description": "The 90-second NoX film for the AI Builder Cup: a GSAP scene rendered frame by frame.",
+  "devDependencies": {
+    "@fontsource-variable/manrope": "5.3.0",
+    "@fontsource/instrument-serif": "5.3.0",
+    "@fontsource/jetbrains-mono": "5.3.0",
+    "gsap": "3.15.0"
+  }
+}
