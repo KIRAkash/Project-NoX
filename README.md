@@ -21,7 +21,7 @@ agent can load a mission, read the knowledge bases it touches, build the change 
 - **Product docs**: every feature, the four seats, integrations, and how the agents run on Google ADK, Gemini and Gemma. Served at [`/docs`](http://localhost:3000/docs) in the web app; the source is [`apps/web/content/docs/`](apps/web/content/docs/).
 - **[AGENTS.md](AGENTS.md)**: the design of the codebase for coding agents and contributors: where everything lives, the principles, and the conventions.
 - **[docs/](docs/)**: design history, decisions and the implementation plan.
-- **The film**: a 90-second motion film of the story, from the problem to verified code, in [`docs/pitch/nox-film.mp4`](docs/pitch/nox-film.mp4). Its source and build script are in [`docs/pitch/film/`](docs/pitch/film/).
+- **The film**: a 90-second film of the story, from the problem to verified code, in [`docs/pitch/nox-film.mp4`](docs/pitch/nox-film.mp4), with a narrated cut in [`docs/pitch/nox-film-narrated.mp4`](docs/pitch/nox-film-narrated.mp4). It is made as code (three.js, GSAP, an orchestral score rendered with FluidSynth); the source and build script are in [`docs/pitch/film/`](docs/pitch/film/).
 
 ## Repo layout
 

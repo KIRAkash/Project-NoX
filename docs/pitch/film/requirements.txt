@@ -1,0 +1,7 @@
+numpy>=2.0
+scipy>=1.13
+pedalboard==0.9.25
+pretty_midi==0.2.11.post0
+pyloudnorm==0.2.0
+soundfile==0.14.0
+kokoro-onnx==0.6.1
