@@ -171,13 +171,22 @@ def poll_sources():
 
 
 # ── Celery Beat Schedule (polling fallback) ────────────────────────────────────
-if settings.SOURCE_MONITOR_MODE == 'polling':
-    celery_app.conf.beat_schedule = {
-        'poll-source-repos-every-5-min': {
-            'task': 'apps.api.workers.tasks.poll_sources',
-            'schedule': 300.0,  # Every 5 minutes
-        },
-    }
+def configure_beat_schedule() -> None:
+    """Schedule polling when SOURCE_MONITOR_MODE is 'polling'.
+
+    Task names come from the task objects, so the schedule always matches
+    what the worker registered.
+    """
+    if settings.SOURCE_MONITOR_MODE == 'polling':
+        celery_app.conf.beat_schedule = {
+            'poll-source-repos-every-5-min': {
+                'task': poll_sources.name,
+                'schedule': 300.0,  # Every 5 minutes
+            },
+        }
+
+
+configure_beat_schedule()
 
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
