@@ -9,19 +9,19 @@ A 90-second film for the AI Builder Cup submission, made as code. The finished f
 
 | Time | Scene | What it shows |
 | --- | --- | --- |
-| 0:00 | One sentence | A business user types *"Lock an account for 15 minutes after 5 failed password attempts."* The sentence becomes a capsule of light. |
-| 0:06 | Lost in translation | The capsule passes through four seats and the sentence scrambles into *"Ticket closed."* The intent meter drains and the nebula turns red. *What shipped ≠ what was meant.* |
+| 0:00 | One sentence | A business user types *"Customers keep emailing support for invoices. Can they just download them?"* The sentence becomes a capsule of light. |
+| 0:06 | Lost in translation | The capsule passes through four seats (*"INV-88: add PDF export."*, *"New PDF service?"*, *"Email every invoice as a PDF, nightly."*) and the sentence scrambles into *"Ticket closed."* The intent meter drains and the nebula turns red. *What shipped ≠ what was meant.* |
 | 0:16 | AI everywhere | Four private AI chats; the links between them snap. Everything collapses into one point of light. |
 | 0:23 | Meet NoX | The point ignites into the NoX sun, with a shockwave, god rays and a lens flare. N and X slide out. Atlas and Missions. |
-| 0:30 | Atlas | Apex Holdings as a 3D orbital system with glowing contract arcs. The camera dives into mini-auth-service, where sources stream in and NoX Shield blocks a planted runbook. Then the ADK agent team, an OKF page, and the 8.7× faster build. |
+| 0:30 | Atlas | Apex Holdings as a 3D orbital system with glowing contract arcs. The camera dives into billing-service, where sources stream in and NoX Shield blocks a planted runbook. Then the ADK agent team, an OKF page for the invoices API, and the 8.7× faster build. |
 | 0:42 | Missions | Four seats on one 3D trajectory; a comet carries the change along it. |
-| 0:46 | The four seats | Business user, product owner, engineering lead and developer each write their file with NoX as co-author, and a person approves it. `/nox NOX-1` in Google Antigravity. |
-| 1:10 | Verify in reverse | The comet returns through the same people; one send-back; then *"My sentence is now true."* Jira moves to Done. |
+| 0:46 | The four seats | Business user, product owner, engineering lead and developer each write their file with NoX as co-author, and a person approves it. The product owner adds the tax breakdown and prorated invoices; the engineering lead learns the receipts PDF renderer already exists and that reporting reads invoice totals. `/nox NOX-1` in Google Antigravity. |
+| 1:10 | Verify in reverse | The comet returns through the same people; one send-back (*"Prorated invoices missing."*); then *"My sentence is now true."* Jira moves to Done. |
 | 1:18 | Platform and trust | Shield, Show NoX, MCP + A2A, NoX Local, hybrid search, Impact; the trust principles. |
 | 1:26 | Close | *Four people. Four files. One sentence, all the way to code and back.* The sun returns with the wordmark. |
 
-The content follows [`docs/DEMO_SCRIPT.md`](../../DEMO_SCRIPT.md) and the pitch deck: mission NOX-1 on
-mini-auth-service in the Apex demo org. The numbers are the ones in the product docs.
+The example is the worked one in [`docs/00-product-narrative-and-landing-journey.md`](../../00-product-narrative-and-landing-journey.md):
+self-serve invoice PDFs, mission NOX-1 on billing-service. The numbers are the ones in the product docs.
 
 ## How it is made
 

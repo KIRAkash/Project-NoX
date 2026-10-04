@@ -1,20 +1,20 @@
 // Scene 5: the Atlas. A 3D orbital map of Apex Holdings (teams are orbits, apps are
-// planets, contracts are glowing arcs), a dive into mini-auth-service where sources
+// planets, contracts are glowing arcs), a dive into billing-service where sources
 // stream into its code wiki, then the ADK agent team that writes it.
 import { tl, cue, blur, $, $$, hash, sceneIn, setOff, maskWords, blurChars, rise, pop, counter, colorTo, HEX } from "./engine.js";
 import { S, D, scene, project, updaters, P, THREE } from "./world.js";
 import { planetMesh, glowTube, Circle } from "./gl3d.js";
 import { streams } from "./fx.js";
 
-const TEAMS = [{ name: "TRADING", r: 300 }, { name: "POST-TRADE", r: 520 }, { name: "PLATFORM", r: 740 }];
+const TEAMS = [{ name: "BILLING", r: 300 }, { name: "CUSTOMER", r: 520 }, { name: "DATA", r: 740 }];
 const APPS = [
-  { id: "ome", name: "order-matching-engine", team: 0, a: 180, hue: "#F0877E" },
-  { id: "mdg", name: "market-data-gateway", team: 0, a: 2, hue: "#86B9EE" },
-  { id: "tss", name: "trade-settlement-system", team: 1, a: 148, hue: "#5FD29F" },
-  { id: "csm", name: "compliance-surveillance-monitor", team: 1, a: 216, hue: "#EC8FC2", up: true },
-  { id: "mas", name: "mini-auth-service", team: 2, a: 300, hue: "#F7B542" },
+  { id: "rcp", name: "receipts-service", team: 0, a: 180, hue: "#5FD29F" },
+  { id: "bil", name: "billing-service", team: 0, a: 2, hue: "#F7B542" },
+  { id: "cpo", name: "customer-portal", team: 1, a: 148, hue: "#86B9EE" },
+  { id: "sup", name: "support-desk", team: 1, a: 216, hue: "#EC8FC2", up: true },
+  { id: "rep", name: "reporting", team: 2, a: 300, hue: "#A897F0" },
 ];
-const LINKS = [["ome", "tss"], ["ome", "csm"], ["mdg", "mas"]];
+const LINKS = [["rcp", "cpo"], ["cpo", "sup"], ["bil", "rep"]];
 
 export const atlasState = { on: 0, rot: -0.22, draw: 0, links: 0, planets: 0 };
 
@@ -35,7 +35,7 @@ export function build() {
     const r = TEAMS[ap.team].r, a = (ap.a * Math.PI) / 180;
     const p = new THREE.Vector3(r * Math.cos(a), 0, r * Math.sin(a));
     local[ap.id] = p;
-    const m = planetMesh(ap.hue, ap.id === "mas" ? 42 : 36, { bands: ap.id === "mdg" ? 6 : 0 });
+    const m = planetMesh(ap.hue, ap.id === "bil" ? 42 : 36, { bands: ap.id === "bil" ? 6 : 0 });
     m.position.copy(p); group.add(m);
     return m;
   });
@@ -54,7 +54,7 @@ export function build() {
     `<div class="label3d" id="orgl" style="font-size:34px">Apex Holdings</div>` +
     TEAMS.map((T, i) => `<div class="team3d" id="tm${i}">${T.name}</div>`).join("") +
     APPS.map((a) => `<div class="label3d" id="al_${a.id}">${a.name}</div>`).join("") +
-    `<div class="cpill" id="cpA">POST /auth/login</div><div class="cpill" id="cpB">nte.trades.matched</div>`;
+    `<div class="cpill" id="cpA">invoice totals</div><div class="cpill" id="cpB">renderPdf()</div>`;
   const L = (id) => $("#" + id);
   const place = (el, x, y, a, ax = -0.5, ay = 0) => { el.style.opacity = a; el.style.transform = `translate(${x}px, ${y}px) translate(${ax * 100}%, ${ay * 100}%)`; };
 
@@ -85,7 +85,7 @@ export function build() {
     APPS.forEach((ap, i) => {
       v.copy(local[ap.id]).applyMatrix4(group.matrixWorld);
       const p = project(v.x, v.y, v.z);
-      const r = (ap.id === "mas" ? 42 : 36) * p.s;
+      const r = (ap.id === "bil" ? 42 : 36) * p.s;
       const a = Math.min(1, Math.max(0, lab.app * 5 - i * 0.7)) * A.on;
       if (ap.up) place(L("al_" + ap.id), p.x, p.y - r - 52, a); else place(L("al_" + ap.id), p.x, p.y + r + 10, a);
       ap._s = p;
@@ -117,8 +117,8 @@ export function build() {
   [30.4, 30.55, 30.7, 30.85, 31.0].forEach((t) => cue("tick", t));
   cue("shimmer", 31.6, { d: 1.4 });
 
-  // dive into mini-auth-service
-  const masLocal = local.mas;
+  // dive into billing-service
+  const masLocal = local.bil;
   const rotAt = 0.06; // A.rot at the dive
   const mx = masLocal.x * Math.cos(rotAt) + masLocal.z * Math.sin(rotAt), mz = -masLocal.x * Math.sin(rotAt) + masLocal.z * Math.cos(rotAt);
   tl.to(S.cam, { x: mx * 0.95, y: 60, z: mz + 140, tx: mx, ty: 0, tz: mz, duration: 0.95, ease: "power2.in" }, 33.4);
@@ -201,7 +201,7 @@ export function build() {
   for (let j = 0; j < 5; j++) { const x = 600 + j * 66; cs += `<g class="pg" opacity="0"><rect x="${x}" y="262" width="48" height="60" rx="6" fill="rgba(134,185,238,.18)" stroke="#86B9EE" stroke-width="2"/><path d="M${x + 9} 279 H${x + 39} M${x + 9} 291 H${x + 33} M${x + 9} 303 H${x + 37}" stroke="#86B9EE" stroke-width="2.4" stroke-linecap="round"/></g>`; }
   cs += `<path id="loop" d="M1110 326 C1110 270 1310 270 1310 326" fill="none" stroke="#5FCBD8" stroke-width="3" stroke-dasharray="8 8" opacity="0"/><path d="M1300 314 L1310 328 L1320 314" fill="none" stroke="#5FCBD8" stroke-width="3" class="loopa" opacity="0"/>`;
   $("#s5csvg").innerHTML = cs;
-  $("#okf").innerHTML = `<span class="k3">---</span>\n<span class="k1">type:</span> <span class="k2">Interface Reference</span>\n<span class="k1">title:</span> <span class="k2">Login API</span>\n<span class="k1">sources:</span> <span class="k2">[src/auth.py]</span>\n<span class="k3">---</span>\n<span class="k5">## POST /api/v1/auth/login</span>\n<span class="k2">Called by </span><span class="k4">[[kb:market-data-gateway/auth]]</span>`;
+  $("#okf").innerHTML = `<span class="k3">---</span>\n<span class="k1">type:</span> <span class="k2">Interface Reference</span>\n<span class="k1">title:</span> <span class="k2">Invoices API</span>\n<span class="k1">sources:</span> <span class="k2">[src/invoices.py]</span>\n<span class="k3">---</span>\n<span class="k5">## GET /invoices/{id}</span>\n<span class="k2">Totals read by </span><span class="k4">[[kb:reporting/invoice-totals]]</span>`;
   sceneIn("#s5c", 37.95, 0.3);
   colorTo(S.neb.c1, "#0A0A1C", 38.0, 0.6); colorTo(S.neb.c2, "#46327A", 38.0, 0.6); colorTo(S.neb.c3, "#1A5A5A", 38.0, 0.6);
   tl.fromTo(S.cam, { z: D + 200 }, { z: D - 60, duration: 4, ease: "power1.inOut", immediateRender: false }, 38.0);

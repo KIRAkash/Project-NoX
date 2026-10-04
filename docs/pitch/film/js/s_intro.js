@@ -22,14 +22,14 @@ export function build() {
   tl.fromTo("#s1box", { autoAlpha: 0, scale: 0.985 }, { autoAlpha: 1, scale: 1, duration: 1.0, ease: "power2.out" }, 0.9);
   blurChars("#s1kt", 0.55, { stagger: 0.022 });
   tl.fromTo("#s1k .bar", { scaleX: 0 }, { scaleX: 1, duration: 0.8, ease: "expo.out" }, 0.6);
-  const SENT = "Lock an account for 15 minutes after 5 failed password attempts.";
+  const SENT = "Customers keep emailing support for invoices. Can they just download them?";
   cam2dSet("#s1cam", 0, 1.5, 616, 520, 760, 560);
   pop("#s1pl", 0.85, { scale: 0.3, y: 90, rotation: -20 }, 1.1, "back.out(1.5)");
   cue("pop", 0.95);
   // idle caret blinks before typing
   const car = $("#s1car");
   hooks.push((t) => { if (t > 0.9 && t < 1.45) { car.style.visibility = "visible"; car.style.opacity = Math.floor(t * 3) % 2 ? 0 : 1; } });
-  typeText("#s1text", SENT, 1.45, 2.85, { caret: "#s1car", human: true, hold: 0.7 });
+  typeText("#s1text", SENT, 1.45, 2.95, { caret: "#s1car", human: true, hold: 0.6 });
   cam2d("#s1cam", 1.4, 3.4, 1.0, 960, 540, 960, 540, "power2.inOut");
   blink($("#s1pl"), 2.6);
   const pl = $("#s1pl");
@@ -75,10 +75,10 @@ export function build() {
     host.appendChild(lab);
   });
   const QUOTES = [
-    "Lock an account for 15 minutes after 5 failed password attempts.",
-    "APEX-212: add a login lockout.",
-    "Who calls /login? Let’s rate-limit it.",
-    "Return 429 after 5 requests a minute.",
+    "Customers keep emailing support for invoices. Can they just download them?",
+    "INV-88: add PDF export.",
+    "New PDF service? Let’s ask around.",
+    "Email every invoice as a PDF, nightly.",
     "Ticket closed.",
   ];
   const HUES = [HEX.biz, HEX.po, HEX.eng, HEX.dev, HEX.ember];

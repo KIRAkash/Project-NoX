@@ -27,7 +27,7 @@ LINES = [
     (42.3, 45.4, "Then one mission carries a change through four seats."),
     (46.5, 51.0, "The business user asks in plain words. Nox drafts. They approve."),
     (52.4, 57.0, "The product owner adds an edge case. Nox co-writes, grounded in the map."),
-    (58.5, 62.6, "The engineering lead sees every caller before a contract changes."),
+    (58.5, 62.6, "The engineering lead finds what already exists, and who depends on it."),
     (64.4, 69.0, "And the developer runs one command. Any coding agent gets the whole mission."),
     (70.4, 73.0, "Then it comes back, through the same people."),
     (73.4, 75.1, "Anything unmet goes straight back."),

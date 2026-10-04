@@ -159,7 +159,7 @@ export function build() {
   tl.set("#ob1", { className: "badge x", textContent: "✕" }, 73.15);
   check(1, 73.2, true); flare(1, 73.2, HEX.red, 0.8);
   tl.set(CM, { c: "#FF8A95" }, 73.2);
-  caption(73.2, "Product owner", "var(--red)", "Not met. Sent back, with a note.");
+  caption(73.2, "Product owner", "var(--red)", "Prorated invoices missing. Sent back.");
   tl.fromTo(S.cam, { x: 0 }, { keyframes: { x: [-22, 18, -12, 7, 0] }, duration: 0.45, ease: "none", immediateRender: false }, 73.2);
   tl.fromTo("#op3", { scale: 1 }, { scale: 1.2, duration: 0.15, yoyo: true, repeat: 1, immediateRender: false }, 74.45);
   tl.set(CM, { c: "#9DF5C8" }, 74.5);
