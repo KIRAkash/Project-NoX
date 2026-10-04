@@ -55,8 +55,10 @@ def change_signals(mission: Mission, role: Role) -> str:
 
 
 def build_prompt(mission: Mission, role: Role, upstream: dict[Role, str], context: str, current: str | None = None,
-                 instruction: str | None = None, editing: bool = False, evidence: list | None = None) -> str:
-    """The writer's request. `evidence` is the mission's analysed captures (missions/media.py `MediaEvidence`)."""
+                 instruction: str | None = None, editing: bool = False, evidence: list | None = None,
+                 origin: str | None = None) -> str:
+    """The writer's request. `evidence` is the mission's analysed captures (missions/media.py `MediaEvidence`);
+    `origin` is the NoX sighting the mission was started from (missions/sightings.py `origin_brief`)."""
     parts = [
         f"Mission {mission.key}: {mission.title}",
         f'Original request (verbatim): "{mission.prompt}"',
@@ -70,6 +72,8 @@ def build_prompt(mission: Mission, role: Role, upstream: dict[Role, str], contex
     ]
     for r, md in upstream.items():
         parts.append(f"\n===== Upstream file: {TITLE[r]} ({ROLE_NAME[r]}) =====\n{md}")
+    if origin:
+        parts.append("\n" + origin)
     if evidence:
         from .media import render_evidence
 
@@ -101,12 +105,12 @@ def title_from(markdown: str, fallback: str) -> str:
 
 async def generate_file(mission: Mission, role: Role, upstream: dict[Role, str], context: str,
                         current: str | None = None, instruction: str | None = None, apps: dict[str, str] | None = None,
-                        evidence: list | None = None) -> str:
+                        evidence: list | None = None, origin: str | None = None) -> str:
     """NoX's drafter agent writes the file; it may look facts up in the mission's applications first."""
     from ..ai.agents import cowriter
 
     return await cowriter.draft(mission, role, upstream=upstream, context=context, apps=apps or {},
-                                current=current, instruction=instruction, evidence=evidence)
+                                current=current, instruction=instruction, evidence=evidence, origin=origin)
 
 
 async def draft_mission_files(mission_id: str) -> None:
@@ -124,6 +128,11 @@ async def draft_mission_files(mission_id: str) -> None:
 
         await wait_for_analysis(db, mission.id)  # a request sent seconds after a screenshot: let NoX finish looking first
         evidence = await mission_evidence(db, mission.id)  # what the author showed NoX, loaded once for every file
+        sighting = None
+        if mission.sighting_id:  # started from a NoX sighting: every file sees where it came from, in its own terms
+            from ..db.models import Sighting
+
+            sighting = await db.get(Sighting, mission.sighting_id)
         files = {f.role: f for f in mission.files}
         upstream: dict[Role, str] = {}
         for role in ROLE_ORDER:
@@ -134,7 +143,12 @@ async def draft_mission_files(mission_id: str) -> None:
                 await record(db, mission, "file.drafting", {"role": role.value})
                 try:
                     with telemetry.usage_scope(f"draft-file:{role.value}", org_id=mission.org_id, mission_id=mission.id) as usage:
-                        md = await generate_file(mission, role, upstream, context, apps=apps, evidence=evidence)
+                        origin = None
+                        if sighting is not None:
+                            from .sightings import origin_brief
+
+                            origin = origin_brief(sighting, role)
+                        md = await generate_file(mission, role, upstream, context, apps=apps, evidence=evidence, origin=origin)
                 except Exception as e:
                     logger.exception(f"drafting {mission.key}/{role.value} failed")
                     f.status = SpecStatus.empty if role != mission.created_as_role else SpecStatus.draft

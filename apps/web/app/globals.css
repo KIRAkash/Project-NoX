@@ -87,7 +87,7 @@ body {
 .kb-prose table { width: 100%; border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; }
 .kb-prose th, .kb-prose td { border: 1px solid rgba(143,160,204,.16); padding: 6px 10px; text-align: left; }
 .kb-prose th { color: #eceff8; background: rgba(143,160,204,.05); }
-.kb-prose blockquote { border-left: 2px solid var(--role, #f7b542); padding: 4px 0 4px 14px; color: #eceff8; background: rgba(143,160,204,.04); }
+.kb-prose blockquote { border-left: 1px solid var(--role, #f7b542); padding: 4px 0 4px 14px; color: #eceff8; background: rgba(143,160,204,.04); }
 .kb-prose a, .kb-prose .wikilink { color: var(--role, #86b9ee); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(143,160,204,.4); }
 .kb-prose .wikilink-cross { font-style: italic; }
 .kb-prose .wikilink-cross::after { content: " ↗"; font-style: normal; }

@@ -113,7 +113,7 @@ async def _seed_mission(kb_id: str) -> str:
 async def test_impact_from_postgres_computes_stage_durations_and_send_backs(db_clean):
     kb = await _setup_app()
     org_id = await _seed_mission(kb)
-    async with _client("business") as biz:  # the business seat has no SEE_ATLAS, and still reads Impact
+    async with _client("business") as biz:  # the business seat reads Impact too
         r = await biz.get(f"/api/v1/orgs/{org_id}/impact", params={"days": 30})
     assert r.status_code == 200
     got = r.json()

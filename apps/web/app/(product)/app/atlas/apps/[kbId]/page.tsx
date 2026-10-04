@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, ChevronRight, Code, Compass, ExternalLink, FileText, Folder, LayoutDashboard, List, type LucideIcon, Network, Pin, RefreshCw, RotateCcw, Search, Send, Sparkles, Square, Trash2, Users } from "lucide-react";
+import { Building2, ChevronRight, Code, Compass, ExternalLink, FileText, Folder, LayoutDashboard, List, type LucideIcon, MessageSquare, Network, Pin, RefreshCw, RotateCcw, Search, Send, Sparkles, Square, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -339,7 +339,7 @@ function SourcesPanel({ app, canManage, onChanged }: { app: KbDetail; canManage:
         return;
       }
       await api(`/api/v1/kb/${app.id}/add-source`, { method: "POST", json: { type, url } });
-      toast("Source added — NoX is folding it into the knowledge base", "success");
+      toast("Source added. NoX is folding it into the knowledge base", "success");
       setUrl("");
       onChanged();
     } catch (err) {
@@ -529,7 +529,34 @@ function Explorer({ app }: { app: KbDetail }) {
           </div>
         ))}
       </nav>
-      <div className="space-y-5">
+      <aside className="space-y-5 lg:col-start-1 lg:row-start-2">
+        <button
+          type="button"
+          onClick={() => router.replace("?tab=ask", { scroll: false })}
+          className="flex h-9 w-full items-center justify-center gap-1.5 rounded-sm border border-hairline text-[13px] text-ink hover:border-ink-faint"
+        >
+          <MessageSquare size={13} /> Ask this wiki
+        </button>
+        {app.sourceUrls.length > 0 && (
+          <Panel title="Sources">
+            <ul className="space-y-2 text-[13px]">
+              {app.sourceUrls.map((s) => (
+                <li key={s.url} className="flex items-center gap-2">
+                  <BrandLogo name={s.type} size={14} />
+                  {/^https?:\/\//.test(s.url) ? (
+                    <a href={s.url} target="_blank" rel="noreferrer" title={s.url} className="min-w-0 flex-1 truncate text-ink-muted hover:text-ink">
+                      {SOURCE_LABEL[s.type] ?? s.type} · {s.url.replace(/^https?:\/\//, "")}
+                    </a>
+                  ) : (
+                    <span title={s.url} className="min-w-0 flex-1 truncate text-ink-muted">{SOURCE_LABEL[s.type] ?? s.type} · {s.url}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        )}
+      </aside>
+      <div className="space-y-5 lg:col-start-2 lg:row-start-1 lg:row-span-2">
         <article className="rounded-md border border-hairline bg-[rgba(9,11,19,.66)] p-6 sm:p-8" aria-busy={loadingPage}>
           <div className="mb-4 font-mono text-[11px] text-ink-dim">{path}</div>
           {content !== null && <KbMarkdown content={content} onOpenPage={(p) => void open(p)} onOpenCrossKb={(a, p) => void openCross(a, p)} />}
@@ -549,7 +576,7 @@ function PinsPanel({ kbId, path, pins, onChanged }: { kbId: string; path: string
     e.preventDefault();
     try {
       await api(`/api/v1/kb/${kbId}/pins`, { method: "POST", json: { pagePath: path, text } });
-      toast("Correction pinned — it survives every future recompile", "success");
+      toast("Correction pinned. It survives every future recompile", "success");
       setText("");
       onChanged();
     } catch (err) {

@@ -179,11 +179,12 @@ class Cap(StrEnum):
     MANAGE_CONNECTORS = "manage_connectors"  # connector credentials
     PIN_CORRECTION = "pin_correction"
     CREATE_MISSION = "create_mission"
+    MANAGE_SIGHTINGS = "manage_sightings"    # schedule and run NoX's suggested changes (CP18)
 
 
 ACCESS: dict[Role, set[Cap]] = {
-    Role.business: {Cap.CREATE_MISSION},
-    Role.product: {Cap.SEE_ATLAS, Cap.ONBOARD_APP, Cap.MANAGE_SOURCES, Cap.PIN_CORRECTION, Cap.CREATE_MISSION},
+    Role.business: {Cap.SEE_ATLAS, Cap.CREATE_MISSION},
+    Role.product: {Cap.SEE_ATLAS, Cap.ONBOARD_APP, Cap.MANAGE_SOURCES, Cap.PIN_CORRECTION, Cap.CREATE_MISSION, Cap.MANAGE_SIGHTINGS},
     Role.engineering: set(Cap),
     Role.developer: {Cap.SEE_ATLAS, Cap.ONBOARD_APP, Cap.MANAGE_SOURCES, Cap.PIN_CORRECTION, Cap.CREATE_MISSION},
 }

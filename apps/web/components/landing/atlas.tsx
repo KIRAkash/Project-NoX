@@ -63,7 +63,7 @@ export default function Atlas() {
                     type="button"
                     onClick={() => setSelected(a.id)}
                     aria-current={on}
-                    className={`flex min-h-[60px] w-full min-w-[220px] items-center gap-[13px] border-l-2 px-[22px] py-[14px] text-left transition-colors duration-200 ${
+                    className={`flex min-h-[60px] w-full min-w-[220px] items-center gap-[13px] border-l px-[22px] py-[14px] text-left transition-colors duration-200 ${
                       on
                         ? "border-nox bg-[rgba(247,181,66,.07)]"
                         : "border-transparent hover:bg-[rgba(134,185,238,.05)]"

@@ -20,6 +20,9 @@ Those agents are built with **Google's Agent Development Kit (ADK)** and run on 
 | **Drafter** | Writes the first draft of each spec file | Default | The lookup tools |
 | **Perceive** | Watches a screen recording, screenshot or voice note | Default | Typed `MediaObservation`: transcript, moments, screens, exact strings |
 | **Ground** | Ties a capture to applications, knowledge-base pages and code | Default | The lookup tools; typed `MediaGrounding` |
+| **Sighting scouts** | One per application and seat: look for changes worth that seat's time, through its lens | Default | The lookup tools the seat's lens allows (no source code for business and product); typed `ScoutReport` |
+| **Sighting critic** | Keeps the specific, grounded, worthwhile opportunities and scores how much each matters to each seat | Fast | Typed `OpportunityReview` |
+| **Sighting writer** | Writes each kept opportunity for every seat it matters to, in that seat's words | Default | Typed `SightingViews`; business and product views pass a reader lint or are rewritten once |
 
 Two simpler jobs call Gemini through the `google-genai` SDK directly rather than as agents: the ingestor's per-file summaries of large sources, and the original single-model build path, kept behind `NOX_KB_BUILDER=classic` for comparison. Around all of them sit deterministic checks that need no model at all: the **linter** (page structure, wikilinks, orphans, stubs), the **secret gate**, the **guard** that checks pull requests against architecture rules, and **code anchors** that tie page sections to source lines.
 

@@ -194,3 +194,27 @@ def add_source_pipeline_task(self, kb_id: str, source: dict):
     except Exception as exc:
         logger.exception(f"add_source_pipeline_task failed for {kb_id}: {exc}")
         raise self.retry(exc=exc)
+
+
+# ── Sightings (CP18) ───────────────────────────────────────────────────────────
+
+
+@celery_app.task(bind=True, max_retries=1, default_retry_delay=60)
+def sightings_run_task(self, run_id: str, force: bool = False):
+    from ..missions.sightings import run_sightings
+
+    _run_async(run_sightings(run_id, force=force))
+
+
+@celery_app.task
+def sightings_tick():
+    """Start every Sightings run that is due. Runs on beat locally; Cloud Scheduler calls the API's tick in the cloud."""
+    from ..missions.sightings import tick
+
+    _run_async(tick())
+
+
+celery_app.conf.beat_schedule = {
+    **(celery_app.conf.beat_schedule or {}),
+    "sightings-tick-every-15-min": {"task": sightings_tick.name, "schedule": 900.0},
+}

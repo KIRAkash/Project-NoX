@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-screen bg-void">
+    <div className="relative min-h-screen overflow-x-clip bg-void">
       <div className="starfield starfield--far pointer-events-none fixed inset-0 opacity-50" aria-hidden />
       <header className="sticky top-0 z-30 border-b border-hairline bg-[rgba(5,6,11,.82)] backdrop-blur">
         <div className="mx-auto flex h-14 max-w-[1320px] items-center justify-between gap-4 px-4 sm:px-6">

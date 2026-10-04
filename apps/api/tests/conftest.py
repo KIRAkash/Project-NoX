@@ -19,7 +19,7 @@ os.environ["NOX_DEMO_ORG_SLUGS"] = ""  # tests opt in explicitly
 os.environ["NOX_TICKET_STORE"] = "memory"  # never write test tickets to Firestore
 os.environ.setdefault("WEBHOOK_SECRET", "test-webhook-secret-0123456789")
 
-_TABLES = "shield_findings, kb_chunks, media_assets, mission_events, external_links, spec_chat_messages, spec_file_versions, spec_files, mission_apps, missions, kb_pins, org_invites, memberships, api_tokens, users, kb_events, source_monitors, org_interface_contracts, knowledge_bases, org_kbs, orgs"
+_TABLES = "sighting_feedback, sighting_schedules, sightings, sighting_runs, shield_findings, kb_chunks, media_assets, mission_events, external_links, spec_chat_messages, spec_file_versions, spec_files, mission_apps, missions, kb_pins, org_invites, memberships, api_tokens, users, kb_events, source_monitors, org_interface_contracts, knowledge_bases, org_kbs, orgs"
 
 
 def _db_reachable() -> bool:

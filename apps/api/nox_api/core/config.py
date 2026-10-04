@@ -143,6 +143,12 @@ class Settings(BaseSettings):
     NOX_MEDIA_PER_MISSION: int = 12
     NOX_MEDIA_STAGE_TIMEOUT_S: int = 90                # a stage that runs longer marks the capture failed (Retry)
 
+    # ── Sightings (CP18): changes NoX suggests, per seat, on a schedule ───────
+    NOX_SIGHTINGS_MAX_PER_SEAT: int = 5                # new sightings per seat per run
+    NOX_SIGHTINGS_TICK: str = "off"                    # "local": the API checks for due runs itself (no beat, no Cloud Scheduler)
+    NOX_SIGHTINGS_TICK_SECRET: str = ""                # alternative to OIDC for the tick: an `X-Nox-Tick` shared secret
+    NOX_SIGHTINGS_SCHEDULER_SA: str = ""               # Cloud Scheduler's service account; its OIDC token may call the tick
+
     # ── Local Mode Tuning ─────────────────────────────────────────────────────
     LOCAL_MAX_FILES: int = 150
     LOCAL_CHUNK_SIZE: int = 6000

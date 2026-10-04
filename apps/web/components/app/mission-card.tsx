@@ -24,18 +24,17 @@ export function MissionCard({ m, compact = false, showPriority = true }: { m: Mi
   return (
     <Link
       href={`/app/missions/${m.key}`}
-      // A stripe and a faint wash in the colour of the seat the mission is with.
-      className="block rounded-md border border-hairline p-4 transition hover:border-[color:color-mix(in_srgb,var(--role)_45%,transparent)]"
-      style={{
-        background: `linear-gradient(90deg, color-mix(in srgb, ${hue} 8%, transparent), transparent 55%), rgba(6,7,13,.72)`,
-        boxShadow: `inset 3px 0 0 color-mix(in srgb, ${hue} 70%, transparent)`,
-      }}
+      className="block rounded-md border border-hairline bg-[rgba(6,7,13,.72)] p-4 transition hover:border-[color:color-mix(in_srgb,var(--role)_45%,transparent)]"
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-[11px] text-ink-dim">{m.key}</span>
+        <span className="flex items-center gap-1.5 font-mono text-[11px] text-ink-dim">
+          {/* The stage dot is the only hue: the colour of the seat the mission is with. */}
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: hue }} />
+          {m.key}
+        </span>
         <span className="flex items-center gap-1.5">
-          {showPriority && m.priority && <span className="rounded-sm border border-hairline px-1.5 font-mono text-[10px] text-ink-muted">{m.priority}</span>}
-          <span className="font-mono text-[10px] uppercase tracking-[0.1em]" style={{ color: hue }}>
+          {showPriority && m.priority && <span className="font-mono text-[10px] text-ink-muted">{m.priority}</span>}
+          <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-muted">
             {STAGE_LABEL[m.stage]}
           </span>
         </span>
