@@ -120,11 +120,13 @@ async def edit_turn(mission, role, *, current: str, base_version: int, upstream:
 
 
 async def draft(mission, role, *, upstream: dict, context: str, apps: dict[str, str],
-                current: str | None = None, instruction: str | None = None, evidence: list | None = None) -> str:
+                current: str | None = None, instruction: str | None = None, evidence: list | None = None,
+                origin: str | None = None) -> str:
     """A whole first draft (or a regenerated file), grounded by lookups when the context isn't enough."""
     agent = LlmAgent(name="nox_drafter", model=config.model(config.Tier.DEFAULT), instruction=DRAFTER_SYSTEM,
                      tools=LOOKUP_TOOLS if apps else [])
-    message = build_prompt(mission, role, upstream, context, current=current, instruction=instruction, evidence=evidence)
+    message = build_prompt(mission, role, upstream, context, current=current, instruction=instruction, evidence=evidence,
+                           origin=origin)
     state = {"apps": apps, "home_app": next(iter(apps), "")}
     with telemetry.usage_scope(f"draft:{role.value}"):
         result = await runtime.run(agent, message, state=state, user_id=f"mission-{mission.id}")

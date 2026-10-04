@@ -14,7 +14,7 @@ import { LiquidMetalButton } from "@/components/liquid-metal/liquid-metal";
 import { api, ApiError } from "@/lib/app/api";
 import { useAuth } from "@/lib/app/auth";
 import { ROLE_BY_ID } from "@/lib/app/roles";
-import type { MediaCapture, Mission } from "@/lib/app/types";
+import type { MediaCapture, Mission, Sighting } from "@/lib/app/types";
 
 type Suggestion = { id: string; name: string; status: string; score: number };
 
@@ -43,6 +43,22 @@ export default function NewMissionPage() {
   const [captures, setCaptures] = useState<MediaCapture[]>([]);
   const [hidden, setHidden] = useState<string[]>([]); // originals of marked-up screenshots: sent, not shown
   const grounded = captures.flatMap((c) => (c.status === "ready" ? c.apps ?? [] : []));
+  // Edit first on a sighting: the form starts filled in from it, and the mission records where it came from.
+  const [sighting, setSighting] = useState<Sighting | null>(null);
+
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("sighting");
+    if (!id) return;
+    api<Sighting>(`/api/v1/sightings/${encodeURIComponent(id)}`)
+      .then((s) => {
+        setSighting(s);
+        setPrompt(s.view.request);
+        setType(s.view.missionType);
+        touched.current = true;
+        setPicked(s.apps.map((a) => a.id));
+      })
+      .catch(() => toast("That sighting isn't available any more", "error"));
+  }, [toast]);
 
   const importFromJira = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +67,7 @@ export default function NewMissionPage() {
       const issue = await api<{ key: string; summary: string; description: string }>(`/api/v1/integrations/jira/issues/${encodeURIComponent(importKey.trim())}`);
       setPrompt([issue.summary, issue.description].filter(Boolean).join("\n\n").slice(0, 2000));
       setJiraKey(issue.key);
-      toast(`${issue.key} imported — it'll be linked to the mission`, "success");
+      toast(`${issue.key} imported. It'll be linked to the mission`, "success");
     } catch (err) {
       toast(err instanceof ApiError ? err.detail : "Couldn't read that ticket", "error");
     } finally {
@@ -104,8 +120,8 @@ export default function NewMissionPage() {
     setBusy(true);
     try {
       const mediaIds = [...captures.filter((c) => c.status !== "withheld").map((c) => c.id), ...hidden];
-      const m = await api<Mission>("/api/v1/missions", { method: "POST", json: { prompt: prompt.trim(), appIds: picked, type, jiraKey: jiraKey ?? undefined, mediaIds } });
-      toast(`${m.key} started — NoX is drafting`, "success");
+      const m = await api<Mission>("/api/v1/missions", { method: "POST", json: { prompt: prompt.trim(), appIds: picked, type, jiraKey: jiraKey ?? undefined, mediaIds, sightingId: sighting?.id } });
+      toast(`${m.key} started. NoX is drafting`, "success");
       router.push(`/app/missions/${m.key}`);
     } catch (err) {
       toast(err instanceof ApiError ? err.detail : "Couldn't start the mission", "error");
@@ -131,6 +147,13 @@ export default function NewMissionPage() {
         </button>
         {jiraKey && <span className="font-mono text-[12px] text-[color:var(--role)]">linked: {jiraKey}</span>}
       </form>
+      {sighting && (
+        <p className="mt-5 rounded-sm border border-hairline bg-[rgba(143,160,204,.04)] p-3 text-[13px] text-ink-muted">
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-[color:var(--role)]">From a NoX sighting</span>
+          <span className="mt-1 block text-ink">{sighting.view.title}</span>
+          NoX filled this in. Change anything you like; its evidence goes to every draft.
+        </p>
+      )}
       <form onSubmit={create} className="mt-5 space-y-5">
         <Panel title="The request">
           <textarea
@@ -218,7 +241,7 @@ export default function NewMissionPage() {
               })}
             </ul>
           ) : (
-            <p className="text-[13px] text-ink-faint">No applications in your orbit yet — they&rsquo;re onboarded from the atlas.</p>
+            <p className="text-[13px] text-ink-faint">No applications in your orbit yet. They&rsquo;re onboarded from the atlas.</p>
           )}
           <p className="mt-3 text-[12px] text-ink-faint">The first one you pick is where the spec files are kept.</p>
         </Panel>

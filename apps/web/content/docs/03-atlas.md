@@ -2,7 +2,7 @@
 
 The Atlas is NoX's map of the enterprise. It holds every organization and team, every application they own, and a code wiki for each application that stays current as the code changes. Every code wiki is written in Google's **Open Knowledge Format**, so the knowledge is portable to any OKF-aware agent. Everything in Missions is grounded in it: the drafts, the answers, the co-writer's edits and the guard on every pull request.
 
-Product owners, engineering leads and developers can use the Atlas. Engineering leads own its structure.
+Every seat can browse the Atlas, read the code wikis and ask them questions. Business users read and ask; they can't onboard applications, change sources or pin corrections. Product owners, engineering leads and developers can also change it, and engineering leads own its structure.
 
 ## Organizations, teams and applications
 

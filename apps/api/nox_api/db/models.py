@@ -262,6 +262,7 @@ class Mission(Base):
     awaiting_proceed = Column(Boolean, nullable=False, default=False)
     proceeded_without_approval = Column(Boolean, nullable=False, default=False)
     completed_at = Column(DateTime, nullable=True)
+    sighting_id = Column(UUID(as_uuid=True), ForeignKey("sightings.id", ondelete="SET NULL", use_alter=True), nullable=True)  # started from a NoX sighting (CP18)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -431,3 +432,93 @@ class MediaAsset(Base):
     usage = Column(JSON, nullable=False, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
     analyzed_at = Column(DateTime, nullable=True)
+
+
+# ── Sightings (CP18) ──────────────────────────────────────────────────────────
+
+
+class SightingStatus(str, enum.Enum):
+    open = "open"
+    snoozed = "snoozed"
+    dismissed = "dismissed"
+    launched = "launched"      # a mission was started from it
+    shipped = "shipped"        # that mission is done
+    outdated = "outdated"      # its evidence no longer holds
+
+
+class Sighting(Base):
+    """A change NoX suggests: one opportunity, with a view written for each seat it matters to.
+
+    `views` is {seat: SeatSighting + relevance}; `evidence` is every source it rests on, filtered per seat when served
+    (code locations never reach the business or product seat). `kb_ids` are the applications it cites: a viewer must
+    be able to see all of them.
+    """
+
+    __tablename__ = "sightings"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False, index=True)
+    run_id = Column(UUID(as_uuid=True), ForeignKey("sighting_runs.id", ondelete="SET NULL"), nullable=True)
+    kb_ids = Column(JSON, nullable=False, default=list)
+    kind = Column(String, nullable=False)
+    claim = Column(Text, nullable=False)
+    evidence = Column(JSON, nullable=False, default=list)
+    views = Column(JSON, nullable=False, default=dict)
+    open_questions = Column(JSON, nullable=False, default=list)
+    impact = Column(String, nullable=False, default="medium")      # high | medium | low
+    effort = Column(String, nullable=True)                         # S | M | L
+    status = Column(Enum(SightingStatus), nullable=False, default=SightingStatus.open, index=True)
+    status_reason = Column(Text, nullable=True)
+    mission_id = Column(UUID(as_uuid=True), ForeignKey("missions.id", ondelete="SET NULL"), nullable=True)
+    fingerprint = Column(String, nullable=False, index=True)       # hash of the sorted evidence refs
+    embedding = Column(JSON, nullable=True)                        # the claim's embedding, for dedupe across runs
+    snoozed_until = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class SightingRun(Base):
+    __tablename__ = "sighting_runs"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False, index=True)
+    trigger = Column(String, nullable=False)                       # schedule | manual
+    status = Column(String, nullable=False, default="running")     # running | done | failed
+    apps_scanned = Column(JSON, nullable=False, default=list)
+    apps_skipped = Column(JSON, nullable=False, default=list)
+    counts = Column(JSON, nullable=False, default=dict)            # {seat: new sightings}, plus candidates / kept / outdated
+    usage = Column(JSON, nullable=False, default=dict)
+    error = Column(Text, nullable=True)
+    started_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    started_at = Column(DateTime, default=datetime.utcnow, index=True)
+    finished_at = Column(DateTime, nullable=True)
+
+
+class SightingFeedback(Base):
+    """What a person did with a sighting. Dismissals and their reasons steer the next runs away from repeats."""
+
+    __tablename__ = "sighting_feedback"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    sighting_id = Column(UUID(as_uuid=True), ForeignKey("sightings.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    seat = Column(Enum(Role), nullable=False)
+    action = Column(String, nullable=False)                        # useful | dismissed | snoozed | launched
+    reason = Column(String, nullable=True)                         # not_relevant | already_known | wrong | not_now | free text
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class SightingSchedule(Base):
+    """When NoX looks for sightings in a top-level organization (and everything beneath it)."""
+
+    __tablename__ = "sighting_schedules"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False, unique=True)
+    cadence = Column(String, nullable=False, default="weekly")     # off | daily | weekly
+    weekday = Column(Integer, nullable=False, default=0)           # 0 = Monday
+    hour = Column(Integer, nullable=False, default=8)
+    timezone = Column(String, nullable=False, default="UTC")
+    seats = Column(JSON, nullable=False, default=lambda: [r.value for r in Role])
+    focus = Column(JSON, nullable=False, default=list)             # lens kinds weighted up, e.g. ["cost", "performance"]
+    fingerprints = Column(JSON, nullable=False, default=dict)      # {kb_id: hash of its inputs at the last run}
+    next_run_at = Column(DateTime, nullable=True, index=True)
+    last_run_at = Column(DateTime, nullable=True)
+    updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -19,7 +19,7 @@ Pieces that are designed and partly built:
 - **Notifications where people are.** "Waiting on you" and "coming back to you" pushed to Slack and Google Chat, with a link straight to the file.
 - **Approved specs published to Confluence**, for teams whose readers live there.
 - **Human review recorded in the knowledge base.** When someone merges a knowledge-base pull request, NoX writes OKF's `verified: [{by: human:<reviewer>, at: …}]` onto the pages they reviewed, so every OKF consumer can tell human-reviewed knowledge from machine-written knowledge. Pages with pinned corrections get the same treatment.
-- **Evidence beside the checklist.** When the developer marks a mission complete, NoX attaches hints next to each checklist item (the relevant part of the PR diff, the guard result, the test run) so verification is grounded in verifiable system evidence rather than manual searching. People still tick every item.
+- **Evidence from the systems that hold it.** NoX already attaches the mission's pull requests and lets people add evidence to each item. Next it reads CI results, the guard result and the relevant part of the PR diff by itself, so people confirm evidence instead of hunting for it.
 
 ## Spec-driven orchestration: architectural integrity at scale
 
@@ -27,7 +27,7 @@ Pieces that are designed and partly built:
 
 **Impact analysis before anyone writes a line.** The contract map already knows who calls what. The next step is a blast-radius view on every engineering design: each consumer of a changed contract, its owning team, and the tests that cover the path. That turns "which teams do I need to talk to?" from a week of messages into a list on the page.
 
-**Evidence-backed verification.** Connect the checklist to the systems that already know the answer: CI results for the test plan, the deploy pipeline for rollout steps, analytics for the success metric. NoX pre-fills each item's evidence; people confirm it. The product owner's "metric moved from baseline to target" becomes a chart in the file, not a promise.
+**Evidence pulled from the source.** Connect the checklist to the systems that already know the answer: CI results for the test plan, the deploy pipeline for rollout steps, analytics for the success metric. NoX pre-fills each item's evidence; people confirm it. The product owner's "metric moved from baseline to target" becomes a chart in the file, not a promise.
 
 **NoX inside the tools people already use.** An agent that joins the Jira ticket, the Slack thread and the Google Chat space where a request first appears, and offers to turn it into a mission there. A Google Docs add-on so a business user can ask for a change from the document they're already writing.
 

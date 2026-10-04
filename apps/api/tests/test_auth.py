@@ -37,11 +37,12 @@ async def test_first_call_creates_user_and_role_round_trips(db_clean):
         assert (await c.get("/api/v1/me")).json()["role"] == "developer"
 
 
-async def test_business_user_is_kept_out_of_the_atlas(db_clean):
+async def test_business_user_reads_the_atlas_but_cannot_change_it(db_clean):
     async with _client(role="business") as c:
-        res = await c.get("/api/v1/orgs")
-        assert res.status_code == 403 and "business" in res.json()["detail"]
-        assert (await c.get("/api/v1/kb")).status_code == 403
+        assert (await c.get("/api/v1/orgs")).status_code == 200
+        assert (await c.get("/api/v1/kb")).status_code == 200
+        me = (await c.put("/api/v1/me/role", json={"role": "business"})).json()
+        assert "see_atlas" in me["capabilities"] and "onboard_app" not in me["capabilities"]
     async with _client(role="developer") as c:
         assert (await c.get("/api/v1/orgs")).status_code == 200
 

@@ -39,6 +39,8 @@ The build order for Project NoX, split into checkpoints. Each checkpoint ends in
 | CP14 | Connected, shielded, measured: MCP + A2A, Model Armor + DLP, BigQuery flight recorder ([plan](plans/CP14-tier1-connected-shielded-measured.md)) | code done; live checks need the deploy | CP12, CP13 |
 | CP15 | Show NoX: screenshots, screen recordings, video and voice, grounded in the KB ([plan](plans/CP15-show-nox-multimodal-capture.md)) | code done; live check and golden captures need the deployed app | CP13, CP14 (Shield) |
 | CP16 | KB builder as an ADK workflow + explicit context caching ([plan](plans/CP16-adk-workflow-kb-builder.md)) | code done — bench compare and live checks need Gemini and the deploy | CP13 |
+| CP17 | Evidence-based verification and status updates: a verdict and evidence per checklist item, structured send-back with only the failing items ([plan](plans/CP17-evidence-verification-and-updates.md)) | code done; contributors and custom flows recorded but not built (picker says "Customization coming soon") | CP11, CP15 |
+| CP18 | Sightings: changes NoX suggests on a schedule, written for each seat, grounded and deduped, one click from a mission ([plan](plans/CP18-sightings-suggested-missions.md)) | code done; the planted-opportunity eval and the cloud schedule check are still to do | CP13, CP15, CP17 |
 
 Critical path: CP0 → CP1 → CP3 → CP4 → CP5 → CP6 → CP7 → CP8 → CP11 → CP12. CP2, CP9 and CP10 can run alongside the others once their dependencies are done.
 
@@ -307,6 +309,7 @@ Newest first. One line per finished checkpoint or notable stop.
 
 | Date | Checkpoint | Note |
 | --- | --- | --- |
+| 2026-09-30 | CP17 | Verdict (Verified, Failed, Can't verify) and evidence (link, capture, metric, note) per checklist item, written into the file. Send back carries only the failing items, only those come back to re-check. Blocked, advisory "Check evidence", PR links attached at completion. Updates stored as `mission.update` events; no migration |
 | 2026-09-29 | CP15 | Show NoX: record screen, screenshot with markup, voice note or upload. Gemini watches it (`Part.from_uri`, media resolution), an ADK agent grounds it in the KBs and code with a post-check, each seat reads it in its own words. Captures feed drafting and chat, ▶ moment chips, Evidence tab, Show it works hints on checklists. Migration `0007`; Shield stubbed |
 | 2026-09-26 | CP13 | All AI through Google ADK (`nox_api/ai/`), Agent Platform backend, typed outputs. Hybrid KB search (gemini-embedding-2 + pgvector + full-text, incremental). Ask agent streams with tool steps and citations. Co-writer edits section by section, live, one version per turn. KB builder is a cartographer, parallel writers and a reviewer: 8.7× faster, ~3× fewer tokens per page on market-data-gateway. NoX Local: `nox kb build/sync/push/watch` on Gemma 4 |
 | 2026-09-24 | CP6 (part) | Demo code PRs opened on the 5 Apex repos (branch `nox/rename-demo`); merge them, then rebuild the KBs |

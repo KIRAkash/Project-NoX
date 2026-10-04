@@ -235,3 +235,26 @@ def _launch_in_process_add_source(kb_id: str, source: dict):
         loop.create_task(_runner())
     except RuntimeError:
         asyncio.run(_runner())
+
+
+def dispatch_sightings_run(run_id: str, force: bool = False):
+    """Dispatch one Sightings run (CP18) in-process or via Celery. The run row already exists."""
+    if not is_in_process_mode():
+        try:
+            from .tasks import sightings_run_task
+            logger.info(f"Dispatching sightings run via Celery: {run_id}")
+            sightings_run_task.delay(run_id, force)
+            return
+        except Exception as exc:
+            logger.warning(f"Failed to dispatch to Celery broker ({exc}), running sightings {run_id} in-process")
+    from ..jobs import spawn
+    from ..missions.sightings import run_sightings
+
+    async def _runner():
+        await run_sightings(run_id, force=force)
+
+    try:
+        asyncio.get_running_loop()
+        spawn(f"sightings {run_id}", _runner)
+    except RuntimeError:
+        asyncio.run(_runner())

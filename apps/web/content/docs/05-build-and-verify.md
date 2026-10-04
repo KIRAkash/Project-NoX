@@ -95,11 +95,16 @@ The **Coming back** strip on the mission page shows where verification has got t
 
 **To verify:**
 
-1. Tick each item as you confirm it. Ticks save as you go.
-2. Add a **note** to any item: how you checked it, what you saw, a link to evidence. Notes are written into the file under the item.
-3. When every item is ticked, choose **Verified**. The checklist passes to the next seat. When the business user verifies, the mission is **Done** and the Jira ticket moves to **Done**.
+1. Check each item and tick it as you confirm it. Ticks save as you go.
+2. Open an item (the paperclip) to add more than a tick:
+   - **Evidence:** a link (a PR, a CI run, a dashboard), a metric written as `name = value`, a note, or a capture. Up to five per item.
+   - **A verdict:** *Verified*, *Failed* or *Can't verify*.
+   - **A note:** how you checked it, or what's wrong.
+3. When every item is verified, choose **Verified**. The checklist passes to the next seat. When the business user verifies, the mission is **Done** and the Jira ticket moves to **Done**.
 
-**Verified** is only available once every item is ticked. If something isn't right, don't tick it: flag it as not met.
+**Verified** is only available once every item is verified. An item marked *Can't verify* holds it back until you settle it, or report the change as **Blocked** (say what you're waiting for). If something isn't right, mark it *Failed* and send it back.
+
+When the developer marks the mission completed, NoX attaches what it already knows: the mission's pull requests show at the top of the developer's checklist. **Check evidence** asks NoX whether the evidence on each item backs it up. It answers *supports*, *unclear* or *contradicts* beside the item, and says so when it can't open a link. It never changes a verdict.
 
 ### Show it works
 
@@ -109,19 +114,21 @@ NoX never ticks an item. The hints are there to help you decide; the tick is you
 
 ## When something isn't met
 
-Choose **Not met** on your checklist, then:
+Choose **Send back** on your checklist, then:
 
-1. **Say what isn't met.** A note is required, so the next person knows exactly what to fix.
+1. **Say what isn't met.** A note is required, and so is a reason on every item you marked *Failed*, so the next person knows exactly what to fix.
 2. **Send it back to the seat that owns the problem:**
    - **Developer** (the default): the requirement stands, and the build needs another pass. The mission returns to **Build**.
    - **An earlier seat**: the requirement itself was wrong. The mission returns to that seat, and its file reopens as a draft to be fixed and re-approved.
 3. The note is recorded on the timeline and posted to the Jira ticket.
 
-When the fix is in, the developer marks the mission completed again and a new verification round starts. Ticks are stored in the files themselves, so items that were already confirmed stay ticked.
+The seat it goes back to sees a short update at the top of the mission: who sent it, the round, and only the items that failed, with their notes and evidence. There is no comment thread. An update is one of four kinds, worked out from the items: **verified**, **partly works** (some passed, some didn't), **needs rework** or **blocked**.
+
+When the fix is in, the developer marks the mission completed again and a new verification round starts. Verdicts are stored in the files themselves, so items that already passed stay verified, and only the items that failed come back marked *Re-check*.
 
 ## Everything is written back to the file
 
-Ticks, notes, who verified and when are all written into the same Markdown file and committed to its Git repository. There is no separate verification record to keep in sync. The file in Git is the record of what was asked for, what was agreed, and what each person confirmed.
+Verdicts, evidence, notes, who verified and when are all written into the same Markdown file and committed to its Git repository. There is no separate verification record to keep in sync. The file in Git is the record of what was asked for, what was agreed, and what each person confirmed.
 
 ## NoX Local: knowledge bases on your machine
 

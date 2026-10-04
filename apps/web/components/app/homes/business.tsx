@@ -1,17 +1,19 @@
 "use client";
 
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { CaptureBar } from "@/components/app/media/capture-bar";
 import { CaptureCard } from "@/components/app/media/capture-card";
 import { visibleCaptures } from "@/components/app/media/evidence-tab";
+import { SightingCard } from "@/components/app/sighting-card";
 import { EmptyState, useToast } from "@/components/app/ui";
 import { LiquidMetalButton } from "@/components/liquid-metal/liquid-metal";
 import { api, ApiError } from "@/lib/app/api";
 import type { RoleDef } from "@/lib/app/roles";
-import type { MediaCapture, Mission } from "@/lib/app/types";
+import type { MediaCapture, Mission, Sighting } from "@/lib/app/types";
 import { useApi } from "@/lib/app/use-api";
 
 import { RequestCard } from "./shared";
@@ -69,7 +71,30 @@ export function BusinessHome({ role }: { role: RoleDef }) {
           </div>
         )}
       </section>
+
+      <Ideas role={role} />
     </div>
+  );
+}
+
+/** Changes NoX spotted that the business would feel, in plain words. Hidden when there are none. */
+function Ideas({ role }: { role: RoleDef }) {
+  const { data, reload } = useApi<Sighting[]>("/api/v1/sightings");
+  if (!data?.length) return null;
+  return (
+    <section>
+      <div className="mb-4 flex items-baseline justify-between gap-3">
+        <h2 className="text-[20px] font-semibold text-ink">Ideas from NoX</h2>
+        <Link href="/app/sightings" className="text-[13px] hover:underline" style={{ color: role.hue }}>
+          See all {data.length} →
+        </Link>
+      </div>
+      <div className="grid items-start gap-4 sm:grid-cols-2">
+        {data.slice(0, 4).map((s) => (
+          <SightingCard key={s.id} s={s} role={role} onChanged={() => void reload()} compact />
+        ))}
+      </div>
+    </section>
   );
 }
 

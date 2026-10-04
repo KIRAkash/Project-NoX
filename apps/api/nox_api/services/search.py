@@ -157,7 +157,11 @@ async def embed(texts: list[str], task: str) -> list[list[float]]:
     for i in range(0, len(texts), 50):
         batch = texts[i:i + 50]
         cfg = types.EmbedContentConfig(task_type=task, output_dimensionality=settings.NOX_EMBED_DIM)
-        resp = await client.aio.models.embed_content(model=settings.NOX_EMBED_MODEL, contents=batch, config=cfg)
+        # One Content per text: gemini-embedding-2 folds a plain list of strings into a single embedding.
+        contents = [types.Content(parts=[types.Part(text=t)]) for t in batch]
+        resp = await client.aio.models.embed_content(model=settings.NOX_EMBED_MODEL, contents=contents, config=cfg)
+        if len(resp.embeddings) != len(batch):
+            raise ValueError(f"asked for {len(batch)} embeddings, got {len(resp.embeddings)}")
         out.extend(e.values for e in resp.embeddings)
         telemetry.record_embedding(sum(len(t) for t in batch) // 4)
     return out

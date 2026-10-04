@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { BrandLogo } from "@/components/app/brand-logo";
 import { stageHue } from "@/components/app/mission-card";
+import { SightingsPanel } from "@/components/app/sighting-card";
 import { EmptyState, Panel } from "@/components/app/ui";
 import type { RoleDef } from "@/lib/app/roles";
 import { STAGE_LABEL, type Mission } from "@/lib/app/types";
@@ -52,6 +53,8 @@ export function DeveloperHome({ role }: { role: RoleDef }) {
         </Panel>
         <CliPanel tokens={tokens.data} loading={tokens.loading} />
       </div>
+
+      <SightingsPanel role={role} />
 
       <div className="grid items-start gap-5 lg:grid-cols-3">
         <Panel title={prs.length ? `Pull requests · ${prs.length}` : "Pull requests"}>

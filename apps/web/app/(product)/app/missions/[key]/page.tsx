@@ -17,13 +17,14 @@ import { MissionBlastRadius, SeatBanner } from "@/components/app/seat-rail";
 import { SpecEditor } from "@/components/app/spec-editor";
 import { TicketPanel } from "@/components/app/ticket-panel";
 import { FEED_LIST, OrbitArc, Panel, useToast } from "@/components/app/ui";
+import { UpdateBanner } from "@/components/app/update-banner";
 import { VerifyPanel, VerifyStrip } from "@/components/app/verify-panel";
 import { LiquidMetalButton } from "@/components/liquid-metal/liquid-metal";
 import { api, ApiError } from "@/lib/app/api";
 import { useAuth } from "@/lib/app/auth";
 import { ROLE_BY_ID, type RoleId } from "@/lib/app/roles";
 import { subscribe } from "@/lib/app/stream";
-import { SPEC_STATUS_LABEL, STAGE_INDEX, STAGE_LABEL, type Mission, type MissionEvent, type SpecFile, type TicketState } from "@/lib/app/types";
+import { SPEC_STATUS_LABEL, STAGE_INDEX, STAGE_LABEL, type Mission, type MissionEvent, type MissionUpdate, type SpecFile, type TicketState } from "@/lib/app/types";
 import { useApi } from "@/lib/app/use-api";
 
 const ORDER: RoleId[] = ["business", "product", "engineering", "developer"];
@@ -43,6 +44,7 @@ export default function MissionPage() {
   const myRole = me!.role as RoleId;
   const mission = useApi<Mission>(`/api/v1/missions/${key}`);
   const events = useApi<MissionEvent[]>(`/api/v1/missions/${key}/events`);
+  const updates = useApi<MissionUpdate[]>(`/api/v1/missions/${key}/updates`);
   const ticket = useApi<TicketState>(`/api/v1/missions/${key}/state`);
   const search = useSearchParams();
   const linked = search.get("media");
@@ -61,8 +63,8 @@ export default function MissionPage() {
     return () => window.removeEventListener(MEDIA_SEEK, onSeek);
   }, []);
 
-  const reloads = useRef({ mission: mission.reload, events: events.reload, ticket: ticket.reload });
-  reloads.current = { mission: mission.reload, events: events.reload, ticket: ticket.reload };
+  const reloads = useRef({ mission: mission.reload, events: events.reload, updates: updates.reload, ticket: ticket.reload });
+  reloads.current = { mission: mission.reload, events: events.reload, updates: updates.reload, ticket: ticket.reload };
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     return subscribe(`/api/v1/missions/${key}/stream`, () => {
@@ -70,6 +72,7 @@ export default function MissionPage() {
       timer = setTimeout(() => {
         void reloads.current.mission();
         void reloads.current.events();
+        void reloads.current.updates();
         void reloads.current.ticket();
       }, 150);
     });
@@ -99,6 +102,7 @@ export default function MissionPage() {
       <Header m={m} onChanged={() => void mission.reload()} />
       <ProceedBanner m={m} onChanged={() => void mission.reload()} onReview={() => setTab("business")} />
       <SeatBanner m={m} seat={myRole} />
+      <UpdateBanner m={m} updates={updates.data ?? []} myRole={myRole} />
       {myRole !== "business" && <VerifyStrip m={m} />}
 
       <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
@@ -106,7 +110,7 @@ export default function MissionPage() {
           {!trail && (
             <div className="mb-2 flex flex-wrap items-end justify-between gap-2 border-b border-hairline">
               <button type="button" onClick={() => setTrail(true)} className="pb-2 text-[13px] text-ink-faint underline decoration-dotted hover:text-ink">
-                Show the full trail — what product, engineering and development wrote
+                Show the full trail: what product, engineering and development wrote
               </button>
               <nav className="flex gap-1" aria-label="Spec file and evidence">
                 <button
@@ -157,7 +161,7 @@ export default function MissionPage() {
                 {m.apps.map((a) => (
                   <li key={a.id}>
                     {me!.capabilities.includes("see_atlas") ? (
-                      <Link href={`/app/atlas/apps/${a.id}`} className="text-ink hover:text-[color:var(--role)]">
+                      <Link href={`/app/atlas/apps/${a.id}?tab=explore`} className="text-ink hover:text-[color:var(--role)]">
                         {a.name}
                       </Link>
                     ) : (
@@ -197,6 +201,11 @@ function Header({ m, onChanged }: { m: Mission; onChanged: () => void }) {
         <div className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.16em]">
           <span className="text-[color:var(--role)]">{m.key}</span>
           <span className="text-ink-dim">{m.type}</span>
+          {m.sightingId && (
+            <Link href="/app/sightings?tab=launched" className="normal-case tracking-normal text-ink-dim hover:text-ink" title="Started from a change NoX suggested; its evidence went into every draft">
+              from a NoX sighting
+            </Link>
+          )}
         </div>
         <h1 className="mt-1 font-display text-[32px] leading-tight text-ink sm:text-[40px]">{m.title}</h1>
         <p className="mt-2 max-w-[760px] text-[15px] italic leading-relaxed text-ink-muted">&ldquo;{m.prompt}&rdquo;</p>
@@ -288,7 +297,7 @@ function FilePane({ m, file, onChanged }: { m: Mission; file: SpecFile; onChange
     setCompleting(true);
     try {
       await api(`/api/v1/missions/${m.key}/complete`, { method: "POST" });
-      toast("Marked as completed — your checklist is first", "success");
+      toast("Marked as completed. Your checklist is first", "success");
       onChanged();
     } catch (e) {
       toast(e instanceof ApiError ? e.detail : "Couldn't mark it completed", "error");
@@ -341,7 +350,7 @@ function FilePane({ m, file, onChanged }: { m: Mission; file: SpecFile; onChange
           )}
           {canApprove && (
             <LiquidMetalButton hue={role.hue} disabled={approving} onClick={() => void approve()} className="h-9 rounded-sm px-4 text-[13px] font-semibold disabled:opacity-50">
-              {file.status === "ai_drafted" && m.createdAsRole !== file.role ? "Confirm — this is what I meant" : "Approve"}
+              {file.status === "ai_drafted" && m.createdAsRole !== file.role ? "Confirm: this is what I meant" : "Approve"}
             </LiquidMetalButton>
           )}
         </div>
@@ -351,7 +360,7 @@ function FilePane({ m, file, onChanged }: { m: Mission; file: SpecFile; onChange
 
       {file.status === "ai_drafted" && mine && (
         <p className="mb-4 rounded-sm border border-[rgba(247,181,66,.3)] bg-[rgba(247,181,66,.06)] px-3 py-2 text-[13px] text-ink-muted">
-          NoX drafted this for your seat. Edit anything that&rsquo;s off, then confirm it — or leave it and the mission continues on the draft.
+          NoX drafted this for your seat. Edit anything that&rsquo;s off, then confirm it. Or leave it and the mission continues on the draft.
         </p>
       )}
       {file.status === "stale" && (
@@ -389,7 +398,7 @@ function FilePane({ m, file, onChanged }: { m: Mission; file: SpecFile; onChange
       ) : mine ? (
         <article className="rounded-md border border-hairline bg-[rgba(9,11,19,.66)] p-6 sm:p-8">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-dim">Approved — your final spec</span>
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-dim">Approved: your final spec</span>
             {m.stage !== "done" && m.stage !== "verifying" && (
               <button type="button" onClick={() => setEditing(true)} className="flex h-8 items-center gap-1.5 rounded-sm border border-hairline px-3 text-[13px] text-ink-muted hover:border-ink-faint hover:text-ink">
                 <Pencil size={13} /> Edit
@@ -401,7 +410,7 @@ function FilePane({ m, file, onChanged }: { m: Mission; file: SpecFile; onChange
       ) : (
         <article className="rounded-md border border-hairline bg-[rgba(9,11,19,.66)] p-6 sm:p-8">
           <div className="mb-4 flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-dim">
-            <Lock size={11} /> Locked — only the {role.name} edits this file
+            <Lock size={11} /> Locked: only the {role.name} edits this file
           </div>
           <KbMarkdown content={file.markdown ?? ""} />
         </article>
@@ -540,7 +549,7 @@ function LinksPanel({ m, onChanged }: { m: Mission; onChanged: () => void }) {
                 if (!g) return null;
                 return (
                   <div className={`mt-0.5 text-[11.5px] ${g.compliant ? "text-[#5FD29F]" : "text-[#F7B542]"}`}>
-                    Guard: {g.compliant ? `clear against ${g.rules ?? 0} rules` : `${g.violations} possible conflict${g.violations === 1 ? "" : "s"} — see the PR`}
+                    Guard: {g.compliant ? `clear against ${g.rules ?? 0} rules` : `${g.violations} possible conflict${g.violations === 1 ? "" : "s"}: see the PR`}
                   </div>
                 );
               })()}
@@ -625,9 +634,10 @@ const EVENT_TEXT: Record<string, (e: MissionEvent) => string> = {
   "pr.updated": (e) => `${e.payload.pr} is now ${e.payload.state}`,
   "pr.guarded": (e) => (e.payload.compliant ? `checked ${e.payload.pr}: no rule conflicts` : `checked ${e.payload.pr}: ${e.payload.violations} possible rule conflicts`),
   "pr.guard_failed": (e) => `couldn't read ${e.payload.pr} for the guard`,
-  "mission.completed": () => "marked the mission as completed — verification started",
+  "mission.completed": () => "marked the mission as completed, verification started",
   "verify.progress": (e) => `ticked ${e.payload.checked}/${e.payload.total} on the ${e.payload.role} checklist`,
-  "verify.verified": (e) => `verified the ${e.payload.role} file${e.payload.next ? "" : " — mission done"}`,
+  "verify.verified": (e) => `verified the ${e.payload.role} file${e.payload.next ? "" : ", mission done"}`,
+  "verify.blocked": (e) => `reported the ${e.payload.role} check as blocked: “${e.payload.note}”`,
   "verify.not_met": (e) => `flagged the ${e.payload.role} file as not met: “${e.payload.note}”`,
   "jira.linked": (e) => `linked ${e.payload.key}`,
   "jira.created": (e) => `created ${e.payload.key} in Jira`,
@@ -645,11 +655,13 @@ const EVENT_TEXT: Record<string, (e: MissionEvent) => string> = {
   "media.analyzed": () => "watched a capture and looked it up in the knowledge base",
   "media.withheld": () => "withheld a capture (NoX Shield)",
   "media.deleted": (e) => `deleted a ${e.payload.label ?? "capture"}`,
+  "evidence.checked": () => "looked at the evidence on the checklist",
   "evidence.compared": (e) => `compared the after-recording with the ${e.payload.role} checklist`,
   "evidence.compare_failed": () => "couldn't compare the after-recording",
 };
 
-function Timeline({ events }: { events: MissionEvent[] }) {
+function Timeline({ events: all }: { events: MissionEvent[] }) {
+  const events = all.filter((e) => e.type !== "mission.update"); // the verify.* entry already says it
   return (
     <Panel title="Timeline">
       {events.length ? (

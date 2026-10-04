@@ -71,7 +71,21 @@ export const SOURCE_PLACEHOLDER: Record<SourceType, string> = {
 export type SpecStatus = "empty" | "drafting" | "ai_drafted" | "draft" | "approved" | "stale";
 export type MissionStage = "business" | "product" | "engineering" | "developer" | "build" | "verifying" | "done";
 
-export type VerificationItem = { text: string; checked: boolean; note?: string | null };
+export type Evidence =
+  | { type: "link"; label: string; url: string }
+  | { type: "capture"; mediaId: string }
+  | { type: "metric"; name: string; value: string }
+  | { type: "note"; text: string };
+export type Verdict = "verified" | "failed" | "cant";
+export type VerificationItem = {
+  text: string;
+  checked: boolean;
+  verdict?: Verdict | null;
+  note?: string | null;
+  evidence?: Evidence[];
+  /** Failed or unsettled last round: the only items a re-check has to look at. */
+  recheck?: boolean;
+};
 
 export type SpecFile = {
   role: "business" | "product" | "engineering" | "developer";
@@ -92,6 +106,11 @@ export type SpecFile = {
     round?: number;
     /** Show it works: what NoX saw in the "after" recording, per checklist item. Hints only; people tick. */
     hints?: { index: number; hint: string; t?: number | null; seen?: boolean }[];
+    /** NoX's advisory look at each item's evidence. Never changes a verdict. */
+    checks?: { index: number; fit: "supports" | "unclear" | "contradicts"; why: string }[];
+    /** What NoX attached by itself (the mission's pull requests). */
+    auto?: { label: string; url: string }[];
+    blocked?: { note: string; by: string; at: string };
     evidence?: { after: string[]; before: string[]; summary?: string; usage?: string };
   };
 };
@@ -114,9 +133,27 @@ export type Mission = {
   createdAt: string;
   updatedAt: string | null;
   completedAt: string | null;
+  /** The NoX sighting this mission was started from, if any. */
+  sightingId?: string | null;
   files: SpecFile[];
   apps: { id: string; name: string; status?: string }[];
   links: MissionLink[];
+  /** Only on the list: who asked, and the latest thing anyone did on it. */
+  requestedBy?: { name: string | null; role: SpecFile["role"] };
+  lastActivity?: { type: string; by: string | null; role: string | null; at: string } | null;
+};
+
+/** A verification update: completed, partially works, needs rework or blocked. */
+export type MissionUpdate = {
+  id: string;
+  kind: "completed" | "partial" | "rework" | "blocked";
+  role: SpecFile["role"];
+  toRole: SpecFile["role"] | null;
+  note: string | null;
+  items: { text: string; verdict: Verdict | null; note: string | null; evidence: Evidence[] }[];
+  round: number;
+  actor: string | null;
+  createdAt: string;
 };
 
 export type MissionEvent = { id: string; type: string; payload: Record<string, unknown>; actor: string | null; role: string | null; createdAt: string };
@@ -210,3 +247,83 @@ export function fmtT(t: number | null | undefined): string {
   const s = Math.max(0, Math.round(t ?? 0));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
+
+// ── Sightings (CP18): changes NoX suggests, written for the acting seat ─────────
+
+export type SightingEvidence = { kind: "kb" | "code" | "contract" | "mission" | "capture" | "jira" | "shield"; ref: string; app: string; says: string };
+
+export type SightingView = {
+  title: string;
+  why: string;
+  impact: string;
+  request: string;
+  howWeKnow: string[];
+  missionType: "feature" | "bug" | "change";
+  relevance: number | null;
+};
+
+export type Sighting = {
+  id: string;
+  kind: string;
+  impact: "high" | "medium" | "low";
+  effort: "S" | "M" | "L" | null;
+  status: "open" | "snoozed" | "dismissed" | "launched" | "shipped" | "outdated";
+  statusReason: string | null;
+  view: SightingView;
+  apps: { id: string; name: string }[];
+  evidence: SightingEvidence[];
+  openQuestions: string[];
+  otherSeats: string[];
+  mission: { key: string; stage: MissionStage; startedAs: SpecFile["role"]; startedBy: string | null } | null;
+  snoozedUntil: string | null;
+  createdAt: string | null;
+};
+
+export type SightingSchedule = {
+  orgId: string;
+  cadence: "off" | "daily" | "weekly";
+  weekday: number;
+  hour: number;
+  timezone: string;
+  seats: SpecFile["role"][];
+  focus: string[];
+  nextRunAt: string | null;
+  lastRunAt: string | null;
+};
+
+export type SightingRun = {
+  id: string;
+  trigger: "schedule" | "manual";
+  status: "running" | "done" | "failed";
+  appsScanned: string[];
+  appsSkipped: string[];
+  counts: Record<string, number>;
+  usage: { line?: string; cost?: number };
+  error: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+};
+
+/** What each opportunity kind is called on a card. */
+export const SIGHTING_KIND_LABEL: Record<string, string> = {
+  revenue: "Revenue",
+  customer_experience: "Customer experience",
+  operating_cost: "Running costs",
+  risk: "Risk",
+  customer_ask: "Customers keep asking",
+  flow_friction: "Friction in a flow",
+  missing_state: "Missing state",
+  inconsistency: "Inconsistent behaviour",
+  unexposed_capability: "Hidden capability",
+  unmeasured_outcome: "Not measured",
+  architecture: "Architecture",
+  duplication: "Duplication",
+  cost: "Cost",
+  reliability: "Reliability",
+  security: "Security",
+  performance: "Performance",
+  code_health: "Code health",
+  test_gap: "Test gap",
+  dependency: "Dependencies",
+  developer_experience: "Developer experience",
+};

@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { stageHue } from "@/components/app/mission-card";
+import { SightingsPanel } from "@/components/app/sighting-card";
 import { HORIZON, PriorityChips } from "@/components/app/priority";
 import { EmptyState, type KbStatus, Panel } from "@/components/app/ui";
 import type { RoleDef } from "@/lib/app/roles";
@@ -53,6 +54,8 @@ export function ProductHome({ role }: { role: RoleDef }) {
         </Panel>
         <MissionPanel title="Back for acceptance" view="back" empty="Shipped work comes back here to check against your acceptance criteria." role={role} />
       </div>
+
+      <SightingsPanel role={role} />
 
       <Panel
         title="Roadmap"
