@@ -9,6 +9,8 @@ import logging
 import re
 from datetime import datetime
 
+from ..core.time_utils import now_utc
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -46,7 +48,7 @@ def pr_state(pr: dict) -> dict:
         "state": "merged" if pr.get("merged") else pr.get("state"),
         "branch": (pr.get("head") or {}).get("ref"),
         "author": (pr.get("user") or {}).get("login"),
-        "syncedAt": datetime.utcnow().isoformat(timespec="seconds"),
+        "syncedAt": now_utc().isoformat(timespec="seconds"),
     }
 
 

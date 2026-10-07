@@ -1,5 +1,8 @@
 import asyncio
 import logging
+from datetime import datetime
+
+from ..core.time_utils import now_utc_naive
 
 from celery import Celery
 
@@ -143,7 +146,7 @@ def poll_sources():
                         monitor.last_sync_state = delta.new_state
                         if "last_commit_sha" in delta.new_state:
                             monitor.last_commit_sha = delta.new_state["last_commit_sha"]
-                        monitor.last_synced_at = datetime.utcnow()
+                        monitor.last_synced_at = now_utc_naive()
                         await db.commit()
 
                         # Trigger Gatekeeper Pipeline
@@ -161,7 +164,7 @@ def poll_sources():
                             summary=delta.summary,
                         )
                     else:
-                        monitor.last_synced_at = datetime.utcnow()
+                        monitor.last_synced_at = now_utc_naive()
                         await db.commit()
 
                 except Exception as e:

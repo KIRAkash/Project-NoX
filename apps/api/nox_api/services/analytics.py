@@ -29,6 +29,8 @@ import uuid
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from ..core.time_utils import now_utc_naive
+
 from ..core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -129,7 +131,7 @@ def emit(table: str, row: dict) -> None:
         return
     try:
         out = {k: _jsonable(v) for k, v in row.items()}
-        out.setdefault("at", datetime.utcnow().isoformat())
+        out.setdefault("at", now_utc_naive().isoformat())
         out.setdefault("event_id", uuid.uuid4().hex)
         if isinstance(out.get("payload"), dict):
             out["payload"] = json.dumps(out["payload"], default=str)
@@ -146,13 +148,13 @@ def flush() -> int:
 
 
 def mission_event_row(mission, ev) -> dict:
-    return {"event_id": str(ev.id) if ev.id else uuid.uuid4().hex, "at": ev.created_at or datetime.utcnow(), "org_id": mission.org_id,
+    return {"event_id": str(ev.id) if ev.id else uuid.uuid4().hex, "at": ev.created_at or now_utc_naive(), "org_id": mission.org_id,
             "mission_id": mission.id, "mission_key": mission.key, "type": ev.type, "actor_role": ev.acting_role,
             "stage": (ev.payload or {}).get("stage"), "payload": ev.payload or {}}
 
 
 def kb_event_row(kb, ev) -> dict:
-    return {"event_id": str(ev.id) if ev.id else uuid.uuid4().hex, "at": ev.created_at or datetime.utcnow(), "org_id": kb.org_id, "kb_id": kb.id,
+    return {"event_id": str(ev.id) if ev.id else uuid.uuid4().hex, "at": ev.created_at or now_utc_naive(), "org_id": kb.org_id, "kb_id": kb.id,
             "app": kb.app_name, "type": ev.event_type, "payload": ev.payload or {}}
 
 
@@ -196,7 +198,7 @@ async def mission_flight(db, mission) -> list[dict]:
     rows = (await db.execute(select(MissionEvent.created_at, MissionEvent.type, MissionEvent.payload)
                              .where(MissionEvent.mission_id == mission.id).order_by(MissionEvent.created_at))).all()
     first = next(((p or {}).get("stage") for _, t, p in rows if t == "mission.created"), None) or mission.stage.value
-    segs = stage_segments(mission.created_at, first, [(at, (p or {}).get("stage")) for at, _, p in rows], datetime.utcnow())
+    segs = stage_segments(mission.created_at, first, [(at, (p or {}).get("stage")) for at, _, p in rows], now_utc_naive())
     totals: dict[str, float] = {}
     for s in segs:
         if s["stage"] != "done":
@@ -210,8 +212,8 @@ async def impact_from_postgres(db, org_ids: list, days: int) -> dict:
 
     from ..db.models import KBEvent, KnowledgeBase, Mission, MissionEvent
 
-    since = datetime.utcnow() - timedelta(days=days)
-    now = datetime.utcnow()
+    since = now_utc_naive() - timedelta(days=days)
+    now = now_utc_naive()
     missions = (await db.execute(select(Mission).where(Mission.org_id.in_(org_ids), Mission.created_at >= since)
                                  .order_by(Mission.created_at.desc()))).scalars().all()
     by_mission: dict = {m.id: [] for m in missions}
@@ -316,7 +318,7 @@ def _bq_rows(sql: str, org_ids: list, since: datetime) -> list[dict]:
 async def impact_from_bigquery(db, org_ids: list, days: int) -> dict:
     import asyncio
 
-    since = datetime.utcnow() - timedelta(days=days)
+    since = now_utc_naive() - timedelta(days=days)
     got = {k: await asyncio.to_thread(_bq_rows, sql, org_ids, since) for k, sql in _BQ_IMPACT.items()}
     flow = (got["flow"] or [{}])[0]
     ground = (got["grounding"] or [{}])[0]

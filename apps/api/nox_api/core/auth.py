@@ -17,6 +17,8 @@ import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
+
+from .time_utils import now_utc_naive
 from enum import StrEnum
 
 import httpx
@@ -95,7 +97,7 @@ async def _upsert_user(db: AsyncSession, uid: str, email: str | None, name: str 
         user.name = name or user.name
         user.photo_url = photo or user.photo_url
     await _claim_invites(db, user)
-    user.last_seen_at = datetime.utcnow()
+    user.last_seen_at = now_utc_naive()
     await db.commit()
     await db.refresh(user)
     return user
@@ -147,7 +149,7 @@ async def current_user(
         row = (await db.execute(select(ApiToken).where(ApiToken.token_hash == hash_api_token(credential)))).scalars().first()
         if not row:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid API token")
-        row.last_used_at = datetime.utcnow()
+        row.last_used_at = now_utc_naive()
         user = await db.get(User, row.user_id)
         await db.commit()
     elif scheme == "Bearer" and credential:

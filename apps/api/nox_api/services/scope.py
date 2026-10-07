@@ -13,6 +13,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from ..core.time_utils import now_utc_naive
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -49,7 +51,7 @@ async def actor_from_token(db: AsyncSession, authorization: str | None, role_hea
     user = await db.get(User, row.user_id) if row else None
     if user is None:
         raise ScopeError(401, "Invalid or revoked NoX token. " + LOGIN_HINT)
-    row.last_used_at = datetime.utcnow()
+    row.last_used_at = now_utc_naive()
     await db.commit()
     raw = role_header or (user.last_role.value if user.last_role else "developer")
     try:
