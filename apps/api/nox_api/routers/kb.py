@@ -2,7 +2,10 @@ import asyncio
 import base64
 import json
 import logging
+from datetime import datetime
 from uuid import UUID
+
+from ..core.time_utils import now_utc_naive
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
@@ -248,7 +251,7 @@ async def check_kb_updates(kb_id: str, request: Request, db: AsyncSession = Depe
                 mon.last_sync_state = delta.new_state
                 if "last_commit_sha" in delta.new_state:
                     mon.last_commit_sha = delta.new_state["last_commit_sha"]
-                mon.last_synced_at = datetime.utcnow()
+                mon.last_synced_at = now_utc_naive()
                 await db.commit()
 
                 if sse_manager:
@@ -283,7 +286,7 @@ async def check_kb_updates(kb_id: str, request: Request, db: AsyncSession = Depe
                     "affected_items": delta.affected_items,
                 })
             else:
-                mon.last_synced_at = datetime.utcnow()
+                mon.last_synced_at = now_utc_naive()
                 await db.commit()
                 scan_results.append({
                     "source_type": mon.source_type,

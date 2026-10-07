@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import Any
 from urllib.parse import urlparse
 
+from ..core.time_utils import now_utc
+
 import httpx
 
 from ..core.config import settings
@@ -132,7 +134,7 @@ class JiraConnector(BaseConnector):
                 source_url=url,
             )
 
-        now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
+        now_str = now_utc().strftime("%Y-%m-%d %H:%M")
         delta_lines = [
             f"### 📋 Jira Project Updates: `{project_key}`",
             f"Found **{len(new_or_updated)} updated issue(s)**:\n",

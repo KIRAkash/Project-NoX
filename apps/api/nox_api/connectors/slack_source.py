@@ -4,6 +4,8 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 
+from nox_api.core.time_utils import now_utc, utc_from_timestamp
+
 import httpx
 
 from .base import BaseConnector, IncrementalDelta, IngestionAuthError, IngestionError, IngestionRateLimitError
@@ -125,7 +127,7 @@ class SlackConnector(BaseConnector):
         # 3. Format message history and threads
         content_lines = [
             f"# Slack Channel: #{channel_name} ({channel_id})",
-            f"**Exported At:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%SZ')}",
+            f"**Exported At:** {now_utc().strftime('%Y-%m-%d %H:%M:%SZ')}",
         ]
         if topic:
             content_lines.append(f"**Topic:** {topic}")
@@ -140,7 +142,7 @@ class SlackConnector(BaseConnector):
             ts = msg.get("ts", "")
             user = msg.get("user") or msg.get("username") or "User"
             text = msg.get("text", "")
-            time_str = datetime.utcfromtimestamp(float(ts)).strftime('%Y-%m-%d %H:%M:%S') if ts else ""
+            time_str = utc_from_timestamp(ts).strftime('%Y-%m-%d %H:%M:%S') if ts else ""
 
             # Check for thread replies
             thread_ts = msg.get("thread_ts")
@@ -161,7 +163,7 @@ class SlackConnector(BaseConnector):
                         r_ts = reply.get("ts", "")
                         r_user = reply.get("user") or reply.get("username") or "User"
                         r_text = reply.get("text", "")
-                        r_time = datetime.utcfromtimestamp(float(r_ts)).strftime('%Y-%m-%d %H:%M:%S') if r_ts else ""
+                        r_time = utc_from_timestamp(r_ts).strftime('%Y-%m-%d %H:%M:%S') if r_ts else ""
                         content_lines.append(f"    ↳ [{r_time}] **{r_user}**: {r_text}")
                 except Exception as e:
                     logger.warning(f"Failed to fetch thread replies for ts {thread_ts}: {e}")
@@ -221,7 +223,7 @@ class SlackConnector(BaseConnector):
                 ts = m.get("ts", "")
                 user = m.get("user") or m.get("username") or "User"
                 text = m.get("text", "")
-                time_str = datetime.utcfromtimestamp(float(ts)).strftime('%Y-%m-%d %H:%M:%S') if ts else ""
+                time_str = utc_from_timestamp(ts).strftime('%Y-%m-%d %H:%M:%S') if ts else ""
                 delta_lines.append(f"- [{time_str}] **{user}**: {text}")
 
             return IncrementalDelta(

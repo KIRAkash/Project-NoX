@@ -37,6 +37,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from ..core.time_utils import now_utc_naive
+
 from fastapi import HTTPException
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -94,7 +96,7 @@ LIVE = (SightingStatus.open, SightingStatus.snoozed)
 
 
 def utcnow() -> datetime:
-    return datetime.now(UTC).replace(tzinfo=None)
+    return now_utc_naive()
 
 
 def channel(org_id) -> str:

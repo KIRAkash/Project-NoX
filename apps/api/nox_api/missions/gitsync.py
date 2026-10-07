@@ -13,6 +13,8 @@ import logging
 import re
 from datetime import datetime
 
+from ..core.time_utils import now_utc
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -174,7 +176,7 @@ async def _ensure_pointers(db: AsyncSession, mission: Mission, primary: Knowledg
 
 
 def stamp() -> str:
-    return datetime.utcnow().strftime("%Y-%m-%d %H:%M")
+    return now_utc().strftime("%Y-%m-%d %H:%M")
 
 
 def schedule_sync(mission_id, role, message: str, approve: bool = False) -> None:
