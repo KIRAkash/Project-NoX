@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-26 -29 254 128" width="1016" height="512">
+  <title>NoX</title>
+  <defs>
+    <radialGradient id="wm-fill" cx="0.34" cy="0.30" fx="0.34" fy="0.30" r="0.96">
+      <stop offset="0" stop-color="#FFF7E2"/>
+      <stop offset="0.42" stop-color="#FFDD82"/>
+      <stop offset="0.68" stop-color="#F7B542"/>
+      <stop offset="1" stop-color="#E9713C"/>
+    </radialGradient>
+    <filter id="wm-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="9"/>
+    </filter>
+  </defs>
+  <circle cx="101" cy="35" r="41.040000000000006" fill="#F7B542" fill-opacity="0.5" filter="url(#wm-glow)"/>
+  <circle cx="101" cy="35" r="38" fill="url(#wm-fill)"/>
+  <path fill="#05060B" d="M0 0h11v70h-11ZM45 0h11v70h-11ZM0.00 0.00L14.09 0.00L56.00 70.00L41.91 70.00ZM146.00 0.00L160.09 0.00L202.00 70.00L187.91 70.00ZM187.91 0.00L202.00 0.00L160.09 70.00L146.00 70.00Z"/>
+</svg>
