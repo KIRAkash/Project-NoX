@@ -59,13 +59,13 @@ apps/api/nox_api/                 FastAPI, Python 3.12, SQLAlchemy 2 async, Alem
   interop/                        mcp_server (NoX tools over MCP at /mcp), a2a (Ask agent over A2A at /a2a/ask)
   workers/                        Celery tasks + dispatcher (celery | in_process | auto)
   local.py                        NoX Local entry point (Gemma)
-  demo/                           seed the Apex demo org, reset missions, push demo repos
+  demo/                           seed the Tidewell demo estate (estate.py reads the manifest), reset missions, push demo repos
 apps/api/alembic/                 migrations (0005 adds pgvector chunks for search)
 apps/api/tests/                   pytest; tests/ai_fakes.py fakes ADK/Gemini for agent tests
 packages/nox-cli/                 `nox` CLI (bin/nox.mjs, no deps) + integrations/ for antigravity, cursor, codex, copilot, claude
 scripts/                          deploy_gcp.sh, bench_kb.py, eval_ask.py, eval_media.py
 docs/                             design docs and IMPLEMENTATION_PLAN.md (history and decisions)
-demo/                             the Apex demo codebases, mock sources, and screens/ (mock UI for Show NoX)
+demo/tidewell/                    the demo estate: estate.yaml (manifest), reference codebases, branches, sources, screens/
 ```
 
 ## The AI layer (`apps/api/nox_api/ai/`)

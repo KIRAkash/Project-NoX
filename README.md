@@ -71,7 +71,7 @@ make dev                 # postgres + redis in Docker, then api :8000, worker, w
 ```
 
 Other targets: `make api`, `make web`, `make worker`, `make migrate`, `make test`, `make lint`,
-`make seed-demo` (Apex demo org), `make demo-reset` (clear missions before a rehearsal),
+`make seed-demo` (Tidewell demo estate), `make push-demo` (demo repos), `make demo-reset` (clear missions before a rehearsal),
 `make embed-backfill` (index existing KBs for search). Benchmark a KB build: `cd apps/api && uv run python ../../scripts/bench_kb.py <kb-id>`.
 
 ## The `nox` CLI

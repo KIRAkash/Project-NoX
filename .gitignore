@@ -32,3 +32,11 @@ Claude.pdf
 
 # Show NoX golden captures (large; recorded locally)
 demo/screens/captures/
+demo/tidewell/.seeded.json
+# Tidewell reference code and source content: kept locally, published to GitHub, Atlassian, Slack and Notion
+# (links in demo/tidewell/README.md)
+demo/tidewell/codebases/
+demo/tidewell/branches/
+demo/tidewell/sources/
+demo/tidewell/screens/
+.DS_Store
