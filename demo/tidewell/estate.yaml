@@ -1,0 +1,257 @@
+# The Tidewell Mutual demo estate: one insurer, ten connected applications.
+#
+# This file is the single description of the demo. The seeders (nox_api.demo.seed_*), the repo
+# push (nox_api.demo.push_repos) and scripts/check_estate.py all read it. Contracts here are the
+# truth: code, OpenAPI/AsyncAPI, Confluence and Slack agree with them, except where `planted`
+# says a mismatch is deliberate.
+#
+# The code under codebases/ is reference code. It is written to be read by NoX, not to build or run.
+
+company:
+  slug: tidewell
+  name: Tidewell Mutual
+
+orgs:
+  - slug: tw-digital
+    name: Digital Channels
+  - slug: tw-policy
+    name: Policy
+    children:
+      - { slug: tw-rating, name: Rating squad }
+      - { slug: tw-policy-admin, name: Policy Admin squad }
+  - slug: tw-claims
+    name: Claims
+    children:
+      - { slug: tw-claims-intake, name: Intake squad }
+      - { slug: tw-claims-handling, name: Handling squad }
+  - slug: tw-billing
+    name: Billing & Payments
+  - slug: tw-customer-platform
+    name: Customer Platform
+
+# Where each source lives. Keys are created by nox_api.demo.seed_sources.
+confluence_spaces:
+  TWDIG: { name: "Tidewell Digital & Customer Platform", folder: sources/confluence/TWDIG }
+  TWPOL: { name: "Tidewell Policy", folder: sources/confluence/TWPOL }
+  TWCLM: { name: "Tidewell Claims", folder: sources/confluence/TWCLM }
+  TWBILL: { name: "Tidewell Billing & Payments", folder: sources/confluence/TWBILL }
+jira_projects:
+  TWPOL: { name: "Tidewell Policy & Billing", default: true }   # missions file their tickets here
+  TWCLM: { name: "Tidewell Claims" }
+slack_channels: [tw-architecture, tw-claims, tw-billing, tw-contact-centre]
+notion_pages:
+  customer-research: sources/notion/customer-research.md
+  claims-v2-requirements: sources/notion/claims-v2-requirements.md
+  data-dictionary: sources/notion/data-dictionary.md
+
+apps:
+  customer-portal:
+    org: tw-digital
+    stack: Next.js, TypeScript
+    summary: Customers manage policies, pay, and make and track claims.
+    consumes: ["GET /v1/claims/{id}", "POST /v1/claims", "GET /v1/policies/{id}", "GET /v1/plans/{policyId}", "POST /v1/auth/token"]
+    sources:
+      confluence: [TWDIG]
+      jira: TWCLM
+      slack: [tw-contact-centre]
+      notion: [customer-research, claims-v2-requirements]
+
+  customer-identity:
+    org: tw-customer-platform
+    stack: Go
+    summary: Sign-in, tokens and the customer profile, including how long someone has been a customer.
+    provides: ["POST /v1/auth/token", "GET /v1/customers/{id}"]
+    publishes: [customer.profile.updated]
+    sources:
+      confluence: [TWDIG]
+      jira: TWPOL
+      slack: [tw-architecture]
+      notion: [data-dictionary]
+
+  notifications-hub:
+    org: tw-customer-platform
+    stack: TypeScript
+    size: light            # small enough for NoX Local on Gemma
+    summary: Email, SMS and letters.
+    provides: ["POST /v1/messages"]
+    subscribes: [policy.renewal.due, claims.claim.settled, billing.instalment.due, billing.payment.missed, payments.payout.sent]
+    sources:
+      confluence: [TWDIG]
+      jira: TWPOL
+
+  rating-service:
+    org: tw-rating
+    stack: Kotlin
+    summary: Calculates premiums from risk factors.
+    provides: ["gRPC RatingService.Price"]
+    sources:
+      confluence: [TWPOL]
+      jira: TWPOL
+      slack: [tw-architecture]
+
+  policy-admin:
+    org: tw-policy-admin
+    stack: Java, Spring Boot
+    summary: The policy record. Issues, changes, renews and cancels policies.
+    provides: ["GET /v1/policies/{id}", "POST /v1/policies", "POST /v1/policies/{id}/changes"]
+    consumes: ["gRPC RatingService.Price", "POST /v1/messages"]
+    publishes: [policy.policy.issued, policy.renewal.due, policy.policy.cancelled]
+    subscribes: [customer.profile.updated, billing.payment.missed]
+    sources:
+      confluence: [TWPOL]
+      jira: TWPOL
+      slack: [tw-architecture]
+      notion: [data-dictionary]
+      uploads: [sources/uploads/policy-admin-openapi.yaml]
+
+  claims-intake:
+    org: tw-claims-intake
+    stack: NestJS, TypeScript
+    summary: First notice of loss, online and by phone.
+    provides: ["POST /v1/claims"]
+    consumes: ["GET /v1/policies/{id}", "GET /v1/customers/{id}"]
+    publishes: [claims.claim.reported]
+    sources:
+      confluence: [TWCLM]
+      jira: TWCLM
+      slack: [tw-claims]
+      notion: [claims-v2-requirements]
+
+  claims-management:
+    org: tw-claims-handling
+    stack: Java, Spring Boot
+    summary: Claim lifecycle, handler assignment, reserves and settlement.
+    provides: ["GET /v1/claims/{id}"]
+    consumes: ["POST /v1/scores", "POST /v1/payouts", "POST /v1/messages"]
+    publishes: [claims.handler.assigned, claims.claim.settled]
+    subscribes: [claims.claim.reported, fraud.score.flagged, payments.payout.sent, policy.policy.cancelled]
+    sources:
+      confluence: [TWCLM]
+      jira: TWCLM
+      slack: [tw-claims, tw-architecture]
+      notion: [claims-v2-requirements, data-dictionary]
+      uploads: [sources/uploads/claims-events-asyncapi.yaml]
+
+  fraud-scoring:
+    org: tw-claims-handling
+    stack: Python, FastAPI
+    summary: Scores new claims and calls an external fraud data vendor.
+    provides: ["POST /v1/scores"]
+    publishes: [fraud.score.flagged]
+    subscribes: [claims.claim.reported]
+    sources:
+      confluence: [TWCLM]
+      jira: TWCLM
+      slack: [tw-claims, tw-architecture]
+
+  billing-service:
+    org: tw-billing
+    stack: Go
+    hero: true
+    summary: Payment plans, instalments, fees and missed payments.
+    provides: ["GET /v1/plans/{policyId}", "POST /v1/plans"]
+    consumes: ["GET /v1/policies/{id}", "POST /v1/collections", "GET /v1/customers/{id}", "POST /v1/messages"]
+    publishes: [billing.instalment.due, billing.payment.missed]
+    subscribes: [policy.policy.issued, policy.policy.cancelled, payments.collection.succeeded]
+    sources:
+      confluence: [TWBILL]
+      jira: TWPOL
+      slack: [tw-billing, tw-contact-centre]
+      notion: [customer-research, data-dictionary]
+      uploads: [sources/uploads/billing-openapi.yaml]
+
+  payments-gateway:
+    org: tw-billing
+    stack: Go
+    summary: Collects premiums by card and direct debit, and pays out claims.
+    provides: ["POST /v1/collections", "POST /v1/payouts"]
+    publishes: [payments.collection.succeeded, payments.payout.sent]
+    sources:
+      confluence: [TWBILL]
+      jira: TWPOL
+      slack: [tw-billing]
+
+# Prepared branches pushed next to main, not merged. Files under branches/<name>/<app>/ overlay main.
+branches:
+  docs/readme-typo: { app: rating-service, beat: "Flow B: the gatekeeper skips a trivial push" }
+  feat/issued-channel-field: { app: policy-admin, beat: "Flow B: a field added to policy.policy.issued; KB patch PR" }
+  refactor/drop-excess-field: { app: claims-intake, beat: "PR guard: removes excess_amount, which claims-management reads" }
+
+# Every demo beat, with the evidence that grounds it. check_estate.py checks the files exist.
+planted:
+  - id: loyal-no-fee
+    beat: Hero mission. "Stop charging instalment fees to customers who've been with us more than five years."
+    seats: [business, product, engineering, developer]
+    evidence:
+      - codebases/billing-service/internal/fees/instalment.go
+      - codebases/billing-service/internal/clients/identity.go
+      - sources/confluence/TWBILL/retention-and-fees-fy26.md
+      - sources/notion/customer-research.md
+      - sources/slack/tw-contact-centre.json
+  - id: handler-not-shown
+    beat: Show NoX and sightings. The claim tracker stays on Submitted after a handler is assigned; claims.handler.assigned has no consumer.
+    seats: [business, product, engineering]
+    evidence:
+      - codebases/claims-management/src/main/java/com/tidewell/claims/assignment/HandlerAssignmentService.java
+      - codebases/customer-portal/app/claims/[id]/page.tsx
+      - sources/confluence/TWDIG/digital-claims-review-q3.md
+      - screens/claim-tracker.html
+  - id: late-renewal-notice
+    beat: Business sighting (revenue). Notices go 21 days ahead; renewal is 82% at 30 days and 73% at 21.
+    seats: [business]
+    evidence:
+      - codebases/policy-admin/src/main/resources/application.yml
+      - sources/confluence/TWPOL/renewals-review-fy26.md
+  - id: manual-fee-refunds
+    beat: Business sighting (operating cost). About 300 manual instalment fee refunds a month.
+    seats: [business]
+    evidence: [sources/jira/issues.json, sources/slack/tw-contact-centre.json]
+  - id: shared-cover-table
+    beat: Engineering sighting (architecture). claims-management reads policy-admin's policy_cover table directly.
+    seats: [engineering]
+    evidence:
+      - codebases/claims-management/src/main/java/com/tidewell/claims/cover/CoverCheckRepository.java
+      - sources/confluence/TWPOL/adr-0003-services-own-their-data.md
+  - id: prorata-duplication
+    beat: Engineering sighting (duplication). Pro-rata premium maths in rating-service and billing-service.
+    seats: [engineering, developer]
+    evidence:
+      - codebases/rating-service/src/main/kotlin/com/tidewell/rating/ProRata.kt
+      - codebases/billing-service/internal/plans/proration.go
+  - id: fraud-vendor-timeout
+    beat: Engineering sighting (reliability). No timeout on the fraud vendor call; it stalled claim registration.
+    seats: [engineering, developer]
+    evidence:
+      - codebases/fraud-scoring/app/vendor.py
+      - sources/slack/tw-architecture.json
+  - id: address-not-in-billing
+    beat: Engineering sighting. customer.profile.updated never reaches billing, so letters go to old addresses.
+    seats: [engineering, business]
+    evidence: [codebases/billing-service/internal/events/subscriptions.go, sources/jira/issues.json]
+  - id: covers-query-loop
+    beat: Developer sighting (performance). policy-admin loads covers one query per policy.
+    seats: [developer]
+    evidence: [codebases/policy-admin/src/main/java/com/tidewell/policy/cover/CoverService.java]
+  - id: old-spring
+    beat: Developer sighting (dependency). claims-management is on Spring Boot 2.7 and Java 11.
+    seats: [developer]
+    evidence: [codebases/claims-management/pom.xml]
+  - id: rating-test-gap
+    beat: Developer sighting (test gap). The rating factor table has no tests.
+    seats: [developer]
+    evidence: [codebases/rating-service/src/main/kotlin/com/tidewell/rating/Factors.kt]
+  - id: intake-todos
+    beat: Developer sighting (code health). A cluster of TODOs in claims-intake validation.
+    seats: [developer]
+    evidence: [codebases/claims-intake/src/claims/claim.validator.ts]
+  - id: shield-injection
+    beat: Shield withholds a prompt injection planted in a runbook.
+    seats: []
+    evidence: [sources/confluence/TWCLM/runbook-claim-payouts.md]
+  - id: shield-pii
+    beat: Shield redacts a claimant's personal details pasted into Slack.
+    seats: []
+    evidence: [sources/slack/tw-claims.json]
+
+# Names that must not appear anywhere under demo/tidewell/ (old project names and prefixes).
+banned_words: [apex, "nte.", scfs, gfmg, "sol-"]
