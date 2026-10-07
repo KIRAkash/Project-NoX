@@ -66,11 +66,27 @@ async def _update_kb_status(db: AsyncSession, kb: KnowledgeBase, status: KBStatu
         payload.update(extra_payload)
     await log_event(db, str(kb.id), sse, "status_change", payload)
 
+def _withhold_secrets(kb: KnowledgeBase, files: dict[str, str]) -> dict[str, str]:
+    """Replace secrets the writers copied from source with a withheld note (linter.redact_secrets) and record each
+    as a Shield finding (hash only). The build carries on; the key never reaches the index or the repository."""
+    from ..services import shield
+    from .linter import redact_secrets
+
+    files, withheld = redact_secrets(files)
+    if withheld:
+        shield._record_blocking(
+            [shield.Finding(f"secret:{kind}", source=path, excerpt_sha=shield._sha(text)) for path, kind, text in withheld],
+            where="kb_commit", action="withheld", org_id=kb.org_id, kb_id=kb.id)
+    return files
+
+
 def _as_okf(kb: KnowledgeBase, files: dict[str, str], actor: str | None = None) -> dict[str, str]:
-    """The files to commit as an Open Knowledge Format bundle (agents/okf.py); the stored copy is kept in step."""
+    """The files to commit as an Open Knowledge Format bundle (agents/okf.py); the stored copy is kept in step.
+    Secrets are withheld here too, as the last step before any commit."""
     from ..ai import config
     from ..services.local_storage import load_checkpoint_json, save_checkpoint_json
 
+    files = _withhold_secrets(kb, files)
     existing = load_checkpoint_json(str(kb.id), "compiled_files.json") or {}
     out = okf.to_okf(files, existing=existing, app=kb.app_name, repo_url=kb.git_repo_url,
                      actor=actor or f"nox/{config.model_name()}", source_repo=okf.source_repo_of(kb))
@@ -79,11 +95,17 @@ def _as_okf(kb: KnowledgeBase, files: dict[str, str], actor: str | None = None) 
 
 
 async def _index_for_search(db: AsyncSession, kb: KnowledgeBase, sse: SSEManager):
-    """Refresh the KB's search index from its compiled checkpoint; only changed sections are re-embedded."""
-    from ..services.local_storage import load_checkpoint_json
+    """Refresh the KB's search index from its compiled checkpoint; only changed sections are re-embedded.
+
+    Every flow indexes right after its pages are written, so secrets are withheld from the stored copy here,
+    before Ask, the tools or a commit can read it."""
+    from ..services.local_storage import load_checkpoint_json, save_checkpoint_json
     from ..services.search import index_kb_safely
 
-    files = load_checkpoint_json(str(kb.id), "compiled_files.json") or {}
+    stored = load_checkpoint_json(str(kb.id), "compiled_files.json") or {}
+    files = _withhold_secrets(kb, stored)
+    if files != stored:
+        save_checkpoint_json(str(kb.id), "compiled_files.json", files)
     stats = await index_kb_safely(kb.id, files) if files else None
     if stats:
         await log_event(db, str(kb.id), sse, "search_indexed", {
@@ -470,16 +492,20 @@ async def run_rollup_pipeline(org_id: str, db: AsyncSession, sse: SSEManager):
             return
 
         # ── Build app KB content list for rollup agent ─────────────────────
-        from ..services.gcs import download_content
+        from ..services.local_storage import download_content, load_checkpoint_json
         app_kbs = []
         for kb in published_kbs:
-            index_content = ""
-            if kb.gcs_archive_path:
+            # The app's stored pages: its index plus the summaries (APIs, events, data flows), which say how it
+            # connects to the others. Capped so a large app can't crowd the rest out of the prompt.
+            pages = load_checkpoint_json(str(kb.id), "compiled_files.json") or {}
+            wanted = ["index.md"] + sorted(p for p in pages if p.startswith("summaries/") and not p.endswith("/index.md"))
+            index_content = "\n\n".join(f"## {p}\n{okf.prose(pages[p])}" for p in wanted if p in pages)[:12000]
+            if not index_content and kb.gcs_archive_path:
                 try:
                     index_content = download_content(f"{kb.gcs_archive_path}/index.md")
                 except Exception:
-                    index_content = f"# {kb.app_name}\n\nContent unavailable."
-            app_kbs.append({"app_name": kb.app_name, "index": index_content})
+                    pass
+            app_kbs.append({"app_name": kb.app_name, "index": index_content or f"# {kb.app_name}\n\nContent unavailable."})
 
         # ── Check for existing org KB ─────────────────────────────────────
         org_kb_result = await db.execute(select(OrgKB).where(OrgKB.org_id == org_id))

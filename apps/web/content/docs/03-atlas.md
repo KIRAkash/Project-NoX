@@ -126,7 +126,7 @@ Before any page is committed, NoX runs checks:
 
 - **Linter**: every page has the sections its folder requires, wikilinks resolve, no page is orphaned, and nothing is a stub.
 - **OKF conformance**: every page has parseable frontmatter with a `type`. The result is reported in each knowledge-base pull request's quality gate.
-- **Secret gate**: nothing that looks like a credential is ever committed to a knowledge base.
+- **Secret gate**: nothing that looks like a credential is ever committed to a knowledge base. If a page quotes a key it found in the source, NoX replaces the key with *[NoX Shield withheld a secret]* and records it as a Shield finding. The build carries on.
 - **Quality gate**: the application page shows the page count, errors and warnings from the last lint.
 
 ## Working with a knowledge base
