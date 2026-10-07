@@ -1,13 +1,13 @@
 import asyncio
 import logging
 from collections.abc import Callable
-from datetime import datetime
 from typing import Any
 from urllib.parse import urlparse
 
 import httpx
 
 from ..core.config import settings
+from ..core.time_utils import now_utc
 from ..integrations.atlassian import AtlassianConfigError, json_headers
 from .base import BaseConnector, IncrementalDelta, IngestionAuthError, IngestionError, IngestionRateLimitError
 
@@ -209,7 +209,7 @@ class ConfluenceConnector(BaseConnector):
             has_changes=True,
             delta_content="\n".join(delta_lines),
             summary=f"{len(new_or_updated)} updated/new pages in Confluence space {space_key}",
-            new_state={"known_page_ids": updated_state, "space_key": space_key, "last_synced_at": datetime.utcnow().isoformat()},
+            new_state={"known_page_ids": updated_state, "space_key": space_key, "last_synced_at": now_utc().isoformat()},
             affected_items=affected_items,
             source_type="confluence",
             source_url=url,

@@ -14,6 +14,7 @@ from sqlalchemy.orm import selectinload
 
 from ..core.auth import Actor, Cap, current_actor, require, visible_org_ids
 from ..core.config import settings
+from ..core.time_utils import now_utc, now_utc_naive
 from ..db.database import get_db
 from ..db.models import (
     ExternalLink,
@@ -428,7 +429,7 @@ async def approve_file(key: str, role: str, db: AsyncSession = Depends(get_db), 
     if missing:
         raise HTTPException(409, f"Upstream files aren't written yet: {', '.join(missing)}")
     f.status = SpecStatus.approved
-    f.approved_at = datetime.utcnow()
+    f.approved_at = now_utc_naive()
     f.approved_by = actor.user.id
     advanced = False
     if mission.stage == stage_for(r):
@@ -690,12 +691,12 @@ async def verify_file(key: str, role: str, body: Verdict, db: AsyncSession = Dep
             raise HTTPException(409, "An item is marked can't verify — settle it, or report the change as blocked")
         if any(not i["checked"] for i in items):
             raise HTTPException(409, "Every item needs to be verified — or send it back")
-        f.verification = {**kept, "items": items, "result": "verified", "verifiedAt": datetime.utcnow().isoformat(timespec="seconds"), "verifiedBy": who}
+        f.verification = {**kept, "items": items, "result": "verified", "verifiedAt": now_utc().isoformat(timespec="seconds"), "verifiedBy": who}
         nxt = next_verifier(r)
         mission.verify_role = nxt
         if nxt is None:
             mission.stage = MissionStage.done
-            mission.completed_at = datetime.utcnow()
+            mission.completed_at = now_utc_naive()
         await db.commit()
         if nxt is None and mission.sighting_id:
             from ..missions.sightings import mark_shipped
@@ -715,7 +716,7 @@ async def verify_file(key: str, role: str, body: Verdict, db: AsyncSession = Dep
             raise HTTPException(400, "Mark the items you can't verify first")
         if not note:
             raise HTTPException(400, "Say what you're waiting for so the right person can help")
-        f.verification = {**kept, "items": items, "blocked": {"note": note, "by": who, "at": datetime.utcnow().isoformat(timespec="seconds")}}
+        f.verification = {**kept, "items": items, "blocked": {"note": note, "by": who, "at": now_utc().isoformat(timespec="seconds")}}
         await db.commit()
         await record(db, mission, "verify.blocked", {"role": r.value, "note": note}, actor.user, actor.role.value)
         await _send_update(db, mission, actor, "blocked", note, stuck, None, rnd)

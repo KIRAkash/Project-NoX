@@ -46,6 +46,7 @@ from ..ai import telemetry
 from ..ai.schemas import SeatSighting, SightingCandidate, SightingEvidence
 from ..core.auth import Actor, visible_org_ids
 from ..core.config import settings
+from ..core.time_utils import now_utc_naive
 from ..db.database import AsyncSessionLocal
 from ..db.models import (
     KBEvent,
@@ -94,7 +95,7 @@ LIVE = (SightingStatus.open, SightingStatus.snoozed)
 
 
 def utcnow() -> datetime:
-    return datetime.now(UTC).replace(tzinfo=None)
+    return now_utc_naive()
 
 
 def channel(org_id) -> str:
