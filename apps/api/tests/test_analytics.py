@@ -1,13 +1,12 @@
 """Flight recorder: rows queued for BigQuery (fake client), never raising, and the Impact numbers from Postgres."""
 
 import uuid
-from datetime import datetime, timedelta
-
-from nox_api.core.time_utils import now_utc_naive
+from datetime import timedelta
 
 import pytest
 
 from nox_api.core.config import settings
+from nox_api.core.time_utils import now_utc_naive
 from nox_api.services import analytics
 
 from .test_missions import _client, _setup_app, _wait_drafts

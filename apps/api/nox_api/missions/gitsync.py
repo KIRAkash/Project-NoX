@@ -11,14 +11,12 @@ Git is a mirror: the database is authoritative, so failures are logged and never
 import asyncio
 import logging
 import re
-from datetime import datetime
-
-from ..core.time_utils import now_utc
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.config import settings
+from ..core.time_utils import now_utc
 from ..db.models import KnowledgeBase, Mission, MissionApp, SpecFile, SpecFileVersion, SpecStatus, User
 from .templates import FILE_NAME
 

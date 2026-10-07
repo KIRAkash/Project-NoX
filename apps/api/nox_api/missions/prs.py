@@ -7,14 +7,12 @@ The guard checks the PR's added lines against the rules in each mission app's kn
 import asyncio
 import logging
 import re
-from datetime import datetime
-
-from ..core.time_utils import now_utc
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..agents.guard import evaluate_diff_against_constraints, extract_constraints_from_kb
+from ..core.time_utils import now_utc
 from ..db.models import ExternalLink, KnowledgeBase, Mission, MissionApp
 from ..services.local_storage import load_checkpoint_json
 from .events import record

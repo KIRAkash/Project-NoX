@@ -37,8 +37,6 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from ..core.time_utils import now_utc_naive
-
 from fastapi import HTTPException
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,6 +46,7 @@ from ..ai import telemetry
 from ..ai.schemas import SeatSighting, SightingCandidate, SightingEvidence
 from ..core.auth import Actor, visible_org_ids
 from ..core.config import settings
+from ..core.time_utils import now_utc_naive
 from ..db.database import AsyncSessionLocal
 from ..db.models import (
     KBEvent,

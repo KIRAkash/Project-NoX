@@ -2,10 +2,7 @@ import asyncio
 import base64
 import json
 import logging
-from datetime import datetime
 from uuid import UUID
-
-from ..core.time_utils import now_utc_naive
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
@@ -15,6 +12,7 @@ from sqlalchemy.orm import selectinload
 from sse_starlette.sse import EventSourceResponse
 
 from ..core.auth import Actor, Cap, assert_org_visible, require, visible_org_ids
+from ..core.time_utils import now_utc_naive
 from ..db.database import get_db
 from ..db.models import KnowledgeBase
 from ..db.schemas import KBDetailResponse, KBResponse
@@ -166,7 +164,6 @@ async def sync_kb_status(kb_id: str, db: AsyncSession = Depends(get_db)):
 @router.post("/api/v1/kb/{kb_id}/check-updates", dependencies=[Depends(kb_access(Cap.MANAGE_SOURCES))])
 async def check_kb_updates(kb_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     """Inspect all configured sources (GitHub, Confluence, Notion, Slack, Jira) for updates and trigger Gatekeeper pipeline."""
-    from datetime import datetime
 
     from ..agents.runner import log_event
     from ..connectors import check_source_updates

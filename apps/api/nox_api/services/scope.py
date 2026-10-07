@@ -11,14 +11,12 @@ The knowledge tools (`ai/tools/knowledge.py`) read scope from an ADK `ToolContex
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
-
-from ..core.time_utils import now_utc_naive
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.auth import Actor, hash_api_token, visible_org_ids
+from ..core.time_utils import now_utc_naive
 from ..db.models import ApiToken, KnowledgeBase, Role, User
 
 LOGIN_HINT = "Sign in with a NoX token: run `nox login`, then `nox mcp` for ready-to-paste settings."

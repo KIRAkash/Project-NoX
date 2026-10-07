@@ -1,12 +1,11 @@
 import logging
 import re
 from collections.abc import Callable
-from datetime import datetime
 from typing import Any
 
-from nox_api.core.time_utils import now_utc, utc_from_timestamp
-
 import httpx
+
+from nox_api.core.time_utils import now_utc, utc_from_timestamp
 
 from .base import BaseConnector, IncrementalDelta, IngestionAuthError, IngestionError, IngestionRateLimitError
 
