@@ -159,7 +159,7 @@ NoX reads documents it didn't write: Confluence pages, Slack threads, Jira comme
 | Ask questions, MCP `ask_nox` and A2A messages | NoX answers with a short refusal and makes no model call. |
 | Co-writer chat and refine instructions | NoX keeps the message but replies "I can't act on that message" and changes nothing. |
 | A new mission's first sentence | NoX asks you to rephrase it. |
-| Knowledge-base pages before they are committed | Sensitive Data Protection looks for keys, tokens, passwords, emails and card numbers, as well as NoX's own secret patterns. Nothing is committed if it finds one. |
+| Knowledge-base pages before they are committed | Sensitive Data Protection looks for keys, tokens, passwords, emails and card numbers, as well as NoX's own secret patterns. Keys matching NoX's patterns are replaced with a withheld note first; nothing is committed if Sensitive Data Protection still finds one. |
 
 - **Modes.** `NOX_SHIELD=off` (the default locally and in tests), `monitor` (record findings, block nothing) or `enforce` (production). NoX Local always runs with Shield off, because nothing leaves the laptop.
 - **Nothing sensitive is stored.** Each finding is recorded with its category, confidence and a hash of the text, never the text itself.

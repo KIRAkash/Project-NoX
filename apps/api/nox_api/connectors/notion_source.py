@@ -67,6 +67,10 @@ class NotionConnector(BaseConnector):
         if not b_type or b_type not in block:
             return ""
         block_data = block[b_type]
+        if b_type == 'table_row' and isinstance(block_data, dict):
+            # A row's text lives in cells (one rich_text list per cell), not rich_text.
+            cells = ["".join(rt.get('plain_text', '') for rt in cell) for cell in block_data.get('cells', [])]
+            return "| " + " | ".join(cells) + " |\n" if any(cells) else ""
         if not isinstance(block_data, dict) or 'rich_text' not in block_data:
             return ""
 

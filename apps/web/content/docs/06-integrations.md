@@ -132,4 +132,4 @@ NoX's Ask agent is also an **Agent2Agent (A2A)** server, built with Google ADK. 
 - In development, secrets live in one `.env` at the repository root, shared by the API and the web app. `.env`, private keys and service-account files are ignored by Git.
 - In production, `scripts/deploy_gcp.sh secrets` copies them into **Google Secret Manager**, and Cloud Run mounts them into the services. Nothing secret is baked into an image.
 - `WEBHOOK_SECRET` is required: the API refuses to start without it, so webhooks can never be forged with a default value.
-- Before anything is committed to a knowledge base, a secret gate checks for anything that looks like a credential. With [NoX Shield](/docs/google-ai#nox-shield-model-armor-and-sensitive-data-protection) on, Sensitive Data Protection checks the pages too.
+- Before anything is indexed or committed to a knowledge base, a secret gate replaces anything that looks like a credential with a withheld note and records it as a Shield finding. With [NoX Shield](/docs/google-ai#nox-shield-model-armor-and-sensitive-data-protection) on, Sensitive Data Protection checks the pages too.
