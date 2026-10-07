@@ -11,14 +11,12 @@ import json
 import logging
 import re
 import time
-from datetime import datetime
-
-from ..core.time_utils import now_utc
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.config import settings
+from ..core.time_utils import now_utc
 from ..db.models import ExternalLink, Mission, MissionStage, Role, SpecFile
 from ..integrations.jira import JiraClient, JiraError, adf_to_text
 from .events import record

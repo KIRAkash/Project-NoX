@@ -28,9 +28,6 @@ import logging
 import re
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
-
-from ..core.time_utils import now_utc_naive
 
 from google.genai import types
 from sqlalchemy import select
@@ -39,6 +36,7 @@ from sqlalchemy.orm import selectinload
 from ..ai import config, runtime, structured, telemetry
 from ..ai.schemas import EvidenceComparison, MediaGrounding, MediaObservation, SeatViews
 from ..core.config import settings
+from ..core.time_utils import now_utc_naive
 from ..db.database import AsyncSessionLocal
 from ..db.models import KnowledgeBase, MediaAsset, MediaKind, MediaStatus, Mission, MissionApp, Role, User
 from ..services import media_storage, shield

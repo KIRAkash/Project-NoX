@@ -1,7 +1,5 @@
 import enum
 import uuid
-from datetime import datetime
-from nox_api.core.time_utils import now_utc_naive
 
 from sqlalchemy import (
     JSON,
@@ -19,6 +17,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+
+from nox_api.core.time_utils import now_utc_naive
 
 from .database import Base
 

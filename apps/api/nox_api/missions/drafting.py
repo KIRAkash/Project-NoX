@@ -3,14 +3,12 @@
 import logging
 import re
 import uuid
-from datetime import datetime
-
-from ..core.time_utils import now_utc_naive
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from ..ai import telemetry
+from ..core.time_utils import now_utc_naive
 from ..db.database import AsyncSessionLocal
 from ..db.models import Mission, MissionApp, Role, SpecFileVersion, SpecStatus
 from .context import jira_context, kb_context, mission_apps

@@ -16,9 +16,6 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
-
-from .time_utils import now_utc_naive
 from enum import StrEnum
 
 import httpx
@@ -30,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db.database import get_db
 from ..db.models import Membership, Org, Role, User
 from .config import settings
+from .time_utils import now_utc_naive
 
 logger = logging.getLogger(__name__)
 

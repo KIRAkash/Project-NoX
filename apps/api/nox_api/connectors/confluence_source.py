@@ -1,15 +1,13 @@
 import asyncio
 import logging
 from collections.abc import Callable
-from datetime import datetime
 from typing import Any
 from urllib.parse import urlparse
-
-from ..core.time_utils import now_utc
 
 import httpx
 
 from ..core.config import settings
+from ..core.time_utils import now_utc
 from ..integrations.atlassian import AtlassianConfigError, json_headers
 from .base import BaseConnector, IncrementalDelta, IngestionAuthError, IngestionError, IngestionRateLimitError
 

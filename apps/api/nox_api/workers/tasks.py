@@ -1,12 +1,10 @@
 import asyncio
 import logging
-from datetime import datetime
-
-from ..core.time_utils import now_utc_naive
 
 from celery import Celery
 
 from ..core.config import settings
+from ..core.time_utils import now_utc_naive
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +104,6 @@ def rollup_pipeline_task(self, org_id: str):
 @celery_app.task
 def poll_sources():
     """Universal polling worker for Flow B — checks all active sources (GitHub, Confluence, Notion, Slack, Jira)."""
-    from datetime import datetime
 
     from sqlalchemy import select
 
