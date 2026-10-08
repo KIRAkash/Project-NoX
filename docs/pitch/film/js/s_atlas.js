@@ -231,6 +231,8 @@ export function build() {
   tl.fromTo("#loop", { opacity: 0, drawSVG: "0%" }, { opacity: 1, drawSVG: "100%", duration: 0.6 }, 39.2);
   tl.to(".loopa", { opacity: 1, duration: 0.2 }, 39.75);
   tl.fromTo("#okf", { autoAlpha: 0, y: 70, rotationX: 25, transformPerspective: 1400 }, { autoAlpha: 1, y: 0, rotationX: 0, duration: 0.8, ease: "expo.out" }, 39.4);
+  tl.fromTo("#okfb", { autoAlpha: 0, x: -40 }, { autoAlpha: 1, x: 0, duration: 0.6, ease: "expo.out" }, 39.3);
+  cue("tick", 39.3);
   tl.fromTo("#stat", { autoAlpha: 0, x: 70 }, { autoAlpha: 1, x: 0, duration: 0.7 }, 39.6);
   counter("#statn", 1, 8.7, 39.7, 1.4, 1);
   cue("count", 39.7, { d: 1.4 });

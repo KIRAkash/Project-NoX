@@ -103,14 +103,14 @@ scene.add(neb);
 /* ---------------- star field (3D shell around the scene) ---------------- */
 function rnd(seed) { return () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const R = rnd(1234);
-const NS = 12000;
+const NS = 4200;
 const sp = new Float32Array(NS * 3), ss = new Float32Array(NS), sph = new Float32Array(NS), sc = new Float32Array(NS * 3);
 for (let i = 0; i < NS; i++) {
   const u = R() * 2 - 1, th = R() * Math.PI * 2, rr = 5000 + R() * 9000;
   const s = Math.sqrt(1 - u * u);
   sp[i * 3] = rr * s * Math.cos(th); sp[i * 3 + 1] = rr * u * 0.8; sp[i * 3 + 2] = rr * s * Math.sin(th) - 2000;
-  const big = R() < 0.015;
-  ss[i] = (big ? 16 : 7) * (0.5 + R());
+  const big = R() < 0.03;
+  ss[i] = (big ? 24 : 11) * (0.55 + R());
   sph[i] = R();
   const k = R();
   const c = k < 0.10 ? col("#FFE2A8") : k < 0.26 ? col("#BBD3FF") : k < 0.3 ? col("#FFB3A0") : col("#EEF1FA");
@@ -127,11 +127,11 @@ const starMat = new THREE.ShaderMaterial({
   vertexShader: `attribute float size; attribute float phase; attribute vec3 color; uniform float t, k; varying vec3 vC; varying float vT;
     void main(){ vec4 mv = modelViewMatrix*vec4(position,1.); gl_Position = projectionMatrix*mv;
       vT = .7 + .3*sin(t*(.6+phase*1.8) + phase*31.);
-      gl_PointSize = clamp(size*k*1500./-mv.z, 1.5, 11.); vC = color; }`,
+      gl_PointSize = clamp(size*k*1500./-mv.z, 2.4, 16.); vC = color; }`,
   fragmentShader: `varying vec3 vC; varying float vT; uniform float a;
     void main(){ vec2 c = gl_PointCoord*2.-1.; float d = dot(c,c); if(d>1.) discard;
       float core = exp(-d*7.); float halo = exp(-d*2.5)*.08;
-      gl_FragColor = vec4(vC*(core*2.6+halo)*vT*a, 1.); }`,
+      gl_FragColor = vec4(vC*(core*4.2+halo*1.6)*vT*a, 1.); }`,
 });
 const stars = new THREE.Points(starGeo, starMat);
 stars.frustumCulled = false;

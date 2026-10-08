@@ -2,7 +2,7 @@
 // (business -> product -> engineering -> developer), back along the near arc for verification.
 import { tl, cue, blur, $, $$, sceneIn, setOff, maskWords, blurChars, rise, blink, colorTo, HEX } from "./engine.js";
 import { S, D, scene, project, updaters, P, THREE } from "./world.js";
-import { ROLES, mountPlanet } from "./planets.js";
+import { ROLES, mountPlanet, hover, comingSoonSVG, csActivate } from "./planets.js";
 import { glowTube, Circle } from "./gl3d.js";
 
 const RO = 700;
@@ -35,6 +35,9 @@ export function build() {
     mountPlanet(el, p.role, 160);
   });
   gsap.set($$("#oplanets .badge"), { autoAlpha: 0 });
+  // the role picker's placeholder: more roles are on their way
+  const MORE = { th: -64 * DEG };
+  host.insertAdjacentHTML("beforeend", `<div class="abs" id="onm" style="left:0;top:0;width:0;height:0"><div id="opm" style="position:absolute;left:-60px;top:-60px;width:120px;height:120px">${comingSoonSVG()}</div></div><div class="olabel" id="olm"><div class="n" style="color:var(--muted)">More coming soon</div><div class="h">Sales · Design · QA</div></div>`);
 
   // comet along the orbit: th(t) from keys, trail sampled at earlier times
   const KEYS = [];
@@ -68,6 +71,9 @@ export function build() {
       lab.style.opacity = O.planets;
       p._s = s;
     });
+    { const x = 1650, y = 250; // waiting just off the trajectory
+      $("#onm").style.transform = `translate(${x}px, ${y}px)`; $("#onm").style.zIndex = 900;
+      const lab = $("#olm"); lab.style.transform = `translate(${x}px, ${y + 78}px) translate(-50%, 0)`; lab.style.opacity = O.planets * 0.9; }
     // comet
     if (CM.a > 0.01) {
       const col = new THREE.Color(CM.c);
@@ -97,8 +103,10 @@ export function build() {
     const t = 42.3 + i * 0.22;
     tl.fromTo("#op" + i, { scale: 0.1, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.8, ease: "back.out(2)" }, t);
     cue("pop", t);
-    blink($("#op" + i), 43.7 + i * 0.3);
+    hover("#op" + i, p.role, t + 0.35, 1.3);
   });
+  tl.fromTo("#opm", { scale: 0.1, autoAlpha: 0 }, { scale: 1, autoAlpha: 0.95, duration: 0.8, ease: "back.out(2)" }, 43.2);
+  csActivate("#opm", 43.7, 1.6);
   tl.fromTo(O, { planets: 0 }, { planets: 1, duration: 0.6 }, 42.6);
   key(0, Math.PI); key(43.6, Math.PI); key(45.4, 0);
   tl.to(CM, { a: 1, duration: 0.3 }, 43.5);
@@ -109,7 +117,7 @@ export function build() {
   // dive into the business planet
   const B = at(Math.PI);
   tl.to(S.cam, { x: B.x + 40, y: 120, z: B.z + 380, tx: B.x, ty: 20, tz: B.z, duration: 0.65, ease: "power3.in" }, 45.35);
-  tl.to(["#s6k", "#s6t", "#ol1", "#ol2", "#ol3"], { autoAlpha: 0, duration: 0.3 }, 45.3);
+  tl.to(["#s6k", "#s6t", "#ol1", "#ol2", "#ol3", "#olm", "#opm"], { autoAlpha: 0, duration: 0.3 }, 45.3);
   tl.to(O, { on: 0, duration: 0.3 }, 45.7);
   setOff("#s6", 46.0);
   blur(45.35, 46.1, 8);
@@ -117,7 +125,9 @@ export function build() {
 
   /* ============================================================ S8 (70 - 78) */
   tl.set(["#s6k", "#s6t"], { autoAlpha: 0 }, 69.0);
-  tl.set(["#ol1", "#ol2", "#ol3"], { autoAlpha: 1 }, 69.0);
+  tl.set(["#ol1", "#ol2", "#ol3", "#olm"], { autoAlpha: 1 }, 69.0);
+  tl.set("#opm", { autoAlpha: 0.95 }, 69.0);
+  csActivate("#opm", 70.6, 2.0);
   tl.set(O, { fwd: 1, ring: 1, back: 0, planets: 1 }, 69.0);
   sceneIn("#s6", 69.95, 0.35);
   tl.set(O, { on: 1 }, 69.95);
@@ -144,6 +154,7 @@ export function build() {
     tl.fromTo("#ob" + i, { autoAlpha: 0, scale: 0.2, rotation: -40 }, { autoAlpha: 1, scale: 1, rotation: 0, duration: 0.5, ease: "back.out(2.5)", immediateRender: false }, t);
     tl.fromTo("#op" + i, { scale: 1 }, { scale: 1.16, duration: 0.15, yoyo: true, repeat: 1, immediateRender: false }, t);
     cue(bad ? "error" : "ding", t, { note: i });
+    if (!bad) hover("#op" + i, SEATS[i].role, t, 1.2);
   };
   const flare = (i, t, hex, a = 0.6) => {
     const st = { a: 0 };

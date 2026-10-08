@@ -1,7 +1,7 @@
 // Scenes 1-4: one sentence, lost in translation, AI everywhere, and the NoX ignition.
 import { tl, hooks, cue, blur, $, $$, hash, sceneIn, setOff, maskWords, blurChars, rise, pop, typeText, scramble, cam2d, cam2dSet, blink, colorTo, HEX } from "./engine.js";
 import { S, D, project, updaters, P, THREE } from "./world.js";
-import { ROLES, mountPlanet } from "./planets.js";
+import { ROLES, mountPlanet, hover } from "./planets.js";
 import { keyPath, comet, implode, burst } from "./fx.js";
 
 export const capsule = { a: 0, c: "#FFD27A" };
@@ -107,6 +107,7 @@ export function build() {
     tl.to(["#s2n" + (i + 1), "#s2l" + (i + 1)], { opacity: 1, duration: 0.3 }, h + 0.35);
     tl.to(["#s2n" + i, "#s2l" + i], { opacity: 0.38, duration: 0.4 }, h + 0.3);
     tl.fromTo("#s2n" + (i + 1), { scale: 1 }, { scale: 1.2, duration: 0.16, yoyo: true, repeat: 1, ease: "power1.out", immediateRender: false }, h + 0.5);
+    if (NODES[i + 1].role) hover("#s2n" + (i + 1), NODES[i + 1].role, h + 0.45, 1.0);
     scramble("#s2q", QUOTES[i + 1], h + 0.32, 0.8);
     tl.to(["#s2qa", "#s2qb"], { color: HUES[i + 1], duration: 0.3 }, h + 0.4);
     tl.to("#s2fill", { scaleX: meter[i + 1], duration: 0.6, ease: "power2.out" }, h + 0.45);

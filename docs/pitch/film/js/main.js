@@ -17,6 +17,15 @@ async function boot() {
     catch (e) { if (!String(e).includes("Failed to fetch")) { console.error(s, e); throw e; } }
   }
   tl.set({}, {}, DUR);
+  // every planet blinks now and then, never in step with the others
+  const eyes = $$(".eye");
+  hooks.push((t) => {
+    eyes.forEach((e, i) => {
+      const k = Math.floor(i / 2), period = 3.6 + (k % 5) * 0.55, u = ((t + k * 1.37) % period) / 0.16;
+      const s = u < 1 ? 1 - 0.92 * Math.sin(Math.PI * u) : 1;
+      e.setAttribute("transform", `scale(1 ${s.toFixed(3)})`);
+    });
+  });
   window.renderFrame = (t) => { seedFrame(t); tl.seek(t, false); for (const h of hooks) h(t); renderGL(t); };
   window.__cues = cues;
   window.__blurAt = blurAt;

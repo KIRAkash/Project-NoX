@@ -89,3 +89,84 @@ export function mountPlanet(el, role, size, face = true) {
 }
 
 
+
+/* ---------- the role picker's hover animations, played on the timeline ---------- */
+import { tl } from "./engine.js";
+
+/** play `role`'s hover animation on every planet matched by `sel` at t, and let it go after `hold` s */
+export function hover(sel, role, t, hold = 1.6) {
+  const q = (c) => document.querySelectorAll(`${sel} .${c}`);
+  const on = (targets, from, to, at = t, d = 0.35, ease = "power2.out") => {
+    if (!targets.length) return;
+    tl.fromTo(targets, from, { ...to, duration: d, ease, immediateRender: false }, at);
+    tl.fromTo(targets, to, { ...from, duration: 0.4, ease: "power2.inOut", immediateRender: false }, t + hold);
+  };
+  if (role === "business") {
+    on(q("bulb-glass"), { attr: { "fill-opacity": 0.22 } }, { attr: { "fill-opacity": 1 } });
+    on(q("bulb-halo"), { opacity: 0 }, { opacity: 1 }, t, 0.45);
+    on(q("filament"), { attr: { stroke: "#8C6A22" } }, { attr: { stroke: "#FFFFFF" } });
+    on(q("eyes"), { y: 0 }, { y: -1.4 }, t + 0.05);
+    on(q("specs"), { y: 0 }, { y: -7.5 }, t + 0.1, 0.45, "back.out(1.8)");
+    const b = q("bulb");
+    if (b.length) tl.fromTo(b, { rotation: 0 }, { keyframes: { rotation: [7, -5, 2.5, 0] }, duration: 0.9, ease: "sine.inOut", svgOrigin: "62 -44", immediateRender: false }, t);
+  } else if (role === "product") {
+    on(q("brow"), { y: 0, rotation: 0 }, { y: -3.2, rotation: -6, transformOrigin: "50% 50%" });
+    on(q("lid"), { scaleY: 0.72 }, { scaleY: 1 });
+    on(q("pencil"), { rotation: -62, x: 0, y: 0 }, { rotation: -80, x: 4, y: 3 });
+    on(q("check"), { attr: { "stroke-dashoffset": 30 } }, { attr: { "stroke-dashoffset": 0 } }, t + 0.2, 0.3);
+  } else if (role === "engineering") {
+    on(q("mic"), { rotation: 0 }, { rotation: -7, svgOrigin: "6 62" }, t, 0.4, "back.out(2)");
+    const led = q("mic-led");
+    if (led.length) tl.fromTo(led, { opacity: 1 }, { opacity: 0.15, duration: 0.12, repeat: 5, yoyo: true, ease: "none", immediateRender: false }, t + 0.2);
+    const sig = q("signal");
+    if (sig.length) {
+      tl.fromTo(sig, { opacity: 0, scale: 0.6, transformOrigin: "100% 50%" }, { opacity: 1, scale: 1, duration: 0.35, stagger: 0.14, immediateRender: false }, t + 0.15);
+      tl.to(sig, { opacity: 0, duration: 0.3, stagger: 0.14 }, t + 0.9);
+    }
+  } else if (role === "developer") {
+    on(q("code"), { opacity: 0, y: 0 }, { opacity: 1, y: -3 });
+    const e = q("eyes");
+    if (e.length) tl.fromTo(e, { x: 0 }, { keyframes: { x: [-2, 2.2, -2, 2.2, 0] }, duration: 1.3, ease: "none", immediateRender: false }, t);
+  }
+}
+
+/** the role picker's placeholder: an outlined planet with a plus, and a moon for each role that is coming */
+export const UPCOMING = [["Sales", "#F3A27E"], ["Design", "#E79AD0"], ["Security & Compliance", "#7FD6A4"], ["QA", "#C3D86A"]];
+const CS_TILT = (-16 * Math.PI) / 180, CS_ANG = [20, 65, 115, 160];
+export const csOrbit = (deg) => { const r = (deg * Math.PI) / 180, x = 72 * Math.cos(r), y = 19 * Math.sin(r); return [50 + x * Math.cos(CS_TILT) - y * Math.sin(CS_TILT), 50 + x * Math.sin(CS_TILT) + y * Math.cos(CS_TILT)]; };
+export const csQueue = (i) => [108 + i * 11, 14 - i * 7];
+export function comingSoonSVG() {
+  const u = "cs" + (uidN++);
+  const moons = UPCOMING.map(([, hue], i) => { const [x, y] = csQueue(i), s = 0.58 - i * 0.07; return `<g class="cs-moon" data-i="${i}" transform="translate(${x} ${y}) scale(${s})"><circle r="5.5" fill="${hue}" fill-opacity=".4"/></g>`; }).join("");
+  return `<svg viewBox="0 0 100 100" width="100%" height="100%" overflow="visible">
+    <defs><radialGradient id="${u}b" cx="32%" cy="28%" r="80%"><stop offset="0%" stop-color="#2A3150"/><stop offset="60%" stop-color="#141A2C"/><stop offset="100%" stop-color="#0A0D17"/></radialGradient>
+    <clipPath id="${u}f" clipPathUnits="userSpaceOnUse"><rect x="-40" y="50" width="180" height="40"/></clipPath></defs>
+    <g class="cs-orbit" opacity="0" transform="rotate(-16 50 50)"><ellipse cx="50" cy="50" rx="72" ry="19" fill="none" stroke="#7C86A3" stroke-opacity=".45" stroke-width=".8" stroke-dasharray="2 3"/></g>
+    <circle cx="50" cy="50" r="48" fill="url(#${u}b)"/>
+    <circle class="cs-ring" cx="50" cy="50" r="48" fill="none" stroke="#6E7793" stroke-width="1.2" stroke-dasharray="4 5"/>
+    <g class="cs-plus" stroke="#7C86A3" stroke-width="3" stroke-linecap="round"><line x1="50" y1="39" x2="50" y2="61"/><line x1="39" y1="50" x2="61" y2="50"/></g>
+    <g class="cs-orbit" opacity="0" transform="rotate(-16 50 50)"><ellipse cx="50" cy="50" rx="72" ry="19" fill="none" stroke="#7C86A3" stroke-opacity=".45" stroke-width=".8" stroke-dasharray="2 3" clip-path="url(#${u}f)"/></g>
+    ${moons}</svg>`;
+}
+/** the placeholder lights up: the orbit appears and the waiting moons swing into it, one after another */
+export function csActivate(sel, t, hold = 0) {
+  const all = (c) => document.querySelectorAll(`${sel} .${c}`);
+  tl.to(all("cs-orbit"), { opacity: 1, duration: 0.5 }, t);
+  tl.to(all("cs-ring"), { attr: { stroke: "#A6AEC7" }, rotation: 40, svgOrigin: "50 50", duration: 0.7 }, t);
+  tl.to(all("cs-plus"), { attr: { stroke: "#F7B542" }, duration: 0.5 }, t);
+  document.querySelectorAll(`${sel} .cs-moon`).forEach((m) => {
+    const i = +m.dataset.i, [x, y] = csOrbit(CS_ANG[i]);
+    tl.to(m, { attr: { transform: `translate(${x} ${y}) scale(1)` }, duration: 0.7, ease: "power3.out" }, t + i * 0.09);
+    tl.to(m.querySelector("circle"), { attr: { "fill-opacity": 1 }, duration: 0.7 }, t + i * 0.09);
+  });
+  if (hold) {
+    tl.to(all("cs-orbit"), { opacity: 0, duration: 0.5 }, t + hold);
+    tl.to(all("cs-ring"), { attr: { stroke: "#6E7793" }, rotation: 0, svgOrigin: "50 50", duration: 0.7 }, t + hold);
+    tl.to(all("cs-plus"), { attr: { stroke: "#7C86A3" }, duration: 0.5 }, t + hold);
+    document.querySelectorAll(`${sel} .cs-moon`).forEach((m) => {
+      const i = +m.dataset.i, [x, y] = csQueue(i), s = 0.58 - i * 0.07;
+      tl.to(m, { attr: { transform: `translate(${x} ${y}) scale(${s})` }, duration: 0.7, ease: "power3.inOut" }, t + hold + (3 - i) * 0.09);
+      tl.to(m.querySelector("circle"), { attr: { "fill-opacity": 0.4 }, duration: 0.7 }, t + hold);
+    });
+  }
+}
