@@ -180,7 +180,8 @@ async def run(agent, message: str, *, state: dict | None = None, user_id: str = 
 
 
 async def stream(agent, message: str, *, state: dict | None = None, user_id: str = "nox",
-                 session_id: str | None = None, sessions=None) -> AsyncIterator[dict]:
+                 session_id: str | None = None, sessions=None, parts: list | None = None,
+                 cache: bool | None = None) -> AsyncIterator[dict]:
     """Run an agent with token streaming and yield UI-ready events:
 
       {"type": "step", "tool": name, "args": {...}}      a tool call started
@@ -198,8 +199,8 @@ async def stream(agent, message: str, *, state: dict | None = None, user_id: str
 
     answer = ""      # everything shown to the user, across model turns
     turn = ""        # text streamed in the current model turn
-    async for event in _runner(agent, service, cache=context_cache_on()).run_async(
-        user_id=user_id, session_id=sid, new_message=_message(message), state_delta=state,
+    async for event in _runner(agent, service, cache=context_cache_on() if cache is None else cache).run_async(
+        user_id=user_id, session_id=sid, new_message=_message(message, parts), state_delta=state,
         run_config=RunConfig(streaming_mode=StreamingMode.SSE),
     ):
         _account(event)

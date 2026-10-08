@@ -1,11 +1,12 @@
 """Flight recorder: rows queued for BigQuery (fake client), never raising, and the Impact numbers from Postgres."""
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 
 from nox_api.core.config import settings
+from nox_api.core.time_utils import now_utc_naive
 from nox_api.services import analytics
 
 from .test_missions import _client, _setup_app, _wait_drafts
@@ -85,7 +86,7 @@ async def _seed_mission(kb_id: str) -> str:
     from nox_api.db.database import AsyncSessionLocal
     from nox_api.db.models import KnowledgeBase, Mission, MissionEvent, MissionStage, Role
 
-    t0 = datetime.utcnow() - timedelta(days=2)
+    t0 = now_utc_naive() - timedelta(days=2)
     h = timedelta(hours=1)
     steps = [  # (hours after creation, type, stage after it)
         (0, "mission.created", "business"), (1, "file.approved", "product"), (3, "file.approved", "engineering"),
@@ -113,7 +114,7 @@ async def _seed_mission(kb_id: str) -> str:
 async def test_impact_from_postgres_computes_stage_durations_and_send_backs(db_clean):
     kb = await _setup_app()
     org_id = await _seed_mission(kb)
-    async with _client("business") as biz:  # the business seat has no SEE_ATLAS, and still reads Impact
+    async with _client("business") as biz:  # the business seat reads Impact too
         r = await biz.get(f"/api/v1/orgs/{org_id}/impact", params={"days": 30})
     assert r.status_code == 200
     got = r.json()

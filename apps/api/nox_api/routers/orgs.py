@@ -223,7 +223,7 @@ async def org_map(org_id: str, db: AsyncSession = Depends(get_db), actor: Actor 
 async def org_impact(org_id: UUID, days: int = 30, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
     """The Impact page: measured flight times, send-backs, grounding and AI cost for an org and its teams.
 
-    Every seat may read it (the business seat has no SEE_ATLAS), as long as the org is theirs. From the BigQuery
+    Every seat may read it, as long as the org is theirs. From the BigQuery
     views with NOX_ANALYTICS=bigquery, otherwise computed from Postgres.
     """
     from ..services import analytics

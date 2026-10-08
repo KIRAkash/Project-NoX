@@ -38,6 +38,7 @@ The API enforces these capabilities on every call. A request the seat isn't allo
 | Invite members | | | ✓ | |
 | Manage connector credentials | | | ✓ | |
 | Set a mission's priority | | ✓ | | |
+| Set the Sightings schedule, Look now | | ✓ | ✓ | |
 | Edit a spec file | own file | own file | own file | own file |
 
 Every seat can *read* every spec file of a mission it can see. Only the file's own seat can *edit* it. Other seats' tabs are shown locked, with who wrote the file, when it was approved, and whether it is still an unapproved AI draft.
@@ -52,6 +53,8 @@ Each seat has its own home, named for the work it does. All four greet you with 
 | **Product owner** | **Product board** | A triage queue of incoming requests with P1–P4 set in place, a *Now / Next / Later / Untriaged* roadmap, the requests waiting on your spec, and what is back for acceptance. |
 | **Engineering lead** | **Flight director** | The blast radius: the organization's contract map with every application an open mission touches ringed in that mission's stage colour. Beside it, the design review queue and connector health; below, what's in build, what's back for a scope check and knowledge-base status. |
 | **Developer** | **Build bay** | The build queue with a copyable `/nox NOX-n` for each mission ready to build, a terminal panel that shows whether the `nox` CLI has signed in (and how to set it up if not), linked pull requests with their guard result, and your applications. |
+
+Below each seat's main work, **Spotted by NoX** shows the top three changes NoX suggests for that seat (see [Sightings](/docs/sightings)). The business user sees them as **Ideas from NoX**, only when there are some.
 
 Each seat also has its own texture behind the page (a warm wash, a board, a blueprint grid, terminal scanlines) and one primary action: **New mission** (product owner), **Review designs** (engineering lead) and **Onboard application** (developer). The business user's request box is the page itself.
 
@@ -83,10 +86,10 @@ Each seat has a short navigation of its own. The missions entry takes the seat's
 
 | Seat | Navigation |
 | --- | --- |
-| **Business user** | Home · My requests |
-| **Product owner** | Home · Backlog · Atlas · Specs |
-| **Engineering lead** | Home · Design reviews · Atlas · Activity |
-| **Developer** | Home · Build queue · Atlas · CLI |
+| **Business user** | Home · My requests · Sightings · Atlas · Impact |
+| **Product owner** | Home · Backlog · Sightings · Atlas · Specs · Impact |
+| **Engineering lead** | Home · Design reviews · Sightings · Atlas · Activity · Impact |
+| **Developer** | Home · Build queue · Sightings · Atlas · CLI · Impact |
 
 **Atlas** holds organizations, teams, applications, knowledge bases, the contract map and connectors. **Specs** is the library of spec files across missions, and **Activity** the organization-wide feed (both pages are in place; the cross-mission views are on the [roadmap](/docs/roadmap)). **CLI** shows how to connect the `nox` CLI and the tokens it has signed in with.
 

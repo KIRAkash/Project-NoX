@@ -21,18 +21,11 @@ export function Panel({
   className?: string;
 }) {
   return (
-    // A lifted slate surface over the void, so panels separate from the starfield and the dark cards inside
-    // read as wells. The header carries the acting seat's hue (`--role`, set by the shell).
+    // A flat slate surface over the void. The acting seat's hue (`--role`, set by the shell) shows in one place: the title dot.
     <section className={`surface-panel overflow-hidden rounded-md ${className}`}>
-      <header
-        className="flex items-center justify-between gap-3 border-b px-5 py-3.5"
-        style={{
-          background: "linear-gradient(90deg, color-mix(in srgb, var(--role-glow) 10%, transparent), transparent 70%)",
-          borderColor: "color-mix(in srgb, var(--role) 22%, rgb(var(--line)/.14))",
-        }}
-      >
-        <h2 className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: "color-mix(in srgb, var(--role) 75%, var(--ink))" }}>
-          <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--role)", boxShadow: "0 0 8px var(--role-glow)" }} />
+      <header className="flex items-center justify-between gap-3 border-b border-hairline px-5 py-3.5">
+        <h2 className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-muted">
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--role)" }} />
           {title}
         </h2>
         {action}

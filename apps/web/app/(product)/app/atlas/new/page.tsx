@@ -82,7 +82,7 @@ export default function OnboardPage() {
         method: "POST",
         json: { appName: name.trim(), sourceUrls: filled.map((r) => ({ type: r.type, url: r.url.trim() })) },
       });
-      toast(`${kb.appName} launched — building its knowledge base`, "success");
+      toast(`${kb.appName} launched. Building its knowledge base`, "success");
       router.push(`/app/atlas/apps/${kb.id}`);
     } catch (e) {
       toast(e instanceof ApiError ? e.detail : "Couldn't launch", "error");
@@ -134,7 +134,7 @@ export default function OnboardPage() {
                   ))}
                 </select>
               ) : (
-                <p className="text-[13px] text-ink-faint">You need an organization first — an engineering lead can create one in the atlas.</p>
+                <p className="text-[13px] text-ink-faint">You need an organization first. An engineering lead can create one in the atlas.</p>
               )}
             </Field>
           </div>

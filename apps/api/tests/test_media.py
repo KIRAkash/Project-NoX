@@ -393,7 +393,7 @@ async def test_drafting_sees_the_capture(kb, media_llm, monkeypatch):
 
     prompts: dict[str, str] = {}
 
-    async def spy(mission, role, upstream, context, current=None, instruction=None, apps=None, evidence=None):
+    async def spy(mission, role, upstream, context, current=None, instruction=None, apps=None, evidence=None, **kw):
         prompts[role.value] = drafting.build_prompt(mission, role, upstream, context, evidence=evidence)
         return f"# {role.value}\n\n## Verification checklist\n- [ ] it works\n"
 

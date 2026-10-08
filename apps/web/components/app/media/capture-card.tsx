@@ -175,7 +175,7 @@ export const CaptureCard = forwardRef<PlayerHandle, {
               {c.actual && <><span className="text-ink-dim">Actual:</span> {c.actual}.</>}
             </p>
           )}
-          {c.explanation && <p className="border-l-2 border-[color:var(--role)] pl-3 text-[13px] text-ink-muted">{c.explanation}</p>}
+          {c.explanation && <p className="text-[13px] text-ink-muted">{c.explanation}</p>}
           {!!c.findings?.length && (
             <section>
               <h3 className="mb-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-dim">What NoX found in the knowledge base</h3>

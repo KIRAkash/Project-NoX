@@ -92,13 +92,15 @@ def _state(mission, role, current: str, upstream: dict, apps: dict[str, str], ba
 
 
 async def edit_turn(mission, role, *, current: str, base_version: int, upstream: dict, context: str, apps: dict[str, str],
-                    instruction: str, can_edit: bool = True, stream_reply: bool = False, evidence: list | None = None) -> TurnResult:
+                    instruction: str, can_edit: bool = True, stream_reply: bool = False, evidence: list | None = None,
+                    lessons: str | None = None) -> TurnResult:
     """One co-writing turn. Returns the draft after NoX's edits and NoX's reply; saving is the caller's job."""
     from ...missions.events import broadcast_transient
 
     agent = LlmAgent(name="nox_cowriter", model=config.model(config.Tier.DEFAULT), instruction=EDITOR_SYSTEM,
                      tools=[*LOOKUP_TOOLS, *EDIT_TOOLS])
-    message = build_prompt(mission, role, upstream, context, current=current, instruction=instruction, editing=True, evidence=evidence)
+    message = build_prompt(mission, role, upstream, context, current=current, instruction=instruction, editing=True, evidence=evidence,
+                           lessons=lessons)
     state = _state(mission, role, current, upstream, apps, base_version, can_edit)
     home = state["home_app"]
     result = TurnResult(draft=current or "")
@@ -120,11 +122,13 @@ async def edit_turn(mission, role, *, current: str, base_version: int, upstream:
 
 
 async def draft(mission, role, *, upstream: dict, context: str, apps: dict[str, str],
-                current: str | None = None, instruction: str | None = None, evidence: list | None = None) -> str:
+                current: str | None = None, instruction: str | None = None, evidence: list | None = None,
+                origin: str | None = None, lessons: str | None = None) -> str:
     """A whole first draft (or a regenerated file), grounded by lookups when the context isn't enough."""
     agent = LlmAgent(name="nox_drafter", model=config.model(config.Tier.DEFAULT), instruction=DRAFTER_SYSTEM,
                      tools=LOOKUP_TOOLS if apps else [])
-    message = build_prompt(mission, role, upstream, context, current=current, instruction=instruction, evidence=evidence)
+    message = build_prompt(mission, role, upstream, context, current=current, instruction=instruction, evidence=evidence,
+                           origin=origin, lessons=lessons)
     state = {"apps": apps, "home_app": next(iter(apps), "")}
     with telemetry.usage_scope(f"draft:{role.value}"):
         result = await runtime.run(agent, message, state=state, user_id=f"mission-{mission.id}")

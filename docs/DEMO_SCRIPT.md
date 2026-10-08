@@ -103,6 +103,18 @@ A second mission, recorded for the video rather than run in the 5 minutes. Open 
 
 Say: *"Nobody had to find the words. NoX watched, looked it up in the knowledge base, and wrote it for each reader."*
 
+### CP20 beats (for the 3-minute video)
+
+Short beats that slot into the run above. Rehearse them on the Tidewell estate.
+
+1. **Say it (≈10 s, opening).** Business user home, at phone width → the mic under *What would you like to change?* → speak the request → stop. The words stream into the box, with app names spelled right. Edit one word, then *Send request*.
+2. **Lessons applied (≈15 s, product owner).** On a second mission for the same application, the product spec shows **1 lesson applied**. Open it: *Learned from NOX-n · Product owner*. Say: *"Last time someone had to send this back. This time NoX already knew."*
+3. **Remember this (≈10 s, verification).** Product owner → checklist → *Send back* with a reason → **Remember this for next time** is ticked → the timeline shows *NoX learned a lesson*. The application page in Atlas lists it under **What NoX has learned**.
+4. **Hand off to Jules (≈25 s, developer).** Build spec → **Hand off to Jules** → confirm. Jules's plan appears in *Jira & pull requests* → **Approve plan** → the PR appears with the guard result. (Run the hand-off before recording; Jules takes minutes. Show the finished session and cut.) Mention that `/nox` also runs in Antigravity and Gemini CLI.
+5. **Under the hood (≈10 s, deck or cut-in).** Cloud Trace: one mission draft as one trace, with the agents, tools and model calls nested in it.
+
+Before recording: `JULES_API_KEY` set and the Jules GitHub app on the Tidewell repos (Atlas → Connectors shows Jules connected); `NOX_MEMORY=memory_bank` with `NOX_MEMORY_BANK` set; `NOX_TRACE=cloud`; one earlier mission sent back with "Remember this" so the lesson exists.
+
 ## If something goes wrong
 
 | Symptom | Recovery |
@@ -113,6 +125,8 @@ Say: *"Nobody had to find the words. NoX watched, looked it up in the knowledge 
 | Guard comment missing | GitHub PR webhook not reaching the API — show the guard result in NoX's panel instead |
 | Capture card stuck on a step | Retry on the card; or upload the fallback clip from `demo/screens/captures/` |
 | Wrong seat in a browser | Avatar → Switch role (free role picker) |
+| Hand off to Jules is greyed out | Read the line under it: connect Jules on Atlas → Connectors, or install the Jules GitHub app on the repo |
+| The mic doesn't record | The browser needs microphone permission for the site (and HTTPS outside localhost); type instead |
 
 ## Reset after a rehearsal
 

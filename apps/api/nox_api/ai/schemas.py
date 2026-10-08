@@ -175,3 +175,111 @@ class EvidenceComparison(BaseModel):
 
     summary: str = ""
     hints: list[ChecklistHint] = Field(default_factory=list)
+
+
+class EvidenceCheckItem(BaseModel):
+    index: int = Field(description="0-based index of the checklist item")
+    fit: Literal["supports", "unclear", "contradicts"] = Field(
+        description="Whether the evidence attached to this item supports it, says nothing clear about it, or contradicts it")
+    why: str = Field(description="One short sentence: what in the evidence led to that")
+
+
+class EvidenceCheck(BaseModel):
+    """Verification: does the evidence attached to each checklist item back it up? A hint only; people decide."""
+
+    items: list[EvidenceCheckItem] = Field(default_factory=list)
+
+
+# ── Sightings (CP18): changes NoX suggests, per seat ────────────────────────
+
+SightingImpact = Literal["high", "medium", "low"]
+EvidenceKind = Literal["kb", "code", "contract", "mission", "capture", "jira", "shield"]
+
+
+class SightingEvidence(BaseModel):
+    kind: EvidenceKind
+    ref: str = Field(description="kb: '<app>/<page>' exactly as a tool returned it; code: 'path:line' from grep_source; "
+                     "contract: the interface identifier; mission: 'NOX-n'; capture: the capture id; jira: 'KEY-n'; "
+                     "shield: the finding category")
+    app: str = Field(default="", description="The application it belongs to")
+    says: str = Field(description="What it shows, one plain sentence")
+
+
+class SightingCandidate(BaseModel):
+    claim: str = Field(description="The opportunity in one specific sentence: what to change and why it is worth it")
+    kind: str = Field(description="One of the lens's opportunity kinds")
+    apps: list[str] = Field(default_factory=list, description="Applications it concerns")
+    evidence: list[SightingEvidence] = Field(default_factory=list, description="1–5 sources it rests on; nothing unread")
+    impact: SightingImpact = "medium"
+    impact_basis: str = Field(default="", description="Why that impact level. A number only if a source states it")
+    effort: Literal["S", "M", "L"] | None = None
+    open_questions: list[str] = Field(default_factory=list)
+
+
+class ScoutReport(BaseModel):
+    """One scout's finds in one application, through one seat's lens. Empty is a fine answer."""
+
+    candidates: list[SightingCandidate] = Field(default_factory=list)
+
+
+class SeatRelevance(BaseModel):
+    business: float = Field(default=0.0, ge=0, le=1)
+    product: float = Field(default=0.0, ge=0, le=1)
+    engineering: float = Field(default=0.0, ge=0, le=1)
+    developer: float = Field(default=0.0, ge=0, le=1)
+
+
+class ReviewedOpportunity(BaseModel):
+    index: int = Field(description="0-based index of the opportunity in the list")
+    keep: bool
+    why: str = Field(description="One short sentence")
+    claim: str = Field(default="", description="The opportunity restated in one seat-neutral sentence")
+    specific: int = Field(ge=1, le=5, description="Names a concrete place, flow or component, not a generality")
+    actionable: int = Field(ge=1, le=5, description="Someone could start a change from it today")
+    evidenced: int = Field(ge=1, le=5, description="The cited sources really support it")
+    worth: int = Field(ge=1, le=5, description="Worth the time of the seats it matters to")
+    relevance: SeatRelevance
+
+
+class OpportunityReview(BaseModel):
+    """The critic's pass over merged opportunities: keep the specific, grounded, worthwhile ones."""
+
+    items: list[ReviewedOpportunity] = Field(default_factory=list)
+
+
+class SeatSighting(BaseModel):
+    title: str = Field(description="Under 90 characters, in this seat's words")
+    why: str = Field(description="Two or three sentences: what NoX noticed and why it matters to this seat")
+    impact: str = Field(description="The impact in this seat's terms, one sentence; numbers only from the sources")
+    request: str = Field(description="The change request as this seat would type it to start a mission, 1–3 sentences")
+    how_we_know: list[str] = Field(default_factory=list, description="1–3 short lines in this seat's words: what the sources show")
+    questions: list[str] = Field(default_factory=list, description="0–2 open questions this reader could answer, in their words")
+    mission_type: Literal["feature", "bug", "change"] = "change"
+
+
+class SightingViews(BaseModel):
+    """One opportunity written for each seat asked for. Leave out seats that weren't asked for."""
+
+    business: SeatSighting | None = None
+    product: SeatSighting | None = None
+    engineering: SeatSighting | None = None
+    developer: SeatSighting | None = None
+
+
+# ── Team memory (CP20) ───────────────────────────────────────────────────────
+
+
+class Lesson(BaseModel):
+    fact: str = Field(description="One sentence, a rule for future changes to this application, in plain words. No people's names.")
+    seats: list[Literal["business", "product", "engineering", "developer"]] = Field(
+        default_factory=list, description="The seats whose files should apply it; empty means every seat")
+    quote: str = Field(description="The exact words from the feedback this lesson rests on, copied verbatim")
+    kind: Literal["team_rule", "quality_bar", "domain_fact"] = Field(
+        "team_rule", description="team_rule: how this team builds; quality_bar: what it checks before accepting work; "
+                                 "domain_fact: a fact about the business it corrected")
+
+
+class Lessons(BaseModel):
+    """What a person's feedback teaches for future missions on this application. Often nothing."""
+
+    items: list[Lesson] = Field(default_factory=list, max_length=3)

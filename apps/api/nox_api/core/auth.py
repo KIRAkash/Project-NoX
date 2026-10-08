@@ -16,7 +16,6 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
 from enum import StrEnum
 
 import httpx
@@ -28,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db.database import get_db
 from ..db.models import Membership, Org, Role, User
 from .config import settings
+from .time_utils import now_utc_naive
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ async def _upsert_user(db: AsyncSession, uid: str, email: str | None, name: str 
         user.name = name or user.name
         user.photo_url = photo or user.photo_url
     await _claim_invites(db, user)
-    user.last_seen_at = datetime.utcnow()
+    user.last_seen_at = now_utc_naive()
     await db.commit()
     await db.refresh(user)
     return user
@@ -147,7 +147,7 @@ async def current_user(
         row = (await db.execute(select(ApiToken).where(ApiToken.token_hash == hash_api_token(credential)))).scalars().first()
         if not row:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid API token")
-        row.last_used_at = datetime.utcnow()
+        row.last_used_at = now_utc_naive()
         user = await db.get(User, row.user_id)
         await db.commit()
     elif scheme == "Bearer" and credential:
@@ -179,13 +179,16 @@ class Cap(StrEnum):
     MANAGE_CONNECTORS = "manage_connectors"  # connector credentials
     PIN_CORRECTION = "pin_correction"
     CREATE_MISSION = "create_mission"
+    MANAGE_SIGHTINGS = "manage_sightings"    # schedule and run NoX's suggested changes (CP18)
+    CURATE_MEMORY = "curate_memory"          # teach NoX a lesson for an app, or make it forget one (CP20)
 
 
 ACCESS: dict[Role, set[Cap]] = {
-    Role.business: {Cap.CREATE_MISSION},
-    Role.product: {Cap.SEE_ATLAS, Cap.ONBOARD_APP, Cap.MANAGE_SOURCES, Cap.PIN_CORRECTION, Cap.CREATE_MISSION},
+    Role.business: {Cap.SEE_ATLAS, Cap.CREATE_MISSION},
+    Role.product: {Cap.SEE_ATLAS, Cap.ONBOARD_APP, Cap.MANAGE_SOURCES, Cap.PIN_CORRECTION, Cap.CREATE_MISSION, Cap.MANAGE_SIGHTINGS,
+                   Cap.CURATE_MEMORY},
     Role.engineering: set(Cap),
-    Role.developer: {Cap.SEE_ATLAS, Cap.ONBOARD_APP, Cap.MANAGE_SOURCES, Cap.PIN_CORRECTION, Cap.CREATE_MISSION},
+    Role.developer: {Cap.SEE_ATLAS, Cap.ONBOARD_APP, Cap.MANAGE_SOURCES, Cap.PIN_CORRECTION, Cap.CREATE_MISSION, Cap.CURATE_MEMORY},
 }
 
 

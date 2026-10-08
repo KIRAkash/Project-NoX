@@ -4,20 +4,22 @@ import asyncio
 import re
 import uuid
 from datetime import UTC, datetime
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..core.auth import Actor, Cap, current_actor, require, visible_org_ids
 from ..core.config import settings
+from ..core.time_utils import now_utc, now_utc_naive
 from ..db.database import get_db
 from ..db.models import (
     ExternalLink,
     KnowledgeBase,
+    MediaAsset,
     Membership,
     Mission,
     MissionApp,
@@ -36,7 +38,16 @@ from ..missions.drafting import draft_mission_files
 from ..missions.events import record
 from ..missions.gitsync import schedule_sync
 from ..missions.templates import FILE_NAME, ROLE_ORDER, TITLE, next_stage, stage_for, upstream_of
-from ..missions.verification import VERIFY_ORDER, next_verifier, parse_checklist, write_checklist
+from ..missions.verification import (
+    VERIFY_ORDER,
+    clean_evidence,
+    failing,
+    next_verifier,
+    norm_item,
+    parse_checklist,
+    update_kind,
+    write_checklist,
+)
 
 router = APIRouter(prefix="/api/v1/missions", tags=["Missions"])
 
@@ -79,6 +90,7 @@ def mission_json(m: Mission, apps: list[KnowledgeBase] | None = None, with_bodie
         "createdAt": m.created_at.isoformat(),
         "updatedAt": m.updated_at.isoformat() if m.updated_at else None,
         "completedAt": m.completed_at.isoformat() if m.completed_at else None,
+        "sightingId": str(m.sighting_id) if m.sighting_id else None,
         "files": [file_json(f, with_bodies) for f in files],
         "apps": [{"id": str(k.id), "name": k.app_name, "status": k.status.value} for k in (apps or [])],
         "links": [
@@ -173,6 +185,7 @@ class MissionCreate(BaseModel):
     type: str = Field(default="feature", pattern="^(feature|bug|change)$")
     jira_key: str | None = Field(default=None, alias="jiraKey", pattern=r"^[A-Za-z][A-Za-z0-9]+-\d+$")
     media_ids: list[uuid.UUID] = Field(default_factory=list, alias="mediaIds", max_length=12)  # draft captures (Show NoX)
+    sighting_id: uuid.UUID | None = Field(default=None, alias="sightingId")  # started from a NoX sighting (CP18)
 
 
 async def _draft_captures(db: AsyncSession, actor: Actor, ids: list[uuid.UUID]) -> list:
@@ -200,59 +213,29 @@ async def create_mission(body: MissionCreate, db: AsyncSession = Depends(get_db)
     if (await shield.screen_prompt(body.prompt, where="mission_prompt", org_id=primary.org_id)).blocked:
         raise HTTPException(422, "NoX Shield flagged this request as a possible prompt injection. Rephrase it in your own words and try again.")
     captures = await _draft_captures(db, actor, body.media_ids)
+    sighting_id = None
+    if body.sighting_id:  # Edit first on a sighting: the form was prefilled from it
+        from ..missions.sightings import claim_for_launch
 
-    creator = actor.role
-    for attempt in range(3):
-        number = ((await db.execute(select(func.max(Mission.number)))).scalar() or 0) + 1
-        mission = Mission(
-            number=number, org_id=primary.org_id, primary_kb_id=primary.id, title=body.prompt.strip()[:120],
-            prompt=body.prompt.strip(), type=body.type, stage=stage_for(creator), created_by=actor.user.id,
-            created_as_role=creator, awaiting_proceed=creator != Role.business,
-        )
-        db.add(mission)
-        try:
-            await db.flush()
-            break
-        except IntegrityError:
-            await db.rollback()
-            if attempt == 2:
-                raise
-    for kb in kbs:
-        db.add(MissionApp(mission_id=mission.id, kb_id=kb.id))
-    for role in ROLE_ORDER:
-        drafting = role == creator or role in upstream_of(creator)
-        db.add(SpecFile(mission_id=mission.id, role=role, status=SpecStatus.drafting if drafting else SpecStatus.empty,
-                        author_id=actor.user.id if role == creator else None))
-    for c in captures:  # a draft capture moves into the mission's org, where everyone on the mission can see it
-        c.mission_id, c.org_id = mission.id, mission.org_id
-    await db.commit()
-    await record(db, mission, "mission.created", {"key": mission.key, "prompt": mission.prompt}, actor.user, creator.value)
-    for c in captures:
-        await record(db, mission, "media.attached", {"mediaId": str(c.id), "kind": c.kind.value}, actor.user, creator.value)
-        if c.status.value == "ready":
-            spawn(f"evidence {mission.key}", _sync_evidence_bg, str(mission.id), str(c.id))
-    if body.jira_key:  # imported from Jira: link first so NoX's drafts can read the ticket
-        from ..missions.jira_sync import link_issue
+        sighting_id = (await claim_for_launch(db, actor, body.sighting_id)).id
+    from ..missions.create import start_mission
 
-        mission = await load_mission(db, actor, mission.key)
-        try:
-            await link_issue(db, mission, body.jira_key.upper(), actor)
-        except Exception as e:
-            await record(db, mission, "jira.sync_failed", {"key": body.jira_key.upper(), "error": str(e)[:200]})
-    spawn(f"draft {mission.key}", draft_mission_files, str(mission.id))
+    ordered = [primary, *[k for k in kbs if k.id != primary.id]]
+    mission = await start_mission(db, actor, prompt=body.prompt, kbs=ordered, type_=body.type, jira_key=body.jira_key,
+                                  captures=captures, sighting_id=sighting_id)
+    if sighting_id:
+        from ..missions.sightings import mark_launched
+
+        await mark_launched(db, actor, sighting_id, mission)
     mission = await load_mission(db, actor, mission.key)
     return mission_json(mission, kbs)
 
 
-async def _sync_evidence_bg(mission_id: str, media_id: str) -> None:
-    from ..db.database import AsyncSessionLocal
-    from ..db.models import MediaAsset
-    from ..missions.media import sync_evidence
-
-    async with AsyncSessionLocal() as db:
-        mission, m = await db.get(Mission, uuid.UUID(mission_id)), await db.get(MediaAsset, uuid.UUID(media_id))
-        if mission and m:
-            await sync_evidence(db, mission, m)
+# Events a requester would call "something happened" (not drafts in progress or saves).
+ACTIVITY_EVENTS = (
+    "mission.created", "mission.proceeded", "mission.sent_back", "mission.completed", "mission.assigned",
+    "file.approved", "verify.verified", "verify.not_met", "verify.blocked",
+)
 
 
 @router.get("")
@@ -289,13 +272,32 @@ async def list_missions(
 
     pick = {"all": lambda m: True, "waiting": waiting, "flight": flight, "back": back, "mine": mine}[view]
     kb_names = dict((await db.execute(select(KnowledgeBase.id, KnowledgeBase.app_name))).all())
+    picked = [m for m in rows if pick(m)]
+    # Who asked, and the latest thing anyone did: one query each for the whole list.
+    creators: dict = {}
+    latest: dict = {}
+    if picked:
+        ids = {m.created_by for m in picked if m.created_by}
+        if ids:
+            creators = {u.id: u for u in (await db.execute(select(User).where(User.id.in_(ids)))).scalars()}
+        events = (
+            await db.execute(
+                select(MissionEvent).where(MissionEvent.mission_id.in_([m.id for m in picked]), MissionEvent.type.in_(ACTIVITY_EVENTS))
+                .order_by(MissionEvent.created_at.desc())
+            )
+        ).scalars()
+        for ev in events:
+            latest.setdefault(ev.mission_id, ev)
     out = []
-    for m in rows:
-        if pick(m):
-            apps = (await db.execute(select(MissionApp.kb_id).where(MissionApp.mission_id == m.id))).scalars().all()
-            j = mission_json(m)
-            j["apps"] = [{"id": str(a), "name": kb_names.get(a, "?")} for a in apps]
-            out.append(j)
+    for m in picked:
+        apps = (await db.execute(select(MissionApp.kb_id).where(MissionApp.mission_id == m.id))).scalars().all()
+        j = mission_json(m)
+        j["apps"] = [{"id": str(a), "name": kb_names.get(a, "?")} for a in apps]
+        u = creators.get(m.created_by)
+        j["requestedBy"] = {"name": (u.name or u.email) if u else None, "role": m.created_as_role.value}
+        ev = latest.get(m.id)
+        j["lastActivity"] = {"type": ev.type, "by": ev.actor_name, "role": ev.acting_role, "at": ev.created_at.isoformat()} if ev else None
+        out.append(j)
     return out
 
 
@@ -427,7 +429,7 @@ async def approve_file(key: str, role: str, db: AsyncSession = Depends(get_db), 
     if missing:
         raise HTTPException(409, f"Upstream files aren't written yet: {', '.join(missing)}")
     f.status = SpecStatus.approved
-    f.approved_at = datetime.utcnow()
+    f.approved_at = now_utc_naive()
     f.approved_by = actor.user.id
     advanced = False
     if mission.stage == stage_for(r):
@@ -455,6 +457,14 @@ async def approve_file(key: str, role: str, db: AsyncSession = Depends(get_db), 
 class SendBack(BaseModel):
     to_role: Role = Field(alias="toRole")
     reason: str = Field(min_length=3, max_length=1000)
+    remember: bool = True  # "Remember this for next time": NoX learns a lesson from the reason (CP20)
+
+
+def _remember(mission: Mission, event, feedback: str, actor: Actor, to_role: Role) -> None:
+    """Learn from a person's feedback in the background (missions/memory.py)."""
+    from ..missions.memory import learn
+
+    spawn(f"learn {mission.key}", learn, mission.id, str(event.id), feedback, actor.role.value, to_role.value, actor.user.id)
 
 
 @router.post("/{key}/send-back")
@@ -468,7 +478,10 @@ async def send_back(key: str, body: SendBack, db: AsyncSession = Depends(get_db)
     if f.status == SpecStatus.approved:
         f.status = SpecStatus.draft
     await db.commit()
-    await record(db, mission, "mission.sent_back", {"toRole": body.to_role.value, "reason": body.reason}, actor.user, actor.role.value)
+    ev = await record(db, mission, "mission.sent_back", {"toRole": body.to_role.value, "reason": body.reason, "remember": body.remember},
+                      actor.user, actor.role.value)
+    if body.remember:
+        _remember(mission, ev, body.reason, actor, body.to_role)
     from ..missions.jira_sync import on_stage_change
 
     await on_stage_change(db, mission, actor, f"Sent back to {TITLE[body.to_role].lower()}: {body.reason}")
@@ -571,7 +584,18 @@ async def mark_completed(key: str, db: AsyncSession = Depends(get_db), actor: Ac
     if mission.stage != MissionStage.build:
         raise HTTPException(409, "Only a mission in Build can be marked as completed")
     for f in mission.files:
-        f.verification = {"items": parse_checklist(f.markdown), "result": None, "round": (f.verification or {}).get("round", 0) + 1}
+        prev = f.verification or {}
+        items = []
+        for it in map(norm_item, parse_checklist(f.markdown)):
+            # What failed last time comes back to be re-checked; what already passed stays passed.
+            if it["verdict"] in ("failed", "cant") or (prev.get("result") == "not_met" and it["verdict"] != "verified"):
+                it = {**it, "verdict": None, "checked": False, "recheck": True}
+            items.append(it)
+        f.verification = {"items": items, "result": None, "round": prev.get("round", 0) + 1}
+        if f.role == Role.developer:  # NoX attaches what it already knows: the pull requests on this mission
+            prs = [{"label": f"{link.external_id} · {(link.state or {}).get('state') or 'open'}", "url": link.url} for link in mission.links if link.system == "github_pr" and link.url]
+            if prs:
+                f.verification["auto"] = prs
     mission.stage = MissionStage.verifying
     mission.verify_role = VERIFY_ORDER[0]
     await db.commit()
@@ -592,8 +616,10 @@ def _verifying_own_file(mission: Mission, actor: Actor, r: Role) -> SpecFile:
 
 
 class ChecklistItem(BaseModel):
-    checked: bool
+    checked: bool | None = None  # older clients: a tick is "verified"
+    verdict: Literal["verified", "failed", "cant"] | None = None
     note: str | None = Field(default=None, max_length=1000)
+    evidence: list[dict[str, str]] | None = Field(default=None, max_length=6)  # None keeps what the item has
 
 
 class ChecklistSave(BaseModel):
@@ -614,10 +640,27 @@ async def save_checklist(key: str, role: str, body: ChecklistSave, db: AsyncSess
     r = role_param(role)
     mission = await load_mission(db, actor, key)
     f = _verifying_own_file(mission, actor, r)
-    current = (f.verification or {}).get("items") or parse_checklist(f.markdown)
+    current = [norm_item(i) for i in ((f.verification or {}).get("items") or parse_checklist(f.markdown))]
     if len(body.items) != len(current):
         raise HTTPException(409, "The checklist changed — reload and try again")
-    items = [{"text": c["text"], "checked": b.checked, "note": (b.note or "").strip() or None} for c, b in zip(current, body.items, strict=True)]
+    items = []
+    for c, b in zip(current, body.items, strict=True):
+        if b.verdict is not None:
+            verdict = b.verdict
+        elif b.checked is not None:
+            verdict = "verified" if b.checked else None
+        else:
+            verdict = c["verdict"]
+        try:
+            evidence = clean_evidence(b.evidence) if b.evidence is not None else c["evidence"]
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
+        items.append(norm_item({**c, "verdict": verdict, "note": (b.note or "").strip() or None, "evidence": evidence, "recheck": c.get("recheck") and verdict is None}))
+    mine = {e["mediaId"] for it in items for e in it["evidence"] if e["type"] == "capture"}
+    if mine:
+        found = {str(i) for i in (await db.execute(select(MediaAsset.id).where(MediaAsset.mission_id == mission.id, MediaAsset.id.in_([uuid.UUID(m) for m in mine])))).scalars().all()}
+        if mine - found:
+            raise HTTPException(400, "That capture isn't on this mission")
     await _write_back(db, mission, f, items, actor)
     await db.commit()
     done = sum(i["checked"] for i in items)
@@ -627,9 +670,21 @@ async def save_checklist(key: str, role: str, body: ChecklistSave, db: AsyncSess
 
 
 class Verdict(BaseModel):
-    verdict: str = Field(pattern="^(verified|not_met)$")
+    verdict: str = Field(pattern="^(verified|not_met|blocked)$")
     note: str | None = Field(default=None, max_length=2000)
     back_to: Role | None = Field(default=None, alias="backTo")  # not met: which seat fixes it (default: the developer, in Build)
+    remember: bool = True  # not met: NoX learns a lesson from the note and the failing items (CP20)
+
+
+def _update_items(items: list[dict]) -> list[dict]:
+    return [{"text": i["text"], "verdict": i["verdict"], "note": i["note"], "evidence": i["evidence"]} for i in items]
+
+
+async def _send_update(db: AsyncSession, mission: Mission, actor: Actor, kind: str, note: str | None, items: list[dict],
+                       to_role: Role | None, round_: int) -> None:
+    """One update on the timeline: what it is, from whom, to whom, about which items, in which round."""
+    await record(db, mission, "mission.update", {"kind": kind, "role": actor.role.value, "toRole": to_role.value if to_role else None,
+                                                 "note": note, "items": _update_items(items), "round": round_}, actor.user, actor.role.value)
 
 
 @router.post("/{key}/files/{role}/verify")
@@ -637,32 +692,59 @@ async def verify_file(key: str, role: str, body: Verdict, db: AsyncSession = Dep
     r = role_param(role)
     mission = await load_mission(db, actor, key)
     f = _verifying_own_file(mission, actor, r)
-    items = (f.verification or {}).get("items") or parse_checklist(f.markdown)
+    items = [norm_item(i) for i in ((f.verification or {}).get("items") or parse_checklist(f.markdown))]
     who = actor.user.name or actor.user.email
+    rnd = (f.verification or {}).get("round", 1)
+    kept = {k: v for k, v in (f.verification or {}).items() if k != "blocked"}
     from ..missions.jira_sync import on_stage_change
 
     if body.verdict == "verified":
+        if any(i["verdict"] == "cant" for i in items):
+            raise HTTPException(409, "An item is marked can't verify — settle it, or report the change as blocked")
         if any(not i["checked"] for i in items):
-            raise HTTPException(409, "Tick every item before marking it verified — or flag it as not met")
-        f.verification = {**(f.verification or {}), "items": items, "result": "verified", "verifiedAt": datetime.utcnow().isoformat(timespec="seconds"), "verifiedBy": who}
+            raise HTTPException(409, "Every item needs to be verified — or send it back")
+        f.verification = {**kept, "items": items, "result": "verified", "verifiedAt": now_utc().isoformat(timespec="seconds"), "verifiedBy": who}
         nxt = next_verifier(r)
         mission.verify_role = nxt
         if nxt is None:
             mission.stage = MissionStage.done
-            mission.completed_at = datetime.utcnow()
+            mission.completed_at = now_utc_naive()
         await db.commit()
+        if nxt is None and mission.sighting_id:
+            from ..missions.sightings import mark_shipped
+
+            await mark_shipped(db, mission)
         await record(db, mission, "verify.verified", {"role": r.value, "next": nxt.value if nxt else None}, actor.user, actor.role.value)
+        await _send_update(db, mission, actor, "completed", (body.note or "").strip() or None, [], nxt, rnd)
         schedule_sync(mission.id, r, f"{mission.key}: {TITLE[r].lower()} verified by {who}", approve=True)
         note = f"{TITLE[r]} verified by {who}" + ("" if nxt else " — mission done")
         await on_stage_change(db, mission, actor, note)
         return mission_json(mission, await mission_apps(db, mission), with_bodies=True)
 
-    if not (body.note or "").strip():
+    note = (body.note or "").strip()
+    if body.verdict == "blocked":
+        stuck = [i for i in items if i["verdict"] == "cant"]
+        if not stuck:
+            raise HTTPException(400, "Mark the items you can't verify first")
+        if not note:
+            raise HTTPException(400, "Say what you're waiting for so the right person can help")
+        f.verification = {**kept, "items": items, "blocked": {"note": note, "by": who, "at": now_utc().isoformat(timespec="seconds")}}
+        await db.commit()
+        await record(db, mission, "verify.blocked", {"role": r.value, "note": note}, actor.user, actor.role.value)
+        await _send_update(db, mission, actor, "blocked", note, stuck, None, rnd)
+        await on_stage_change(db, mission, actor, f"{TITLE[r]} blocked ({who}): {note}")
+        return mission_json(mission, await mission_apps(db, mission), with_bodies=True)
+
+    if not note:
         raise HTTPException(400, "Say what isn't met so the next person knows what to fix")
     back = body.back_to or Role.developer
     if ROLE_ORDER.index(back) > ROLE_ORDER.index(Role.developer):
         raise HTTPException(400, "Unknown seat")
-    f.verification = {**(f.verification or {}), "items": items, "result": "not_met", "note": body.note.strip(), "verifiedBy": who}
+    bad = failing(items)
+    for i in bad:
+        if i["verdict"] == "failed" and not i["note"]:
+            raise HTTPException(400, f"Say what's wrong with: {i['text'][:60]}")
+    f.verification = {**kept, "items": items, "result": "not_met", "note": note, "verifiedBy": who}
     mission.verify_role = None
     if back == Role.developer:
         mission.stage = MissionStage.build  # the requirement stands; the build needs another pass
@@ -672,9 +754,36 @@ async def verify_file(key: str, role: str, body: Verdict, db: AsyncSession = Dep
         if bf.status == SpecStatus.approved:
             bf.status = SpecStatus.draft
     await db.commit()
-    await record(db, mission, "verify.not_met", {"role": r.value, "note": body.note.strip(), "backTo": back.value}, actor.user, actor.role.value)
-    await on_stage_change(db, mission, actor, f"{TITLE[r]} not met ({who}): {body.note.strip()}")
+    ev = await record(db, mission, "verify.not_met", {"role": r.value, "note": note, "backTo": back.value, "remember": body.remember},
+                      actor.user, actor.role.value)
+    if body.remember:
+        _remember(mission, ev, "\n".join([note, *(f"- {i['text']}" + (f": {i['note']}" if i["note"] else "") for i in bad)]), actor, back)
+    await _send_update(db, mission, actor, update_kind(items), note, bad, back, rnd)
+    await on_stage_change(db, mission, actor, f"{TITLE[r]} not met ({who}): {note}" + (f" — failing: {'; '.join(i['text'][:50] for i in bad[:3])}" if bad else ""))
     return mission_json(mission, await mission_apps(db, mission), with_bodies=True)
+
+
+@router.get("/{key}/updates")
+async def mission_updates(key: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
+    """The verification updates on this mission, newest first: completed, partial, rework or blocked."""
+    mission = await load_mission(db, actor, key)
+    rows = (await db.execute(select(MissionEvent).where(MissionEvent.mission_id == mission.id, MissionEvent.type == "mission.update")
+                             .order_by(MissionEvent.created_at.desc()).limit(50))).scalars().all()
+    return [{"id": str(e.id), **e.payload, "actor": e.actor_name, "createdAt": e.created_at.isoformat()} for e in rows]
+
+
+@router.post("/{key}/files/{role}/verification/evidence-check", status_code=202)
+async def evidence_check(key: str, role: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
+    """Ask NoX whether the evidence on each item backs it up. A hint only; nothing changes but the hints."""
+    from ..missions.evidence_check import check_evidence
+
+    r = role_param(role)
+    mission = await load_mission(db, actor, key)
+    f = _verifying_own_file(mission, actor, r)
+    if not any(norm_item(i)["evidence"] for i in (f.verification or {}).get("items") or []):
+        raise HTTPException(409, "Attach evidence to an item first")
+    spawn(f"evidence-check {key}/{role}", check_evidence, str(mission.id), r, actor.user.id)
+    return {"status": "checking"}
 
 
 # ── Co-writing with NoX ──────────────────────────────────────────────────────

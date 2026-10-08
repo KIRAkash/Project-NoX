@@ -4,6 +4,10 @@ NoX connects the entire delivery trajectory from a business user's first sentenc
 
 ## Recently shipped
 
+- **Team memory.** Send-backs teach NoX lessons per application and seat, kept in the Agent Platform Memory Bank and cited in later drafts. See [Missions](/docs/missions#sending-a-mission-back).
+- **Voice.** A microphone on every NoX text box, and Listen on NoX's replies. See [Missions](/docs/missions#speaking-instead-of-typing).
+- **Hand off to Jules.** Google's coding agent builds a mission while people approve its plan and verify the result. See [Build and verify](/docs/build-and-verify#hand-off-to-jules).
+- **`/nox` in Gemini CLI**, as an extension with NoX's MCP tools, and **Cloud Trace** for every agent run.
 - **Agents that call each other.** NoX's knowledge tools over the Model Context Protocol, and its Ask agent over Agent2Agent. See [Integrations](/docs/integrations#mcp-nox-s-tools-inside-any-agent).
 - **NoX Shield.** Model Armor and Sensitive Data Protection on everything NoX reads and writes. See [Agentic AI on Google](/docs/google-ai#nox-shield-model-armor-and-sensitive-data-protection).
 - **The flight recorder.** Mission events and AI usage in BigQuery, and the Impact page.
@@ -19,7 +23,7 @@ Pieces that are designed and partly built:
 - **Notifications where people are.** "Waiting on you" and "coming back to you" pushed to Slack and Google Chat, with a link straight to the file.
 - **Approved specs published to Confluence**, for teams whose readers live there.
 - **Human review recorded in the knowledge base.** When someone merges a knowledge-base pull request, NoX writes OKF's `verified: [{by: human:<reviewer>, at: …}]` onto the pages they reviewed, so every OKF consumer can tell human-reviewed knowledge from machine-written knowledge. Pages with pinned corrections get the same treatment.
-- **Evidence beside the checklist.** When the developer marks a mission complete, NoX attaches hints next to each checklist item (the relevant part of the PR diff, the guard result, the test run) so verification is grounded in verifiable system evidence rather than manual searching. People still tick every item.
+- **Evidence from the systems that hold it.** NoX already attaches the mission's pull requests and lets people add evidence to each item. Next it reads CI results, the guard result and the relevant part of the PR diff by itself, so people confirm evidence instead of hunting for it.
 
 ## Spec-driven orchestration: architectural integrity at scale
 
@@ -27,15 +31,15 @@ Pieces that are designed and partly built:
 
 **Impact analysis before anyone writes a line.** The contract map already knows who calls what. The next step is a blast-radius view on every engineering design: each consumer of a changed contract, its owning team, and the tests that cover the path. That turns "which teams do I need to talk to?" from a week of messages into a list on the page.
 
-**Evidence-backed verification.** Connect the checklist to the systems that already know the answer: CI results for the test plan, the deploy pipeline for rollout steps, analytics for the success metric. NoX pre-fills each item's evidence; people confirm it. The product owner's "metric moved from baseline to target" becomes a chart in the file, not a promise.
+**Evidence pulled from the source.** Connect the checklist to the systems that already know the answer: CI results for the test plan, the deploy pipeline for rollout steps, analytics for the success metric. NoX pre-fills each item's evidence; people confirm it. The product owner's "metric moved from baseline to target" becomes a chart in the file, not a promise.
 
 **NoX inside the tools people already use.** An agent that joins the Jira ticket, the Slack thread and the Google Chat space where a request first appears, and offers to turn it into a mission there. A Google Docs add-on so a business user can ask for a change from the document they're already writing.
 
-**Voice for the first sentence.** A business user describes the change out loud, on a call or in the car, using Gemini's live audio, and NoX drafts the business requirement back for them to confirm.
+**A conversation, not just a microphone.** Today a person speaks into a text box and NoX writes it down. Next, with Gemini's live audio, NoX asks its clarifying questions back out loud, on a call or in the car, and drafts the business requirement for them to confirm.
 
 **One knowledge format for code and data.** Google's OKF reference agent already writes OKF bundles for BigQuery datasets: tables, metrics and join paths. Because NoX's knowledge bases are OKF too, the two can be linked: an application's page for the `orders` service can point at the BigQuery table it writes, and a question like "which services feed this metric?" can be answered across both. Every bundle can also be published to a shared catalog, so the company's code and data knowledge is discoverable in one place.
 
-**Managed agent hosting.** Moving the long-running agent teams onto **Vertex AI Agent Engine** gives them managed sessions, memory and scaling, so NoX's own services stay small and the knowledge-base builders scale with demand.
+**Managed agent hosting.** Team memory already lives in the Agent Platform Memory Bank. Moving the long-running agent teams onto **Agent Engine** too gives them managed sessions and scaling, so NoX's own services stay small and the knowledge-base builders scale with demand.
 
 ## The autonomous enterprise: a self-governing software network
 

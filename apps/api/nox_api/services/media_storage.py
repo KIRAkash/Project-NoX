@@ -95,6 +95,23 @@ def delete(uri: str) -> None:
         local_path(uri).unlink(missing_ok=True)
 
 
+# ── Spoken replies (Listen): cached by content hash, so a replay costs nothing ──
+
+def speech_uri(key: str) -> str:
+    if uses_gcs():
+        return f"gs://{settings.GCS_BUCKET_NAME}/voice/{key}.wav"
+    d = Path(_ROOT_DIR) / "logdir" / "voice"
+    d.mkdir(parents=True, exist_ok=True)
+    return f"local://{d / key}.wav"
+
+
+def write_bytes(uri: str, data: bytes, mime: str) -> None:
+    if uri.startswith("gs://"):
+        _blob(uri).upload_from_string(data, content_type=mime)
+    else:
+        local_path(uri).write_bytes(data)
+
+
 # ── Short-lived read tokens for the API's own content URLs ──────────────────
 
 def _sig(media_id: str, what: str, exp: int) -> str:

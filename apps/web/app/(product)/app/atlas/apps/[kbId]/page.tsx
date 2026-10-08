@@ -1,14 +1,16 @@
 "use client";
 
-import { Building2, ChevronRight, Code, Compass, ExternalLink, FileText, Folder, LayoutDashboard, List, type LucideIcon, Network, Pin, RefreshCw, RotateCcw, Search, Send, Sparkles, Square, Trash2, Users } from "lucide-react";
+import { Building2, ChevronRight, Code, Compass, ExternalLink, FileText, Folder, LayoutDashboard, List, type LucideIcon, MessageSquare, Network, Pin, RefreshCw, RotateCcw, Search, Send, Sparkles, Square, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BrandLogo, SourceLogos } from "@/components/app/brand-logo";
 import { BuildGraph, GRAPH_EVENTS } from "@/components/app/build-graph";
+import { LessonsPanel } from "@/components/app/lessons";
 import { KbMarkdown } from "@/components/app/markdown";
 import { EmptyState, FEED_LIST, KbStatusChip, type KbStatus, Panel, useToast } from "@/components/app/ui";
+import { ListenButton, VoiceInput } from "@/components/app/voice-input";
 import { api, ApiError } from "@/lib/app/api";
 import { useAuth } from "@/lib/app/auth";
 import { streamPost, subscribe } from "@/lib/app/stream";
@@ -310,6 +312,7 @@ function Overview({ app, live, onChanged }: { app: KbDetail; live: KbEvent[]; on
 
       <div className="space-y-5">
         <SourcesPanel app={app} canManage={canManage} onChanged={onChanged} />
+        <LessonsPanel kbId={app.id} />
         <QualityPanel app={app} />
       </div>
     </div>
@@ -340,7 +343,7 @@ function SourcesPanel({ app, canManage, onChanged }: { app: KbDetail; canManage:
         return;
       }
       await api(`/api/v1/kb/${app.id}/add-source`, { method: "POST", json: { type, url } });
-      toast("Source added — NoX is folding it into the knowledge base", "success");
+      toast("Source added. NoX is folding it into the knowledge base", "success");
       setUrl("");
       onChanged();
     } catch (err) {
@@ -530,7 +533,34 @@ function Explorer({ app }: { app: KbDetail }) {
           </div>
         ))}
       </nav>
-      <div className="space-y-5">
+      <aside className="space-y-5 lg:col-start-1 lg:row-start-2">
+        <button
+          type="button"
+          onClick={() => router.replace("?tab=ask", { scroll: false })}
+          className="flex h-9 w-full items-center justify-center gap-1.5 rounded-sm border border-hairline text-[13px] text-ink hover:border-ink-faint"
+        >
+          <MessageSquare size={13} /> Ask this wiki
+        </button>
+        {app.sourceUrls.length > 0 && (
+          <Panel title="Sources">
+            <ul className="space-y-2 text-[13px]">
+              {app.sourceUrls.map((s) => (
+                <li key={s.url} className="flex items-center gap-2">
+                  <BrandLogo name={s.type} size={14} />
+                  {/^https?:\/\//.test(s.url) ? (
+                    <a href={s.url} target="_blank" rel="noreferrer" title={s.url} className="min-w-0 flex-1 truncate text-ink-muted hover:text-ink">
+                      {SOURCE_LABEL[s.type] ?? s.type} · {s.url.replace(/^https?:\/\//, "")}
+                    </a>
+                  ) : (
+                    <span title={s.url} className="min-w-0 flex-1 truncate text-ink-muted">{SOURCE_LABEL[s.type] ?? s.type} · {s.url}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        )}
+      </aside>
+      <div className="space-y-5 lg:col-start-2 lg:row-start-1 lg:row-span-2">
         <article className="rounded-md border border-hairline bg-[rgb(var(--deck-rgb)/.66)] p-6 sm:p-8" aria-busy={loadingPage}>
           <div className="mb-4 font-mono text-[11px] text-ink-dim">{path}</div>
           {content !== null && <KbMarkdown content={content} onOpenPage={(p) => void open(p)} onOpenCrossKb={(a, p) => void openCross(a, p)} />}
@@ -550,7 +580,7 @@ function PinsPanel({ kbId, path, pins, onChanged }: { kbId: string; path: string
     e.preventDefault();
     try {
       await api(`/api/v1/kb/${kbId}/pins`, { method: "POST", json: { pagePath: path, text } });
-      toast("Correction pinned — it survives every future recompile", "success");
+      toast("Correction pinned. It survives every future recompile", "success");
       setText("");
       onChanged();
     } catch (err) {
@@ -733,7 +763,12 @@ function Ask({ app }: { app: KbDetail }) {
                     ))}
                   </div>
                 )}
-                {t.done && t.usage && <p className="mt-2 text-right font-mono text-[10.5px] text-ink-dim">{t.usage}</p>}
+                {t.done && (t.a || t.usage) && (
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    {t.a ? <ListenButton text={t.a} /> : <span />}
+                    {t.usage && <p className="font-mono text-[10.5px] text-ink-dim">{t.usage}</p>}
+                  </div>
+                )}
               </div>
             </li>
           );
@@ -741,6 +776,7 @@ function Ask({ app }: { app: KbDetail }) {
       </ol>
       <form onSubmit={ask} className="sticky bottom-20 mt-6 flex gap-2 lg:bottom-4">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Ask ${app.appName}…`} aria-label="Question" disabled={busy} className="h-11 min-w-0 flex-1 rounded-sm border border-hairline bg-deck px-4 text-[14px] text-ink outline-none focus:border-[color:var(--role)] disabled:opacity-60" />
+        {!busy && <VoiceInput value={q} onChange={setQ} className="shrink-0 self-center" />}
         {busy ? (
           <button type="button" onClick={() => stop.current?.abort()} aria-label="Stop" className="flex h-11 w-11 items-center justify-center rounded-sm border border-hairline text-ink">
             <Square size={14} />

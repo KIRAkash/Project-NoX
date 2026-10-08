@@ -11,12 +11,12 @@ import json
 import logging
 import re
 import time
-from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.config import settings
+from ..core.time_utils import now_utc
 from ..db.models import ExternalLink, Mission, MissionStage, Role, SpecFile
 from ..integrations.jira import JiraClient, JiraError, adf_to_text
 from .events import record
@@ -63,7 +63,7 @@ def issue_state(issue: dict) -> dict:
         "assignee": (f.get("assignee") or {}).get("displayName"),
         "type": (f.get("issuetype") or {}).get("name"),
         "description": adf_to_text(f.get("description"))[:4000],
-        "syncedAt": datetime.utcnow().isoformat(timespec="seconds"),
+        "syncedAt": now_utc().isoformat(timespec="seconds"),
     }
 
 
@@ -201,7 +201,7 @@ async def handle_webhook(db: AsyncSession, payload: dict) -> dict:
             changes.pop("status")  # our own transition echoing back
         if not changes and not comment:
             continue
-        link.state = {**(link.state or {}), **changes, "syncedAt": datetime.utcnow().isoformat(timespec="seconds")}
+        link.state = {**(link.state or {}), **changes, "syncedAt": now_utc().isoformat(timespec="seconds")}
         mission = await db.get(Mission, link.mission_id)
         await db.commit()
         payload_out = {"key": key, **changes, "by": actor}

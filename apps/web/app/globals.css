@@ -22,6 +22,10 @@
   /* raised surfaces: panels, popovers (top and bottom of their gradient) */
   --raise: 21 26 42;
   --raise-lo: 13 16 28;
+  /* flat panels */
+  --panel: #0f1322;
+  --panel-lo: #0b0e19;
+  --panel-rgb: 15 19 34;
   --glint: 236 239 248;
   --shadow: 0 0 0;
 
@@ -81,6 +85,9 @@ html[data-theme="light"] {
   --well: 250 247 245;
   --raise: 255 255 255;
   --raise-lo: 255 253 251;
+  --panel: #ffffff;
+  --panel-lo: #fffdfb;
+  --panel-rgb: 255 255 255;
   --glint: 255 255 255;
   --shadow: 60 44 30;
 
@@ -258,13 +265,16 @@ html[data-theme="light"] .starfield--far {
 .kb-prose code { font-family: var(--font-mono); font-size: 12.5px; background: rgb(var(--line) / .1); padding: 1px 5px; border-radius: 3px; color: var(--ink); }
 .kb-prose pre { background: var(--deck); border: 1px solid rgb(var(--line) / .14); border-radius: 10px; padding: 12px 14px; overflow-x: auto; }
 .kb-prose pre code { background: none; padding: 0; }
+.kb-prose :not(pre) > code { overflow-wrap: anywhere; } /* long file paths wrap instead of spilling out of the column */
 .kb-prose table { width: 100%; border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; }
 .kb-prose th, .kb-prose td { border: 1px solid rgb(var(--line) / .16); padding: 6px 10px; text-align: left; }
 .kb-prose th { color: var(--ink); background: rgb(var(--line) / .05); }
-.kb-prose blockquote { border-left: 2px solid var(--role); padding: 4px 0 4px 14px; color: var(--ink); background: rgb(var(--line) / .04); }
+.kb-prose blockquote { border-left: 1px solid var(--role); padding: 4px 0 4px 14px; color: var(--ink); background: rgb(var(--line) / .04); }
 .kb-prose a, .kb-prose .wikilink { color: var(--role); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgb(var(--line) / .4); }
 .kb-prose .wikilink-cross { font-style: italic; }
 .kb-prose .wikilink-cross::after { content: " ↗"; font-style: normal; }
+.kb-prose .lesson-chip { display: inline-flex; align-items: center; margin: 0 2px; padding: 0 6px; border: 1px solid rgba(95,210,159,.4); border-radius: 999px; font-size: 0.72em; line-height: 1.5; vertical-align: 0.12em; color: #7fddb2; background: transparent; cursor: pointer; }
+.kb-prose .lesson-chip:hover { background: rgba(95,210,159,.08); }
 
 /* ==========================================================================
    Seat Textures
@@ -406,21 +416,14 @@ html[data-theme="light"] [data-seat="developer"] .seat-main::before {
 }
 
 /* --- panels ----------------------------------------------------------------
-   A lifted surface over the void, so panels separate from the starfield and
-   the cards inside read as wells. On parchment it is a white deck with a soft
-   warm shadow. */
+   A flat slate surface over the void. On parchment it is a white deck with a
+   soft warm shadow, so panels lift off the page. */
 .surface-panel {
   border: 1px solid rgb(var(--line) / 0.2);
-  background: linear-gradient(180deg, rgb(var(--raise) / 0.86), rgb(var(--raise-lo) / 0.86));
-  box-shadow: inset 0 1px 0 rgb(var(--glint) / 0.05), 0 18px 40px -24px rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(2px);
-}
-.surface-panel--flat {
-  box-shadow: inset 0 1px 0 rgb(var(--glint) / 0.05);
+  background: var(--panel);
 }
 html[data-theme="light"] .surface-panel {
   border-color: rgb(var(--line) / 0.13);
-  background: #ffffff;
   box-shadow: 0 1px 2px rgba(60, 44, 30, 0.04), 0 10px 28px -14px rgba(60, 44, 30, 0.14);
 }
 html[data-theme="light"] .surface-panel--flat {

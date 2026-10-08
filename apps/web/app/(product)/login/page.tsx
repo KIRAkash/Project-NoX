@@ -41,13 +41,12 @@ function LoginInner() {
       </Link>
 
       <div className="relative mb-10 flex h-28 w-28 items-center justify-center">
-        <span className="absolute inset-0 animate-[spin_24s_linear_infinite] rounded-full border border-dashed border-[rgb(var(--nox-rgb)/.25)]" aria-hidden />
         <NoxMark size={34} />
       </div>
 
-      <div className="w-full max-w-[380px] rounded-md border border-hairline bg-[rgb(var(--deck-rgb)/.72)] p-7 backdrop-blur">
+      <div className="w-full max-w-[380px] rounded-md border border-hairline bg-[color:var(--panel-lo)] p-7">
         <h1 className="font-display text-[34px] leading-tight text-ink">Enter NoX</h1>
-        <p className="mt-2 text-[14px] leading-relaxed text-ink-muted">Sign in to chart your applications and work missions.</p>
+        <p className="mt-2 text-[14px] leading-relaxed text-ink-muted">Sign in to see your applications and missions.</p>
 
         {status === "loading" ? (
           <div className="mt-8 flex h-12 items-center justify-center" role="status" aria-label="Checking your session">

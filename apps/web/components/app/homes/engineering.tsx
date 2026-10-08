@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { ContractMap } from "@/components/app/contract-map";
 import { stageHue } from "@/components/app/mission-card";
+import { SightingsPanel } from "@/components/app/sighting-card";
 import { EmptyState, Panel } from "@/components/app/ui";
 import type { RoleDef } from "@/lib/app/roles";
 import { STAGE_LABEL, type Mission } from "@/lib/app/types";
@@ -69,6 +70,8 @@ export function EngineeringHome({ role }: { role: RoleDef }) {
           <ConnectorHealth />
         </div>
       </div>
+
+      <SightingsPanel role={role} />
 
       <div className="grid items-start gap-5 lg:grid-cols-3">
         <MissionPanel title="In build" view="flight" empty="Designs you've approved show here while they're built." />

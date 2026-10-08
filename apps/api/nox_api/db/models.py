@@ -1,6 +1,5 @@
 import enum
 import uuid
-from datetime import datetime
 
 from sqlalchemy import (
     JSON,
@@ -11,6 +10,7 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -18,6 +18,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+
+from nox_api.core.time_utils import now_utc_naive
 
 from .database import Base
 
@@ -48,7 +50,7 @@ class Org(Base):
     slug = Column(String, unique=True, index=True, nullable=False)
     github_org = Column(String, nullable=True)
     parent_org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc_naive)
 
     parent = relationship("Org", remote_side=[id], back_populates="children")
     children = relationship("Org", back_populates="parent")
@@ -68,8 +70,8 @@ class KnowledgeBase(Base):
     org_pr_url = Column(String, nullable=True)
     gcs_archive_path = Column(String, nullable=True)
     built_with = Column(String, nullable=True)  # "cloud:<model>" or "local:<model>" (NoX Local: source never left the laptop)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc_naive)
+    updated_at = Column(DateTime, default=now_utc_naive, onupdate=now_utc_naive)
 
     org = relationship("Org", back_populates="knowledge_bases")
     events = relationship("KBEvent", back_populates="kb")
@@ -82,7 +84,7 @@ class KBEvent(Base):
     kb_id = Column(UUID(as_uuid=True), ForeignKey("knowledge_bases.id"))
     event_type = Column(String, nullable=False)
     payload = Column(JSON, default=dict)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc_naive)
 
     kb = relationship("KnowledgeBase", back_populates="events")
 
@@ -99,7 +101,7 @@ class SourceMonitor(Base):
     config = Column(JSON, default=dict)
     incremental_enabled = Column(Boolean, default=True)
     monitor_mode = Column(Enum(MonitorMode), default=MonitorMode.webhook)
-    last_synced_at = Column(DateTime, default=datetime.utcnow)
+    last_synced_at = Column(DateTime, default=now_utc_naive)
 
     kb = relationship("KnowledgeBase", back_populates="source_monitors")
 
@@ -116,7 +118,7 @@ class OrgKB(Base):
     status = Column(Enum(KBStatus), default=KBStatus.queued)
     pr_url = Column(String, nullable=True)
     trigger_count = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc_naive)
 
     org = relationship("Org", back_populates="org_kbs")
 
@@ -131,8 +133,8 @@ class OrgInterfaceContract(Base):
     page_path = Column(String, nullable=False)  # e.g., "summaries/api-spec.md"
     anchor_slug = Column(String, nullable=True)  # e.g., "login", "matched-trades"
     description = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc_naive)
+    updated_at = Column(DateTime, default=now_utc_naive, onupdate=now_utc_naive)
 
     org = relationship("Org", back_populates="contracts")
     kb = relationship("KnowledgeBase", back_populates="contracts")
@@ -159,8 +161,8 @@ class User(Base):
     name = Column(String, nullable=True)
     photo_url = Column(String, nullable=True)
     last_role = Column(Enum(Role), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_seen_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc_naive)
+    last_seen_at = Column(DateTime, default=now_utc_naive)
 
     memberships = relationship(
         "Membership", back_populates="user", cascade="all, delete-orphan", foreign_keys="Membership.user_id"
@@ -176,7 +178,7 @@ class Membership(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False, index=True)
     invited_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    joined_at = Column(DateTime, default=datetime.utcnow)
+    joined_at = Column(DateTime, default=now_utc_naive)
 
     user = relationship("User", back_populates="memberships", foreign_keys=[user_id])
 
@@ -189,7 +191,7 @@ class ApiToken(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String, nullable=False, default="cli")
     token_hash = Column(String, unique=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc_naive)
     last_used_at = Column(DateTime, nullable=True)
 
 
@@ -205,7 +207,7 @@ class OrgInvite(Base):
     org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False, index=True)
     email = Column(String, nullable=False, index=True)
     invited_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc_naive)
 
 
 class KBPin(Base):
@@ -218,7 +220,7 @@ class KBPin(Base):
     text = Column(String, nullable=False)
     author_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     author_name = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc_naive)
 
 
 # ── Missions (CP7) ────────────────────────────────────────────────────────────
@@ -262,8 +264,9 @@ class Mission(Base):
     awaiting_proceed = Column(Boolean, nullable=False, default=False)
     proceeded_without_approval = Column(Boolean, nullable=False, default=False)
     completed_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    sighting_id = Column(UUID(as_uuid=True), ForeignKey("sightings.id", ondelete="SET NULL", use_alter=True), nullable=True)  # started from a NoX sighting (CP18)
+    created_at = Column(DateTime, default=now_utc_naive)
+    updated_at = Column(DateTime, default=now_utc_naive, onupdate=now_utc_naive)
 
     @property
     def key(self) -> str:
@@ -301,7 +304,7 @@ class SpecFile(Base):
     git_path = Column(String, nullable=True)
     git_commit_sha = Column(String, nullable=True)
     verification = Column(JSON, nullable=False, default=dict)       # {items: [{text, checked, note}], verified_at, verified_by}
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=now_utc_naive, onupdate=now_utc_naive)
 
     mission = relationship("Mission", back_populates="files")
 
@@ -315,7 +318,7 @@ class SpecFileVersion(Base):
     source = Column(String, nullable=False, default="human")       # human | nox
     saved_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     git_commit_sha = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc_naive)
 
 
 class SpecChatMessage(Base):
@@ -326,7 +329,7 @@ class SpecChatMessage(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     body = Column(Text, nullable=False)
     media_ids = Column(JSON, nullable=False, default=list)           # captures attached to this message (CP15)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc_naive)
 
 
 class ExternalLink(Base):
@@ -341,7 +344,7 @@ class ExternalLink(Base):
     url = Column(String, nullable=True)
     primary = Column(Boolean, nullable=False, default=False)
     state = Column(JSON, nullable=False, default=dict)                # last known status, etc.
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc_naive)
 
     mission = relationship("Mission", back_populates="links")
 
@@ -355,7 +358,7 @@ class MissionEvent(Base):
     acting_role = Column(String, nullable=True)
     type = Column(String, nullable=False)
     payload = Column(JSON, nullable=False, default=dict)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=now_utc_naive, index=True)
 
 
 # ── NoX Shield (CP14) ─────────────────────────────────────────────────────────
@@ -375,7 +378,7 @@ class ShieldFinding(Base):
     confidence = Column(String, nullable=True)
     excerpt_sha = Column(String, nullable=True)
     action = Column(String, nullable=False)      # withheld | refused | blocked_commit | monitored
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=now_utc_naive, index=True)
 # ── Show NoX (CP15) ───────────────────────────────────────────────────────────
 
 
@@ -429,5 +432,123 @@ class MediaAsset(Base):
     grounding = Column(JSON, nullable=True)                          # ai.schemas.MediaGrounding
     views = Column(JSON, nullable=False, default=dict)               # {seat: SeatView}
     usage = Column(JSON, nullable=False, default=dict)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc_naive)
     analyzed_at = Column(DateTime, nullable=True)
+
+
+# ── Sightings (CP18) ──────────────────────────────────────────────────────────
+
+
+class SightingStatus(str, enum.Enum):
+    open = "open"
+    snoozed = "snoozed"
+    dismissed = "dismissed"
+    launched = "launched"      # a mission was started from it
+    shipped = "shipped"        # that mission is done
+    outdated = "outdated"      # its evidence no longer holds
+
+
+class Sighting(Base):
+    """A change NoX suggests: one opportunity, with a view written for each seat it matters to.
+
+    `views` is {seat: SeatSighting + relevance}; `evidence` is every source it rests on, filtered per seat when served
+    (code locations never reach the business or product seat). `kb_ids` are the applications it cites: a viewer must
+    be able to see all of them.
+    """
+
+    __tablename__ = "sightings"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False, index=True)
+    run_id = Column(UUID(as_uuid=True), ForeignKey("sighting_runs.id", ondelete="SET NULL"), nullable=True)
+    kb_ids = Column(JSON, nullable=False, default=list)
+    kind = Column(String, nullable=False)
+    claim = Column(Text, nullable=False)
+    evidence = Column(JSON, nullable=False, default=list)
+    views = Column(JSON, nullable=False, default=dict)
+    open_questions = Column(JSON, nullable=False, default=list)
+    impact = Column(String, nullable=False, default="medium")      # high | medium | low
+    effort = Column(String, nullable=True)                         # S | M | L
+    status = Column(Enum(SightingStatus), nullable=False, default=SightingStatus.open, index=True)
+    status_reason = Column(Text, nullable=True)
+    mission_id = Column(UUID(as_uuid=True), ForeignKey("missions.id", ondelete="SET NULL"), nullable=True)
+    fingerprint = Column(String, nullable=False, index=True)       # hash of the sorted evidence refs
+    embedding = Column(JSON, nullable=True)                        # the claim's embedding, for dedupe across runs
+    snoozed_until = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=now_utc_naive, index=True)
+    updated_at = Column(DateTime, default=now_utc_naive, onupdate=now_utc_naive)
+
+
+class SightingRun(Base):
+    __tablename__ = "sighting_runs"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False, index=True)
+    trigger = Column(String, nullable=False)                       # schedule | manual
+    status = Column(String, nullable=False, default="running")     # running | done | failed
+    apps_scanned = Column(JSON, nullable=False, default=list)
+    apps_skipped = Column(JSON, nullable=False, default=list)
+    counts = Column(JSON, nullable=False, default=dict)            # {seat: new sightings}, plus candidates / kept / outdated
+    usage = Column(JSON, nullable=False, default=dict)
+    error = Column(Text, nullable=True)
+    started_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    started_at = Column(DateTime, default=now_utc_naive, index=True)
+    finished_at = Column(DateTime, nullable=True)
+
+
+class SightingFeedback(Base):
+    """What a person did with a sighting. Dismissals and their reasons steer the next runs away from repeats."""
+
+    __tablename__ = "sighting_feedback"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    sighting_id = Column(UUID(as_uuid=True), ForeignKey("sightings.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    seat = Column(Enum(Role), nullable=False)
+    action = Column(String, nullable=False)                        # useful | dismissed | snoozed | launched
+    reason = Column(String, nullable=True)                         # not_relevant | already_known | wrong | not_now | free text
+    created_at = Column(DateTime, default=now_utc_naive)
+
+
+class SightingSchedule(Base):
+    """When NoX looks for sightings in a top-level organization (and everything beneath it)."""
+
+    __tablename__ = "sighting_schedules"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False, unique=True)
+    cadence = Column(String, nullable=False, default="weekly")     # off | daily | weekly
+    weekday = Column(Integer, nullable=False, default=0)           # 0 = Monday
+    hour = Column(Integer, nullable=False, default=8)
+    timezone = Column(String, nullable=False, default="UTC")
+    seats = Column(JSON, nullable=False, default=lambda: [r.value for r in Role])
+    focus = Column(JSON, nullable=False, default=list)             # lens kinds weighted up, e.g. ["cost", "performance"]
+    fingerprints = Column(JSON, nullable=False, default=dict)      # {kb_id: hash of its inputs at the last run}
+    next_run_at = Column(DateTime, nullable=True, index=True)
+    last_run_at = Column(DateTime, nullable=True)
+    updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    updated_at = Column(DateTime, default=now_utc_naive, onupdate=now_utc_naive)
+
+
+class TeamMemory(Base):
+    """A lesson people taught NoX for one application, and for one seat (or every seat when `seat` is null).
+
+    Learned from a send-back or a Not met (with "Remember this" ticked), or taught directly on the app page.
+    `sources` is [{missionKey, eventId, quote, by, at}]: where the lesson came from, in the person's own words.
+    Postgres is authoritative for `status`; `bank_name` is its Memory Bank memory when NOX_MEMORY=memory_bank.
+    """
+
+    __tablename__ = "team_memories"
+    __table_args__ = (Index("ix_team_memories_kb_status", "kb_id", "status"),)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False, index=True)
+    kb_id = Column(UUID(as_uuid=True), ForeignKey("knowledge_bases.id", ondelete="CASCADE"), nullable=False)
+    seat = Column(Enum(Role), nullable=True)
+    fact = Column(Text, nullable=False)
+    kind = Column(String, nullable=False, default="team_rule")      # team_rule | quality_bar | domain_fact
+    status = Column(String, nullable=False, default="active")       # active | forgotten | superseded
+    sources = Column(JSON, nullable=False, default=list)
+    bank_name = Column(String, nullable=True, index=True)
+    embedding = Column(JSON, nullable=True)                         # the fact's embedding (Postgres backend)
+    applied_count = Column(Integer, nullable=False, default=0)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    forgotten_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    forgotten_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=now_utc_naive)
+    updated_at = Column(DateTime, default=now_utc_naive, onupdate=now_utc_naive)

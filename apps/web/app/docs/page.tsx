@@ -48,12 +48,12 @@ export default function DocsHome() {
 
       <section aria-label="The four seats" className="mt-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {SEATS.map((s, i) => (
-          <div key={s.name} className="rounded-md border border-hairline bg-[linear-gradient(160deg,rgb(var(--raise)/.8),rgb(var(--deck-rgb)/.8))] p-4">
+          <div key={s.name} className="rounded-md border border-hairline bg-[color:var(--panel-lo)] p-4">
             <div className="flex items-center gap-2.5">
               <span
                 aria-hidden
                 className="h-5 w-5 rounded-full"
-                style={{ background: `radial-gradient(circle at 32% 30%, color-mix(in srgb, ${s.hue} 35%, #fff), ${s.hue} 45%, color-mix(in srgb, ${s.hue} 45%, #05060B))`, boxShadow: `0 0 12px -2px ${s.hue}` }}
+                style={{ background: `radial-gradient(circle at 32% 30%, color-mix(in srgb, ${s.hue} 35%, #fff), ${s.hue} 45%, color-mix(in srgb, ${s.hue} 45%, #05060B))` }}
               />
               <span className="font-mono text-[10.5px] text-ink-dim">0{i + 1}</span>
             </div>
@@ -78,16 +78,14 @@ export default function DocsHome() {
                   <p className="mt-1 font-display text-[24px] leading-tight text-ink group-hover:text-nox">{c.title}</p>
                   <p className="mt-2 text-[13.5px] leading-relaxed text-ink-faint">{c.summary}</p>
                 </div>
-                <span className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-muted group-hover:text-ink">
-                  Read <ArrowRight size={13} />
-                </span>
+                <ArrowRight size={14} aria-hidden className="text-ink-dim group-hover:text-ink" />
               </Link>
             ))}
           </div>
         </section>
       ))}
 
-      <section aria-label="Built on Google" className="mt-16 rounded-md border border-hairline bg-[linear-gradient(135deg,rgba(134,185,238,.06),rgb(var(--void-rgb)/0))] p-6">
+      <section aria-label="Built on Google" className="mt-16 border-t border-hairline pt-8">
         <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-dim">Built on</h2>
         <dl className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2">
           {STACK.map((s) => (

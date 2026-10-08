@@ -9,7 +9,7 @@ NoX is an agentic platform that takes an enterprise change from a business user'
 - **Atlas** keeps a live map of the enterprise: organizations → teams → sub-teams → applications. For every application it builds a code wiki (a knowledge base in its own Git repository) from code, Confluence, Jira, Notion, Slack and uploads, and keeps it in sync on every push. Every knowledge base is an **Open Knowledge Format (OKF 0.2)** bundle, Google Cloud's open specification for agent-readable knowledge (https://github.com/GoogleCloudPlatform/open-knowledge-format), extended by NoX with cross-application `[[kb:app/page]]` links and source anchors. Contracts between applications form an organization-wide contract map.
 - **Missions** carry one change through four seats (business user, product owner, engineering lead, developer). Each seat writes its own spec file with NoX as co-author. A coding agent builds it with `/nox NOX-n`, and the seats verify it in reverse order before it is done.
 
-The AI is a team of **Google ADK** agents on **Gemini** (served from the Gemini Enterprise Agent Platform), with **Gemma** via Ollama for NoX Local. NoX runs on Google Cloud: Cloud Run, Cloud SQL with pgvector, Memorystore, Cloud Storage, Secret Manager, and Firebase Authentication.
+The AI is a team of **Google ADK** agents on **Gemini** (served from the Gemini Enterprise Agent Platform), with **Gemma** via Ollama for NoX Local. NoX runs on Google Cloud: Cloud Run, Cloud SQL with pgvector, Memorystore, Cloud Storage, Secret Manager, Firebase Authentication, Agent Platform Memory Bank (team lessons) and Cloud Trace. Jules can take a mission's build.
 
 ## Design principles
 
@@ -20,7 +20,7 @@ These shape every decision in the codebase. Keep them.
 3. **Scope is set by NoX, never by the model.** Tools read the caller's visible applications and open file from ADK session state that NoX fills from memberships before the run. A prompt must never be able to widen access.
 4. **One human per file.** Each spec file has exactly one editing seat, so there is no multi-user merge. Other seats read it locked.
 5. **The database is authoritative; Git is the mirror.** Spec files and versions live in Postgres. Git commits are best-effort and never block a save.
-6. **Everything slow is a job.** The API validates, writes state, queues work and streams progress over SSE. It never waits on a model in the request path (except streamed Ask).
+6. **Everything slow is a job.** The API validates, writes state, queues work and streams progress over SSE. It never waits on a model in the request path (except streamed Ask and streamed voice transcription).
 7. **Knowledge bases are OKF bundles.** Every commit to a knowledge-base repository goes through `agents/okf.py` (via `runner._as_okf`): YAML frontmatter with a `type` on every page, an `index.md` per folder, a date-grouped `log.md`. Never commit KB files around it, and keep readers that want prose on `okf.strip()` / `okf.prose()`.
 8. **Write for the reader.** Each seat has a persona (`missions/personas.py`). A business user's file never mentions endpoints or services.
 
@@ -37,6 +37,7 @@ apps/web/                         Next.js 15, React 19, TypeScript, Tailwind 3
     missions/                     list, new/, [key]/ (tabs per spec file, Evidence tab, Jira & PRs panel, timeline)
   components/app/                 shell, ui (Panel, PageHeader, KbStatusChip, FEED_LIST…), spec-editor,
                                   verify-panel, contract-map, markdown, planet(-character),
+                                  jules-handoff, lessons (team memory), voice-input (mic + Listen),
                                   media/ (Show NoX: capture bar, recorders, annotator, player, capture card, chips)
   lib/app/                        api client, auth (Firebase), roles, nav, types, SSE stream, useApi
   lib/docs.ts                     docs chapter manifest
@@ -50,22 +51,23 @@ apps/api/nox_api/                 FastAPI, Python 3.12, SQLAlchemy 2 async, Alem
                                   contracts, rollup, coverage_diff, runner (Flow A/B/C), llm_client,
                                   okf (Open Knowledge Format: frontmatter, folder indexes, log, conformance)
   connectors/                     github, confluence, jira, notion, slack, file upload (read side)
-  integrations/                   atlassian + jira write client (typed errors, retries)
+  integrations/                   atlassian + jira write client, jules client (typed errors, retries)
   missions/                       templates, personas, drafting, cowrite, verification, gitsync, jira_sync, prs, context, events,
-                                  media (Show NoX: perceive, ground, seat views, evidence)
-  routers/                        orgs, kb, missions, media, jira, cli, webhooks, integrations, sources, me
+                                  media (Show NoX: perceive, ground, seat views, evidence), memory (team lessons), jules (hand-off)
+  routers/                        orgs, kb, missions, media, jira, jules, memory, voice, cli, webhooks, integrations, sources, me
   services/                       search (hybrid), sse, gitops, storage (local/GCS), media_storage (signed URLs), pins, discovery,
-                                  shield (Model Armor + DLP), analytics (BigQuery flight recorder), scope (token → visible apps)
+                                  shield (Model Armor + DLP), analytics (BigQuery flight recorder), scope (token → visible apps),
+                                  team_memory (Postgres or Agent Platform Memory Bank)
   interop/                        mcp_server (NoX tools over MCP at /mcp), a2a (Ask agent over A2A at /a2a/ask)
   workers/                        Celery tasks + dispatcher (celery | in_process | auto)
   local.py                        NoX Local entry point (Gemma)
-  demo/                           seed the Apex demo org, reset missions, push demo repos
+  demo/                           seed the Tidewell demo estate (estate.py reads the manifest), reset missions, push demo repos
 apps/api/alembic/                 migrations (0005 adds pgvector chunks for search)
 apps/api/tests/                   pytest; tests/ai_fakes.py fakes ADK/Gemini for agent tests
-packages/nox-cli/                 `nox` CLI (bin/nox.mjs, no deps) + integrations/ for antigravity, cursor, codex, copilot, claude
-scripts/                          deploy_gcp.sh, bench_kb.py, eval_ask.py, eval_media.py
+packages/nox-cli/                 `nox` CLI (bin/nox.mjs, no deps) + integrations/ for antigravity, gemini (Gemini CLI extension), cursor, codex, copilot, claude
+scripts/                          deploy_gcp.sh, setup_memory_bank.py, bench_kb.py, eval_ask.py, eval_media.py
 docs/                             design docs and IMPLEMENTATION_PLAN.md (history and decisions)
-demo/                             the Apex demo codebases, mock sources, and screens/ (mock UI for Show NoX)
+demo/tidewell/                    the demo estate: estate.yaml (manifest), reference codebases, branches, sources, screens/
 ```
 
 ## The AI layer (`apps/api/nox_api/ai/`)
@@ -75,14 +77,17 @@ demo/                             the Apex demo codebases, mock sources, and scr
 | `config.py` | `NOX_AI_BACKEND` → `enterprise` (Agent Platform via service account), `api_key` (Gemini Developer API) or `local` (Gemma via Ollama/LiteLLM). Tiers `FAST` / `DEFAULT` / `DEEP` map to `NOX_MODEL_FAST` / `GEMINI_MODEL` / `NOX_MODEL_DEEP`. ADK `FallbackModel` to `GEMINI_BACKUP_MODEL`; retry options on every Gemini model. `Gemma3Ollama` for Gemma 3. |
 | `runtime.py` | The only place that touches ADK runners. `run()` for one-shot (an agent or a `Workflow` root), `stream()` → step / delta / done events for SSE, with ADK's `ContextCacheConfig` when `NOX_CONTEXT_CACHE` is on. `InMemorySessionService` for pipelines, `DatabaseSessionService` in Postgres schema `adk` for Ask and chat. |
 | `structured.py` | One-shot agents constrained to a Pydantic schema (`schemas.py`: `ArchitectureMap`, `GatekeeperDecision`, `PagePatch`, `CoverageDiff`, `RollupResult`). |
-| `telemetry.py` | `usage_scope()` sums calls, tokens (input, cached, output, thinking), tool calls and time across all agents in one unit of work; logs one structured line. |
+| `telemetry.py` | `usage_scope()` sums calls, tokens (input, cached, output, thinking), tool calls and time across all agents in one unit of work; logs one structured line and opens one OpenTelemetry span (`nox.<label>`) that ADK's spans nest under. |
+| `tracing.py` | `NOX_TRACE=cloud` installs ADK's exporter for the Telemetry (OTLP) API → Cloud Trace, before any Runner exists (API lifespan, Celery worker init). No prompt text in spans. |
+| `speech.py` | Listen: Gemini TTS through google-genai (not an agent), text prepared `for_the_ear()`, audio cached by content hash. |
 | `tools/knowledge.py` | `search_kb`, `read_kb_page`, `list_pages`, `find_interfaces`, `grep_source`, `read_source_file`, `get_jira_issue`. Scope comes from `ToolContext.state`. |
 | `tools/spec.py` | Section-level spec edits: `read_spec_file`, `replace_section`, `insert_section`, `append_to_section`, `add_open_question`. Each edit broadcasts `nox.edit.partial`; author headings can't be removed. |
 | `agents/kb_builder.py` | An ADK 2 `Workflow` graph: cartographer (DEEP, one call, whole snapshot, images as parts) → warm cache (first page alone) → page writers (parallel-worker node, shared `static_instruction` prefix for implicit caching) → synthesize (links, idempotent) → lint gate ⇄ reviewer loop (`NOX_REVIEW_ROUNDS`, rewrites only lint failures) → finish. Snapshot and pages live in a per-build `BuildRun`, not session state; nodes emit `node_started`/`node_finished`. `NOX_KB_WORKFLOW=linear` keeps the old orchestration for the bench. Local mode: chunk summaries, one writer at a time. |
 | `agents/ask.py` | Streaming Ask agent with the knowledge tools; answers pitched per seat; citations collected from pages read. |
-| `agents/cowriter.py` | Co-writer (edit turns via spec tools) and drafter (whole-file first drafts). |
+| `agents/cowriter.py` | Co-writer (edit turns via spec tools) and drafter (whole-file first drafts). Both take `lessons` (team memory) in their prompt. |
+| `agents/voice.py` | Transcriber: FAST model, audio as an inline part, vocabulary from the caller's visible apps; streams words, adds an English version for non-Latin scripts. |
 
-Other model calls: the gatekeeper (FAST), patch compiler, coverage diff and rollup (DEEP) go through `structured.ask`. The ingestor's per-file summaries and the `NOX_KB_BUILDER=classic` path use `agents/llm_client.py` (`google-genai` directly).
+Other model calls: the gatekeeper (FAST), patch compiler, coverage diff, rollup (DEEP) and the lesson finder (FAST, `missions/memory.py`) go through `structured.ask`. The ingestor's per-file summaries and the `NOX_KB_BUILDER=classic` path use `agents/llm_client.py` (`google-genai` directly).
 
 Search (`services/search.py`): pages chunked at `##`, embedded with `gemini-embedding-2` (768 dims, document/query task types) into pgvector, fused with Postgres full-text by reciprocal rank fusion; only changed chunks are re-embedded; full-text-only fallback.
 
@@ -101,6 +106,9 @@ Search (`services/search.py`): pages chunked at `##`, embedded with `gemini-embe
 | Jira | `routers/jira.py` | `missions/jira_sync.py` (status map, `[NoX]` tag + echo window loop protection) |
 | Show NoX (capture) | `POST /api/v1/media` → upload → `POST /media/{id}/complete` | `routers/media.py`; job `missions/media.py` `analyze_media` (Perceive → Shield → Ground → seat views); evidence into `drafting.build_prompt` and `cowrite.chat`; `compare_evidence` for Show it works |
 | PR guard | `/github/pr` webhook or `nox pr` | `missions/prs.py` + `agents/guard.py` |
+| Team memory | `send-back` / `verify` (not met) with `remember`, `POST /kb/{id}/memories` | `missions/memory.py` `learn` (job) → `services/team_memory.py`; `lessons_for` + `render` in drafting, co-writer and `nox context` |
+| Hand off to Jules | `POST /missions/{key}/jules`, `…/approve-plan`, `…/message` | `missions/jules.py` (readiness, prompt, Shield, poll) + `integrations/jules.py`; `jules_tick` on beat |
+| Voice | `POST /voice/transcribe` (SSE), `POST /voice/speak` | `ai/agents/voice.py`, `ai/speech.py`, `routers/voice.py` |
 | CLI | `routers/cli.py` (device flow, context, search, read, kb push) | `packages/nox-cli/bin/nox.mjs` |
 | NoX Local | `nox kb build|sync|push|watch` | `nox_api/local.py` with `NOX_AI_BACKEND=local` |
 | MCP / A2A | `/mcp`, `/a2a/ask` (token-gated) | `interop/mcp_server.py`, `interop/a2a.py`; scope from `services/scope.py` |

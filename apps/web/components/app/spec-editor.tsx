@@ -31,6 +31,7 @@ import { KbMarkdown } from "./markdown";
 import { CaptureBar, CaptureChip } from "./media/capture-bar";
 import { mediaRef } from "./media/mission-media";
 import { useToast } from "./ui";
+import { ListenButton, VoiceInput } from "./voice-input";
 
 type Op = { op: "replace" | "insert" | "delete"; from: number; to: number; lines: string[] };
 type NoxEdit = { role: string; fromVersion: number; toVersion: number; ops: Op[]; markdown: string; reason: string; edits?: string[] };
@@ -748,6 +749,7 @@ function ChatDock({ missionKey, role, busy, status }: { missionKey: string; role
           <li key={m.id} className={`max-w-[88%] whitespace-pre-line rounded-md px-3 py-2 text-[13px] leading-snug ${m.author === "user" ? "ml-auto bg-[rgb(var(--line)/.12)] text-ink" : "bg-[rgba(168,151,240,.1)] text-ink"}`}>
             {m.body}
             {!!m.mediaIds?.length && <span className="mt-1 block font-mono text-[10.5px] text-ink-dim">+ {m.mediaIds.length} capture{m.mediaIds.length > 1 ? "s" : ""}</span>}
+            {m.author === "nox" && <ListenButton text={m.body} className="mt-1 flex" />}
           </li>
         ))}
         {streaming ? (
@@ -783,6 +785,7 @@ function ChatDock({ missionKey, role, busy, status }: { missionKey: string; role
           <Paperclip size={14} />
         </button>
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Add a rollback section…" aria-label="Message NoX" className="h-9 min-w-0 flex-1 rounded-sm border border-hairline bg-void px-3 text-[13px] text-ink outline-none focus:border-[color:var(--violet)]" />
+        <VoiceInput value={text} onChange={setText} className="shrink-0" />
         <button type="submit" aria-label="Send" className="flex h-9 w-9 items-center justify-center rounded-sm bg-[color:var(--violet)] text-abyss">
           <Send size={14} />
         </button>

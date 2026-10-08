@@ -1,0 +1,12 @@
+{
+  "name": "nox",
+  "version": "0.1.0",
+  "description": "NoX missions and knowledge bases in Gemini CLI: /nox NOX-<n> builds a mission from its four spec files, and NoX's MCP tools answer architecture questions from the knowledge bases.",
+  "contextFileName": "GEMINI.md",
+  "mcpServers": {
+    "nox": {
+      "httpUrl": "__NOX_MCP_URL__",
+      "headers": { "Authorization": "Bearer __NOX_TOKEN__", "X-Nox-Role": "__NOX_ROLE__" }
+    }
+  }
+}

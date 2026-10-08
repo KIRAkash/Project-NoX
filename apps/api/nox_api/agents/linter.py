@@ -188,15 +188,45 @@ def check_index_coverage(files: dict[str, str]) -> list[LintIssue]:
     return issues
 
 
+# (pattern, label, kind). A pattern with a `value` group redacts only that group; otherwise the whole match.
+SECRET_PATTERNS = [
+    (r'-----BEGIN\s+(?:RSA\s+)?PRIVATE\s+KEY-----', 'Private Key block detected', 'private_key'),
+    (r'(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{36,}', 'GitHub Personal Access Token detected', 'github_token'),
+    (r'sk-[a-zA-Z0-9]{32,}', 'API Secret Key pattern detected', 'api_key'),
+    (r'AIza[0-9A-Za-z-_]{35}', 'Google API Key detected', 'google_api_key'),
+    # Vendor-style tokens: a short prefix, an underscore, then 24+ letters and digits (e.g. xyz_live_9f3b…).
+    (r'\b[A-Za-z][A-Za-z0-9]{1,15}_(?:live_|test_)?(?=[A-Za-z0-9]*\d)(?=[A-Za-z0-9]*[A-Za-z])[A-Za-z0-9]{24,}\b',
+     'Prefixed API token detected', 'api_token'),
+    # A value assigned to something named like a secret: api_key = "…", "password": "…".
+    (r'(?i)(?:api[_-]?key|secret|token|passw(?:or)?d)["\'`]?\s*[:=]\s*["\'`](?P<value>[^"\'`\s]{12,})["\'`]',
+     'Secret assignment detected', 'secret_assignment'),
+]
+WITHHELD_SECRET = "[NoX Shield withheld a secret]"
+
+
+def redact_secrets(files: dict[str, str]) -> tuple[dict[str, str], list[tuple[str, str, str]]]:
+    """Replace secrets in generated pages with a withheld note, so a key copied from source never reaches a
+    knowledge base. Returns the cleaned files and one (path, kind, original text) per redaction."""
+    found: list[tuple[str, str, str]] = []
+    out = {}
+    for path, content in files.items():
+        for pattern, _label, kind in SECRET_PATTERNS:
+            def swap(m: re.Match, kind=kind, path=path) -> str:
+                if "value" in m.re.groupindex:
+                    found.append((path, kind, m.group("value")))
+                    start, end = m.span("value")
+                    return m.group(0)[: start - m.start()] + WITHHELD_SECRET + m.group(0)[end - m.start():]
+                found.append((path, kind, m.group(0)))
+                return WITHHELD_SECRET
+            content = re.sub(pattern, swap, content)
+        out[path] = content
+    return out, found
+
+
 def check_secrets_and_pii(files: dict[str, str]) -> list[LintIssue]:
     """Screen generated markdown for accidental leakage of API keys, private keys, or passwords."""
     issues = []
-    patterns = [
-        (r'-----BEGIN\s+(?:RSA\s+)?PRIVATE\s+KEY-----', 'Private Key block detected'),
-        (r'(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{36,}', 'GitHub Personal Access Token detected'),
-        (r'sk-[a-zA-Z0-9]{32,}', 'API Secret Key pattern detected'),
-        (r'AIza[0-9A-Za-z-_]{35}', 'Google API Key detected'),
-    ]
+    patterns = [(p, label) for p, label, _ in SECRET_PATTERNS]
 
     for path, content in files.items():
         for pattern, label in patterns:

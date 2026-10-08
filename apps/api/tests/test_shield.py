@@ -187,7 +187,8 @@ async def test_shield_endpoint_needs_atlas_access(fake_shield, db_clean):
         got = (await po.get(f"/api/v1/kb/{kb}/shield")).json()
         assert got["withheldCount"] == 1 and got["withheld"] == []  # counts only for this seat
     async with _client("business") as biz:
-        assert (await biz.get(f"/api/v1/kb/{kb}/shield")).status_code == 403
+        got = (await biz.get(f"/api/v1/kb/{kb}/shield")).json()
+        assert got["withheldCount"] == 1 and got["withheld"] == []
     async with _client("developer", email="outsider@example.com") as other:
         assert (await other.get(f"/api/v1/kb/{kb}/shield")).status_code == 404
 

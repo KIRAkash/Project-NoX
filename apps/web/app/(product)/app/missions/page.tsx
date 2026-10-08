@@ -128,18 +128,14 @@ function StageLanes({ missions, role }: { missions: Mission[]; role: RoleDef }) 
           <section
             key={col}
             aria-label={STAGE_LABEL[col]}
-            className="w-[272px] shrink-0 rounded-md border p-3"
-            style={{
-              background: `linear-gradient(180deg, color-mix(in srgb, ${hue} ${yours ? 11 : 6}%, rgb(var(--raise)/.78)), rgb(var(--raise-lo)/.7) 55%)`,
-              borderColor: `color-mix(in srgb, ${hue} ${yours ? 45 : 18}%, rgb(var(--line)/.14))`,
-              boxShadow: "inset 0 1px 0 rgb(var(--glint)/.04)",
-            }}
+            className="w-[272px] shrink-0 rounded-md border bg-[color:var(--panel)] p-3"
+            style={{ borderColor: yours ? `color-mix(in srgb, ${hue} 45%, rgb(var(--line)/.14))` : "rgb(var(--line)/.14)" }}
           >
             <h2
               className="mb-3 flex items-center gap-2 border-b pb-2.5 font-mono text-[11px] uppercase tracking-[0.14em]"
               style={{ color: legible(hue), borderColor: `color-mix(in srgb, ${hue} 20%, transparent)` }}
             >
-              {seat ? <Planet role={seat} size={14} /> : <span aria-hidden className="mx-[3px] h-2 w-2 rounded-full" style={{ background: hue, boxShadow: `0 0 8px ${hue}` }} />}
+              {seat ? <Planet role={seat} size={14} /> : <span aria-hidden className="mx-[3px] h-2 w-2 rounded-full" style={{ background: hue }} />}
               {STAGE_LABEL[col]}
               {yours && <span className="rounded-full border px-1.5 text-[9.5px] tracking-[0.1em]" style={{ borderColor: `color-mix(in srgb, ${hue} 50%, transparent)` }}>You</span>}
               <span className="ml-auto text-ink-dim">{items.length}</span>

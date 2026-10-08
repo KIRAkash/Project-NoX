@@ -2,7 +2,7 @@
 
 The Atlas is NoX's map of the enterprise. It holds every organization and team, every application they own, and a code wiki for each application that stays current as the code changes. Every code wiki is written in Google's **Open Knowledge Format**, so the knowledge is portable to any OKF-aware agent. Everything in Missions is grounded in it: the drafts, the answers, the co-writer's edits and the guard on every pull request.
 
-Product owners, engineering leads and developers can use the Atlas. Engineering leads own its structure.
+Every seat can browse the Atlas, read the code wikis and ask them questions. Business users read and ask; they can't onboard applications, change sources or pin corrections. Product owners, engineering leads and developers can also change it, and engineering leads own its structure.
 
 ## Organizations, teams and applications
 
@@ -126,7 +126,7 @@ Before any page is committed, NoX runs checks:
 
 - **Linter**: every page has the sections its folder requires, wikilinks resolve, no page is orphaned, and nothing is a stub.
 - **OKF conformance**: every page has parseable frontmatter with a `type`. The result is reported in each knowledge-base pull request's quality gate.
-- **Secret gate**: nothing that looks like a credential is ever committed to a knowledge base.
+- **Secret gate**: nothing that looks like a credential is ever committed to a knowledge base. If a page quotes a key it found in the source, NoX replaces the key with *[NoX Shield withheld a secret]* and records it as a Shield finding. The build carries on.
 - **Quality gate**: the application page shows the page count, errors and warnings from the last lint.
 
 ## Working with a knowledge base
@@ -138,6 +138,7 @@ The application page has three tabs: **Overview**, **Explore** and **Ask the KB*
 - **Sources**: every connected source with its last sync time. Add a new one at the bottom; NoX ingests just that source and updates the pages it affects.
 - **Check PR status**: see whether the knowledge-base pull request has been merged.
 - **Check sources for updates**: look for new commits, pages or messages now, without waiting for a webhook or the next poll.
+- **What NoX has learned**: the lessons people taught NoX for this application, each with where it came from (*Learned from NOX-3 · Product owner*) and which seat's files apply it. The product owner, engineering lead and developer can remove a lesson, or write one directly with **Teach NoX**. See [Missions](/docs/missions#sending-a-mission-back).
 - **Quality gate**: the lint summary and the **Agent brief**, the compact description NoX hands to coding agents.
 - A **Built with** badge showing whether the knowledge base was built by NoX's agents on Gemini, or on a developer's machine with NoX Local and Gemma.
 
@@ -152,6 +153,7 @@ The application page has three tabs: **Overview**, **Explore** and **Ask the KB*
 - Every page it read becomes a citation you can click, and code is cited as `path:line`.
 - The answer is pitched to your seat: plain language for a business user, exact files and data shapes for a developer.
 - Conversations are kept in ADK database sessions, so a follow-up question keeps its context, even across server instances.
+- You can ask out loud with the microphone, and **Listen** reads an answer aloud. See [Speaking instead of typing](/docs/missions#speaking-instead-of-typing).
 
 ## Staying in sync
 

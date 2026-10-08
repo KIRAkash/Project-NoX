@@ -2,8 +2,10 @@ import asyncio
 import logging
 
 from celery import Celery
+from celery.signals import worker_init, worker_process_init
 
 from ..core.config import settings
+from ..core.time_utils import now_utc_naive
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +23,15 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
 )
+
+
+@worker_init.connect
+@worker_process_init.connect
+def _start_tracing(**_):
+    """Spans from jobs go to Cloud Trace too: once per worker (threads pool) or per child process (prefork)."""
+    from ..ai import tracing
+
+    tracing.setup("nox-worker")
 
 
 def _run_async(coro):
@@ -103,7 +114,6 @@ def rollup_pipeline_task(self, org_id: str):
 @celery_app.task
 def poll_sources():
     """Universal polling worker for Flow B — checks all active sources (GitHub, Confluence, Notion, Slack, Jira)."""
-    from datetime import datetime
 
     from sqlalchemy import select
 
@@ -143,7 +153,7 @@ def poll_sources():
                         monitor.last_sync_state = delta.new_state
                         if "last_commit_sha" in delta.new_state:
                             monitor.last_commit_sha = delta.new_state["last_commit_sha"]
-                        monitor.last_synced_at = datetime.utcnow()
+                        monitor.last_synced_at = now_utc_naive()
                         await db.commit()
 
                         # Trigger Gatekeeper Pipeline
@@ -161,7 +171,7 @@ def poll_sources():
                             summary=delta.summary,
                         )
                     else:
-                        monitor.last_synced_at = datetime.utcnow()
+                        monitor.last_synced_at = now_utc_naive()
                         await db.commit()
 
                 except Exception as e:
@@ -171,13 +181,22 @@ def poll_sources():
 
 
 # ── Celery Beat Schedule (polling fallback) ────────────────────────────────────
-if settings.SOURCE_MONITOR_MODE == 'polling':
-    celery_app.conf.beat_schedule = {
-        'poll-source-repos-every-5-min': {
-            'task': 'apps.api.workers.tasks.poll_sources',
-            'schedule': 300.0,  # Every 5 minutes
-        },
-    }
+def configure_beat_schedule() -> None:
+    """Schedule polling when SOURCE_MONITOR_MODE is 'polling'.
+
+    Task names come from the task objects, so the schedule always matches
+    what the worker registered.
+    """
+    if settings.SOURCE_MONITOR_MODE == 'polling':
+        celery_app.conf.beat_schedule = {
+            'poll-source-repos-every-5-min': {
+                'task': poll_sources.name,
+                'schedule': 300.0,  # Every 5 minutes
+            },
+        }
+
+
+configure_beat_schedule()
 
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
@@ -194,3 +213,36 @@ def add_source_pipeline_task(self, kb_id: str, source: dict):
     except Exception as exc:
         logger.exception(f"add_source_pipeline_task failed for {kb_id}: {exc}")
         raise self.retry(exc=exc)
+
+
+# ── Sightings (CP18) ───────────────────────────────────────────────────────────
+
+
+@celery_app.task(bind=True, max_retries=1, default_retry_delay=60)
+def sightings_run_task(self, run_id: str, force: bool = False):
+    from ..missions.sightings import run_sightings
+
+    _run_async(run_sightings(run_id, force=force))
+
+
+@celery_app.task
+def sightings_tick():
+    """Start every Sightings run that is due. Runs on beat locally; Cloud Scheduler calls the API's tick in the cloud."""
+    from ..missions.sightings import tick
+
+    _run_async(tick())
+
+
+@celery_app.task
+def jules_tick():
+    """Poll active Jules sessions: the safety net behind the watcher each hand-off starts in the API."""
+    from ..missions.jules import tick
+
+    return _run_async(tick())
+
+
+celery_app.conf.beat_schedule = {
+    **(celery_app.conf.beat_schedule or {}),
+    "sightings-tick-every-15-min": {"task": sightings_tick.name, "schedule": 900.0},
+    "jules-tick-every-minute": {"task": jules_tick.name, "schedule": 60.0},
+}

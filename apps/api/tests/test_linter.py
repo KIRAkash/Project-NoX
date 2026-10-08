@@ -1,9 +1,11 @@
 import unittest
 
 from nox_api.agents.linter import (
+    WITHHELD_SECRET,
     check_schemas,
     check_secrets_and_pii,
     check_wikilinks,
+    redact_secrets,
     run_linter,
 )
 
@@ -48,6 +50,20 @@ class TestLinter(unittest.TestCase):
         self.assertEqual(len(issues), 1)
         self.assertEqual(issues[0].category, "security")
         self.assertEqual(issues[0].severity, "error")
+
+    def test_redact_secrets_withholds_vendor_tokens_and_assignments(self):
+        kb_files = {
+            "entities/channels.md": '| `SMS_API_KEY` | `"twsms_9f3b7c21d6e84a0b95c2f1e7a8d4c6b2"` |\n',
+            "summaries/config.md": 'Set `api_key = "Zq8vLm2Rt5Xw9Ab3"` in the provider config.\n',
+            "concepts/plans.md": "Tables `payment_plans` and `instalments`; topic `billing.instalment.due`.\n",
+        }
+        cleaned, found = redact_secrets(kb_files)
+        self.assertNotIn("twsms_9f3b", cleaned["entities/channels.md"])
+        self.assertIn(WITHHELD_SECRET, cleaned["entities/channels.md"])
+        self.assertEqual(cleaned["summaries/config.md"], f'Set `api_key = "{WITHHELD_SECRET}"` in the provider config.\n')
+        self.assertEqual(cleaned["concepts/plans.md"], kb_files["concepts/plans.md"])  # ordinary identifiers stay
+        self.assertEqual({kind for _, kind, _ in found}, {"api_token", "secret_assignment"})
+        self.assertEqual(check_secrets_and_pii(cleaned), [])  # the commit gate passes after redaction
 
 if __name__ == "__main__":
     unittest.main()

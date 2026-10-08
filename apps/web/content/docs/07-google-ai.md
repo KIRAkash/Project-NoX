@@ -20,8 +20,13 @@ Those agents are built with **Google's Agent Development Kit (ADK)** and run on 
 | **Drafter** | Writes the first draft of each spec file | Default | The lookup tools |
 | **Perceive** | Watches a screen recording, screenshot or voice note | Default | Typed `MediaObservation`: transcript, moments, screens, exact strings |
 | **Ground** | Ties a capture to applications, knowledge-base pages and code | Default | The lookup tools; typed `MediaGrounding` |
+| **Sighting scouts** | One per application and seat: look for changes worth that seat's time, through its lens | Default | The lookup tools the seat's lens allows (no source code for business and product); typed `ScoutReport` |
+| **Sighting critic** | Keeps the specific, grounded, worthwhile opportunities and scores how much each matters to each seat | Fast | Typed `OpportunityReview` |
+| **Sighting writer** | Writes each kept opportunity for every seat it matters to, in that seat's words | Default | Typed `SightingViews`; business and product views pass a reader lint or are rewritten once |
+| **Lesson finder** | Reads the reason someone gave when they sent work back, and keeps what it teaches for later missions | Fast | Typed `Lessons`; a lesson is kept only if its quote is really in the person's words |
+| **Transcriber** | Writes down what someone said into a NoX text box, spelling the names they can see correctly | Fast | Streams the words; a non-English recording also gets an English version |
 
-Two simpler jobs call Gemini through the `google-genai` SDK directly rather than as agents: the ingestor's per-file summaries of large sources, and the original single-model build path, kept behind `NOX_KB_BUILDER=classic` for comparison. Around all of them sit deterministic checks that need no model at all: the **linter** (page structure, wikilinks, orphans, stubs), the **secret gate**, the **guard** that checks pull requests against architecture rules, and **code anchors** that tie page sections to source lines.
+Three simpler jobs call Gemini through the `google-genai` SDK directly rather than as agents: **Listen** (Gemini TTS reads a reply aloud), the ingestor's per-file summaries of large sources, and the original single-model build path, kept behind `NOX_KB_BUILDER=classic` for comparison. Around all of them sit deterministic checks that need no model at all: the **linter** (page structure, wikilinks, orphans, stubs), the **secret gate**, the **guard** that checks pull requests against architecture rules, and **code anchors** that tie page sections to source lines.
 
 ## Knowledge in Google's Open Knowledge Format
 
@@ -156,7 +161,7 @@ NoX reads documents it didn't write: Confluence pages, Slack threads, Jira comme
 | Ask questions, MCP `ask_nox` and A2A messages | NoX answers with a short refusal and makes no model call. |
 | Co-writer chat and refine instructions | NoX keeps the message but replies "I can't act on that message" and changes nothing. |
 | A new mission's first sentence | NoX asks you to rephrase it. |
-| Knowledge-base pages before they are committed | Sensitive Data Protection looks for keys, tokens, passwords, emails and card numbers, as well as NoX's own secret patterns. Nothing is committed if it finds one. |
+| Knowledge-base pages before they are committed | Sensitive Data Protection looks for keys, tokens, passwords, emails and card numbers, as well as NoX's own secret patterns. Keys matching NoX's patterns are replaced with a withheld note first; nothing is committed if Sensitive Data Protection still finds one. |
 
 - **Modes.** `NOX_SHIELD=off` (the default locally and in tests), `monitor` (record findings, block nothing) or `enforce` (production). NoX Local always runs with Shield off, because nothing leaves the laptop.
 - **Nothing sensitive is stored.** Each finding is recorded with its category, confidence and a hash of the text, never the text itself.
@@ -172,6 +177,34 @@ Every mission event and every AI unit of work is streamed into **BigQuery** (dat
 The **Impact** page shows those numbers for an organization over the last 7, 30 or 90 days, and each mission shows its own flight strip above the timeline. The AI cost is an estimate at Gemini's list prices. With `NOX_ANALYTICS=off`, the same numbers are computed from the database, so the page works in development too.
 
 `NOX_ANALYTICS` · `NOX_BQ_DATASET`
+
+## Team memory: Agent Platform Memory Bank
+
+Every send-back is a person explaining what NoX's drafts got wrong. NoX keeps that knowledge. When someone sends work back with **Remember this for next time**, the lesson finder turns their reason into at most three lessons for the application, each tied to the seats whose files should apply it. A lesson whose quote isn't in the person's words is dropped, and a lesson for the business seat must read in business words.
+
+The lessons live in the **Agent Platform Memory Bank**, in one scope per application and seat (`{"app", "seat"}`). Memory Bank consolidates each new lesson with what it already holds: a repeat is merged into the existing lesson with a second source, and a lesson that contradicts an older one retires it. When NoX drafts or refines a file, it retrieves the lessons for that application and seat by similarity and hands them to the writer, which applies them and cites them as `[[memory:<id>]]`. Postgres keeps the record of which lessons are active and where each came from, so people can see and remove them on the application's page. Without Memory Bank (`NOX_MEMORY=postgres`, used locally and by NoX Local) the same behaviour runs on Gemini embeddings in Postgres.
+
+Coding agents get the lessons too: `nox context`, MCP's `get_mission` and the Jules hand-off all carry a **Team lessons** section.
+
+`NOX_MEMORY` · `NOX_MEMORY_BANK` · `scripts/setup_memory_bank.py` creates the bank with NoX's topics and examples
+
+## Voice: Gemini hears and speaks
+
+Every NoX text box has a microphone. The recording goes to the **transcriber**, an ADK agent on the fast Gemini model, with a vocabulary list built from the applications, teams and missions the speaker can see. That list is what makes `claims-intake` and `TWCLM-12` come out right. The words stream back into the box over SSE for the person to edit; the audio is never stored. **Listen** sends a reply, with its Markdown and links stripped, to **Gemini TTS** (`gemini-3.8-flash-lite-tts` by default) and caches the audio by content, so playing it again is free.
+
+Push-to-talk was chosen over a live audio session on purpose: it needs no WebSocket proxy on Cloud Run, costs nothing while nobody is speaking, and keeps the person in control of what gets sent.
+
+`NOX_MODEL_TRANSCRIBE` (empty = the fast model) · `NOX_MODEL_TTS` · `NOX_TTS_VOICE` · `NOX_VOICE_PER_HOUR`
+
+## Hand off to Jules
+
+**Jules**, Google's asynchronous coding agent, can take a mission's build. NoX builds Jules's prompt from the same context `/nox` uses, checks it with NoX Shield, and asks Jules to plan first. The developer approves the plan in NoX, Jules opens the pull request, and NoX guards it like any other. See [Build and verify](/docs/build-and-verify#hand-off-to-jules).
+
+## Tracing every agent: Cloud Trace
+
+ADK emits OpenTelemetry spans for every agent, tool call and model call. NoX adds one span per unit of work, such as a knowledge-base build, a mission draft, an Ask turn or a lesson, with its token counts and ids. A whole unit of work then reads as one trace in **Cloud Trace**, with the workflow nodes, agents, tools and model calls nested under it. Spans go out through ADK's exporter for the Telemetry (OTLP) API. They carry numbers and ids only: prompt and response text is never recorded. On Cloud Run, log lines carry their trace id, so Cloud Logging shows each trace's logs beside it.
+
+`NOX_TRACE` (`cloud` on Cloud Run) · the runtime service account needs `roles/cloudtrace.agent`
 
 ## Agents that call NoX: MCP and A2A
 
@@ -199,7 +232,9 @@ NoX's knowledge tools are an **MCP** server, and its Ask agent is an **A2A** ser
 | **Model Armor** | Screens sources, questions and chat for prompt injection, malicious links and unsafe content |
 | **Sensitive Data Protection** | Checks knowledge-base pages for credentials and personal data before they are committed |
 | **BigQuery** | The flight recorder: mission events, AI usage and Shield findings, with views for the Impact page |
-| **Cloud Logging** | Request logs with request IDs, and per-job AI usage lines |
+| **Agent Platform Memory Bank** | Team lessons: consolidated per application and seat, retrieved by similarity for every draft |
+| **Cloud Trace** | One trace per unit of AI work, with every agent, tool and model call nested in it |
+| **Cloud Logging** | Request logs with request IDs and trace IDs, and per-job AI usage lines |
 | **Firebase Authentication** | Google sign-in for people; ID tokens verified on every request |
 
-On the developer's side, **Google Antigravity** is one of the coding agents `/nox` installs into and can call NoX's tools over MCP, and **Gemma** powers NoX Local.
+On the developer's side, **Google Antigravity** and **Gemini CLI** are coding agents `/nox` installs into, and both can call NoX's tools over MCP. **Jules** can take a whole build, and **Gemma** powers NoX Local.

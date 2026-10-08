@@ -47,7 +47,7 @@ function useActive(role: RoleDef) {
 function Sidebar({ role }: { role: RoleDef }) {
   const isActive = useActive(role);
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden seat-sidebar w-[232px] flex-col border-r border-hairline bg-[rgb(var(--hull-rgb)/.92)] backdrop-blur lg:flex">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[232px] flex-col border-r border-hairline bg-hull lg:flex">
       <Link href="/app" className="flex h-[72px] flex-col justify-center px-6">
         <NoxMark size={22} />
         <span className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.18em]" style={{ color: role.ink }}>
@@ -92,7 +92,7 @@ function Sidebar({ role }: { role: RoleDef }) {
 function BottomNav({ role }: { role: RoleDef }) {
   const isActive = useActive(role);
   return (
-    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 seat-sidebar flex border-t border-hairline bg-[rgb(var(--hull-rgb)/.95)] backdrop-blur lg:hidden">
+    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 flex border-t border-hairline bg-hull lg:hidden">
       {navFor(role.id).map((item) => {
         const active = isActive(item.path);
         const Icon = item.icon;

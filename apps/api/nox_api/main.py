@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -7,16 +8,33 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from starlette.routing import Route
 
+from .ai import tracing
 from .connectors.base import IngestionAuthError, IngestionError, IngestionRateLimitError
 from .core.config import cors_origins, settings, validate_required_settings
 from .core.logging import RequestIdMiddleware, configure_logging
 from .db.database import engine, init_db
 from .interop import a2a, mcp_server
-from .routers import cli, integrations, jira, kb, me, media, missions, orgs, sources, webhooks
+from .routers import (
+    cli,
+    integrations,
+    jira,
+    jules,
+    kb,
+    me,
+    media,
+    memory,
+    missions,
+    orgs,
+    sightings,
+    sources,
+    voice,
+    webhooks,
+)
 from .services.sse import get_sse_manager
 
 configure_logging()
 logger = logging.getLogger("nox")
+tracing.setup("nox-api")  # before any ADK Runner exists
 
 
 @asynccontextmanager
@@ -24,9 +42,16 @@ async def lifespan(app: FastAPI):
     validate_required_settings()
     await init_db()
     app.state.sse_manager = get_sse_manager()
+    ticker = None
+    if settings.NOX_SIGHTINGS_TICK == "local":  # development: look for due Sightings runs without beat or Cloud Scheduler
+        from .missions.sightings import local_ticker
+
+        ticker = asyncio.get_running_loop().create_task(local_ticker(), name="sightings-tick")
     # Agents calling NoX: the MCP session manager and ADK's A2A routes start with the API.
     async with mcp_server.lifespan(), a2a.lifespan():
         yield
+    if ticker:
+        ticker.cancel()
 
 
 app = FastAPI(title="NoX API", version="0.1.0", lifespan=lifespan)
@@ -70,7 +95,13 @@ app.include_router(missions.router)
 app.include_router(media.router)
 app.include_router(media.mission_router)
 app.include_router(jira.router)
+app.include_router(jules.router)
+app.include_router(memory.router)
+app.include_router(voice.router)
 app.include_router(cli.router)
+app.include_router(sightings.router)
+app.include_router(sightings.org_router)
+app.include_router(sightings.internal_router)
 
 # MCP at exactly /mcp and A2A under /a2a/ask; both refuse requests without a NoX token (interop/).
 app.router.routes.append(Route("/mcp", mcp_server.gate, methods=["GET", "POST", "DELETE"]))

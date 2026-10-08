@@ -28,7 +28,6 @@ import logging
 import re
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
 
 from google.genai import types
 from sqlalchemy import select
@@ -37,6 +36,7 @@ from sqlalchemy.orm import selectinload
 from ..ai import config, runtime, structured, telemetry
 from ..ai.schemas import EvidenceComparison, MediaGrounding, MediaObservation, SeatViews
 from ..core.config import settings
+from ..core.time_utils import now_utc_naive
 from ..db.database import AsyncSessionLocal
 from ..db.models import KnowledgeBase, MediaAsset, MediaKind, MediaStatus, Mission, MissionApp, Role, User
 from ..services import media_storage, shield
@@ -367,7 +367,7 @@ async def analyze_media(media_id: str) -> None:
                 verdict = await shield.screen_source(f"capture {m.id}", screened_text(obs, m.caption), org_id=m.org_id)
                 if verdict.blocked and shield.mode() == "enforce":
                     m.status, m.status_reason = MediaStatus.withheld, verdict.reason
-                    m.observation, m.analyzed_at = None, datetime.utcnow()
+                    m.observation, m.analyzed_at = None, now_utc_naive()
                     await db.commit()
                     await _emit(m, "media.withheld", {"status": "withheld", "reason": m.status_reason})
                     if mission:
@@ -394,7 +394,7 @@ async def analyze_media(media_id: str) -> None:
                 await _emit(m, "media.failed", {"status": "failed", "reason": m.status_reason})
                 return
         m.usage = {**usage.summary(), "line": usage.line()}
-        m.status, m.status_reason, m.analyzed_at = MediaStatus.ready, None, datetime.utcnow()
+        m.status, m.status_reason, m.analyzed_at = MediaStatus.ready, None, now_utc_naive()
         await db.commit()
         await db.refresh(m, ["mission_id"])  # a draft may have been launched into a mission while NoX watched
         if m.mission_id and mission is None:

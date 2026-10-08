@@ -77,7 +77,7 @@ function RolePicker() {
         <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-nox">Demo mode</span>
         <h1 className="mt-3 font-display text-[40px] leading-[1.05] text-ink sm:text-[56px]">Choose a role to experience NoX</h1>
         <p className="mx-auto mt-4 max-w-[560px] text-[15px] leading-relaxed text-ink-muted">
-          You&rsquo;re picking a role only to try the platform from that seat. Everything behind it is real — your
+          You&rsquo;re picking a role only to try the platform from that seat. Everything behind it is real. Your
           applications, knowledge bases and tickets. Switch any time from the top bar.
         </p>
         {current && (
@@ -133,7 +133,7 @@ function RolePicker() {
         </p>
       )}
       <p className="mt-auto pt-14 text-center text-[13px] text-ink-faint">
-        New here? Start as the Business user — that&rsquo;s where every request begins.
+        New here? Start as the Business user. That&rsquo;s where every request begins.
       </p>
     </main>
   );

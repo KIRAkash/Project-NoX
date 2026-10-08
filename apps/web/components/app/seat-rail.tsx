@@ -146,7 +146,7 @@ export function MissionBlastRadius({ m }: { m: Mission }) {
           <li key={r.id}>
             <div className="flex items-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full border-2" style={{ borderColor: hue, boxShadow: `0 0 8px ${hue}` }} />
-              <Link href={`/app/atlas/apps/${r.id}`} className="truncate text-[13.5px] text-ink hover:text-[color:var(--role)]">
+              <Link href={`/app/atlas/apps/${r.id}?tab=explore`} className="truncate text-[13.5px] text-ink hover:text-[color:var(--role)]">
                 {r.name}
               </Link>
               <span className="ml-auto shrink-0 font-mono text-[10.5px] text-ink-dim">{r.interfaces} interfaces</span>
@@ -156,7 +156,7 @@ export function MissionBlastRadius({ m }: { m: Mission }) {
                 {r.neighbours.map((n) => (
                   <li key={n.id} className="flex items-center gap-1.5 text-[12.5px] text-ink-muted">
                     <span className="font-mono text-ink-dim">{n.outgoing ? "→" : "←"}</span>
-                    <Link href={`/app/atlas/apps/${n.id}`} className="truncate hover:text-ink">
+                    <Link href={`/app/atlas/apps/${n.id}?tab=explore`} className="truncate hover:text-ink">
                       {n.name}
                     </Link>
                     <span className="ml-auto shrink-0 font-mono text-[10.5px] text-ink-dim">×{n.count}</span>
