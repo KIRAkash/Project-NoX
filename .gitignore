@@ -40,3 +40,6 @@ demo/tidewell/branches/
 demo/tidewell/sources/
 demo/tidewell/screens/
 .DS_Store
+
+# agent workspace (local only)
+.agents/
