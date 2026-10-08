@@ -103,19 +103,45 @@ def usage_scope(label: str, **scope_tags):
     parent = _current.get()
     usage = Usage(label=label, tags={**(_tags.get() or {}), **{k: str(v) for k, v in scope_tags.items() if v is not None}})
     token = _current.set(usage)
-    try:
-        yield usage
-    finally:
-        _current.reset(token)
-        usage.finish()
-        if parent is not None:
-            for k in ("calls", "input_tokens", "cached_tokens", "output_tokens", "thinking_tokens", "embedded_tokens", "tool_calls"):
-                setattr(parent, k, getattr(parent, k) + getattr(usage, k))
-            for m, n in usage.models.items():
-                parent.models[m] = parent.models.get(m, 0) + n
-        logger.info(json.dumps({"event": "nox.ai.usage", **usage.summary()}))
-        if parent is None:
-            _to_flight_recorder(usage)
+    from .tracing import trace_id, tracer
+
+    with tracer().start_as_current_span(f"nox.{label}") as span:  # ADK's agent, tool and model spans nest under it
+        try:
+            yield usage
+        finally:
+            _current.reset(token)
+            usage.finish()
+            _annotate(span, usage)
+            if (tid := trace_id()) is not None:
+                usage.tags.setdefault("trace_id", tid)
+            _close(usage, parent)
+
+
+def _annotate(span, usage: Usage) -> None:
+    """Token counts and the unit's ids on its span (never prompt or response text)."""
+    if not span.is_recording():
+        return
+    for k in ("org_id", "mission_id", "kb_id", "mission", "role"):
+        if k in usage.tags:
+            span.set_attribute(f"nox.{k}", usage.tags[k])
+    span.set_attributes({
+        "nox.calls": usage.calls, "nox.tool_calls": usage.tool_calls, "nox.seconds": usage.seconds,
+        "nox.tokens.input": usage.input_tokens, "nox.tokens.cached": usage.cached_tokens,
+        "nox.tokens.output": usage.output_tokens, "nox.tokens.thinking": usage.thinking_tokens,
+        "nox.tokens.embedded": usage.embedded_tokens,
+    })
+
+
+def _close(usage: Usage, parent: Usage | None) -> None:
+    """Add a nested scope to its parent; log every scope; send outermost scopes to the flight recorder."""
+    if parent is not None:
+        for k in ("calls", "input_tokens", "cached_tokens", "output_tokens", "thinking_tokens", "embedded_tokens", "tool_calls"):
+            setattr(parent, k, getattr(parent, k) + getattr(usage, k))
+        for m, n in usage.models.items():
+            parent.models[m] = parent.models.get(m, 0) + n
+    logger.info(json.dumps({"event": "nox.ai.usage", **usage.summary(), **({"trace_id": usage.tags["trace_id"]} if "trace_id" in usage.tags else {})}))
+    if parent is None:
+        _to_flight_recorder(usage)
 
 
 def _to_flight_recorder(usage: Usage) -> None:

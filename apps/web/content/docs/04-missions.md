@@ -16,6 +16,16 @@ As a business user, type your request into **What would you like to change?** on
 3. **Which applications?** NoX ranks the applications you can see by how much of the request's vocabulary each one owns: its name, its contracts and its knowledge-base brief. Pick one or more. The first one you pick is the **primary** application: the mission's spec files are kept in its knowledge-base repository.
 4. **Start mission.** NoX immediately begins writing first drafts.
 
+## Speaking instead of typing
+
+Every box where you write to NoX has a microphone: the request on your home and on **New mission**, the **Ask NoX** chat, Ask on an application's page, and the reason when you send something back. Click it, say what you want, and click again (Esc cancels). Your words stream into the box, where you can fix anything before you send. NoX never sends anything on its own.
+
+NoX hears your applications, teams and mission keys by name, because it listens with a list of the names you can see. It writes `claims-intake` and `TWCLM-12`, not "claims in take". If you speak another language, your words go into the box as you said them, and a **Use English** chip swaps in the English version.
+
+The recording isn't kept. NoX writes it down and throws it away. One recording can be up to 2 minutes. Voice needs NoX in the cloud, so the microphone is hidden in NoX Local.
+
+**Listen.** NoX's replies in the chat and its answers in Ask have a **Listen** button that reads them aloud. It never plays by itself. Code and links are skipped, and a long answer stops after its first paragraphs.
+
 ## Show NoX
 
 Some things are faster to show than to say. Next to the request box, **Show NoX** lets you:
@@ -102,6 +112,8 @@ NoX either edits the file while you watch, or, if you only asked a question, ans
 
 **Undo is one click.** Each of NoX's turns is saved as a single new version, so **Undo NoX's edit** puts the file back exactly as it was before that turn.
 
+**Lessons from earlier missions.** When people on your team have sent work back with **Remember this for next time**, NoX keeps the lesson for that application and applies it when it writes later files. A file that used one shows a chip like **1 lesson applied** next to its name. The chip lists each lesson and where it was learned, for example *Learned from NOX-3 · Product owner*. In the engineering design and build spec, NoX also cites the lesson where it applied it, as a small **lesson** chip in the text.
+
 NoX's editing rules keep you in charge:
 
 - It edits one `##` section at a time and never touches sections it doesn't need to change.
@@ -130,6 +142,8 @@ Editing an approved file is allowed, and NoX keeps the consequences visible:
 ## Sending a mission back
 
 Any seat can send a mission back to an earlier seat when something upstream isn't right. Choose **Send back**, pick the seat, and write the reason (a short note is required). The mission moves to that seat, that file reopens as a draft, the reason is recorded on the timeline, and the Jira ticket gets a comment with the reason.
+
+**Remember this for next time** is ticked by default. NoX reads your reason and keeps what it teaches for future missions on the same application, in your words: a rule such as "Login error messages never reveal whether an account exists", not a one-off fix like "the button is missing". A lesson is kept only if the words it rests on are really in your reason. The timeline shows *NoX learned a lesson*, and you can see and remove every lesson on the application's page in Atlas. Untick the box when the reason only applies to this mission.
 
 During verification, **Not met** does the same from inside a checklist. See [Build and verify](/docs/build-and-verify).
 

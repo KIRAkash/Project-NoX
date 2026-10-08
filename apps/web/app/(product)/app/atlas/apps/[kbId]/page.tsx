@@ -7,8 +7,10 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 
 import { BrandLogo, SourceLogos } from "@/components/app/brand-logo";
 import { BuildGraph, GRAPH_EVENTS } from "@/components/app/build-graph";
+import { LessonsPanel } from "@/components/app/lessons";
 import { KbMarkdown } from "@/components/app/markdown";
 import { EmptyState, FEED_LIST, KbStatusChip, type KbStatus, Panel, useToast } from "@/components/app/ui";
+import { ListenButton, VoiceInput } from "@/components/app/voice-input";
 import { api, ApiError } from "@/lib/app/api";
 import { useAuth } from "@/lib/app/auth";
 import { streamPost, subscribe } from "@/lib/app/stream";
@@ -309,6 +311,7 @@ function Overview({ app, live, onChanged }: { app: KbDetail; live: KbEvent[]; on
 
       <div className="space-y-5">
         <SourcesPanel app={app} canManage={canManage} onChanged={onChanged} />
+        <LessonsPanel kbId={app.id} />
         <QualityPanel app={app} />
       </div>
     </div>
@@ -759,7 +762,12 @@ function Ask({ app }: { app: KbDetail }) {
                     ))}
                   </div>
                 )}
-                {t.done && t.usage && <p className="mt-2 text-right font-mono text-[10.5px] text-ink-dim">{t.usage}</p>}
+                {t.done && (t.a || t.usage) && (
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    {t.a ? <ListenButton text={t.a} /> : <span />}
+                    {t.usage && <p className="font-mono text-[10.5px] text-ink-dim">{t.usage}</p>}
+                  </div>
+                )}
               </div>
             </li>
           );
@@ -767,6 +775,7 @@ function Ask({ app }: { app: KbDetail }) {
       </ol>
       <form onSubmit={ask} className="sticky bottom-20 mt-6 flex gap-2 lg:bottom-4">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Ask ${app.appName}…`} aria-label="Question" disabled={busy} className="h-11 min-w-0 flex-1 rounded-sm border border-hairline bg-deck px-4 text-[14px] text-ink outline-none focus:border-[color:var(--role)] disabled:opacity-60" />
+        {!busy && <VoiceInput value={q} onChange={setQ} className="shrink-0 self-center" />}
         {busy ? (
           <button type="button" onClick={() => stop.current?.abort()} aria-label="Stop" className="flex h-11 w-11 items-center justify-center rounded-sm border border-hairline text-ink">
             <Square size={14} />

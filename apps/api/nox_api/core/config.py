@@ -149,6 +149,19 @@ class Settings(BaseSettings):
     NOX_SIGHTINGS_TICK_SECRET: str = ""                # alternative to OIDC for the tick: an `X-Nox-Tick` shared secret
     NOX_SIGHTINGS_SCHEDULER_SA: str = ""               # Cloud Scheduler's service account; its OIDC token may call the tick
 
+    # ── CP20: tracing, team memory, voice, Jules ──────────────────────────────
+    NOX_TRACE: str = "off"                             # "cloud": every unit of AI work to Cloud Trace | "console" | "off"
+    NOX_MEMORY: str = "postgres"                       # "memory_bank" (Agent Platform Memory Bank) | "postgres" | "off"
+    NOX_MEMORY_BANK: str = ""                          # Memory Bank resource name, from scripts/setup_memory_bank.py
+    NOX_MEMORY_MAX_LESSONS: int = 6                    # lessons given to one draft or co-writer turn
+    NOX_MODEL_TRANSCRIBE: str = ""                     # speech to text; empty = the FAST model (it follows NoX's vocabulary best)
+    NOX_MODEL_TTS: str = "gemini-3.8-flash-lite-tts"   # NoX reading a reply aloud; empty hides Listen
+    NOX_TTS_VOICE: str = "Kore"
+    NOX_VOICE_MAX_S: int = 120                         # one push-to-talk recording
+    NOX_VOICE_PER_HOUR: int = 30                       # transcriptions per person per hour
+    JULES_API_KEY: str = ""                            # jules.google.com → Settings → API
+    JULES_API_URL: str = "https://jules.googleapis.com/v1alpha"
+
     # ── Local Mode Tuning ─────────────────────────────────────────────────────
     LOCAL_MAX_FILES: int = 150
     LOCAL_CHUNK_SIZE: int = 6000

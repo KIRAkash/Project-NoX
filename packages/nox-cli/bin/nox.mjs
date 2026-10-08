@@ -113,6 +113,43 @@ function mcpConfigs(url, headers) {
   };
 }
 
+// Gemini CLI extension: NoX's MCP server, the workflow as context, and /nox. Written under ~/.nox with this
+// user's API and token filled in, then linked into Gemini CLI so a later `nox init gemini` updates it in place.
+function installGeminiExtension(src) {
+  const dir = join(CONFIG_DIR, "gemini", "nox");
+  mkdirSync(join(dir, "commands"), { recursive: true });
+  const manifest = JSON.parse(readFileSync(src("gemini/gemini-extension.json"), "utf8"));
+  if (TOKEN) {
+    const role = String(flags.role || "developer");
+    manifest.mcpServers.nox.httpUrl = `${API}/mcp`;
+    manifest.mcpServers.nox.headers = { Authorization: `Bearer ${TOKEN}`, "X-Nox-Role": role };
+  } else {
+    delete manifest.mcpServers;
+    console.log(yellow("!"), "Not signed in: /nox is installed without NoX's MCP tools. Run nox login, then nox init gemini again.");
+  }
+  writeFileSync(join(dir, "gemini-extension.json"), JSON.stringify(manifest, null, 2) + "\n", { mode: 0o600 });
+  copyFileSync(src("gemini/GEMINI.md"), join(dir, "GEMINI.md"));
+  copyFileSync(src("gemini/commands/nox.toml"), join(dir, "commands", "nox.toml"));
+  console.log(green("✓"), `Gemini CLI extension: ${dir}`);
+
+  const settingsPath = join(homedir(), ".gemini", "settings.json");
+  try {
+    if (JSON.parse(readFileSync(settingsPath, "utf8")).mcpServers?.nox) {
+      console.log(dim(`  ${settingsPath} also has a "nox" MCP server (from nox mcp install gemini). Gemini CLI uses that one; both reach the same NoX.`));
+    }
+  } catch {
+    /* no settings yet */
+  }
+  if (flags["no-link"] || process.env.NOX_NO_LINK) return console.log(dim(`  Link it yourself: gemini extensions link ${dir}`));
+  if (existsSync(join(homedir(), ".gemini", "extensions", "nox"))) return console.log(dim("  Already linked: Gemini CLI picks up the new files on its next start."));
+  try {
+    execFileSync("gemini", ["extensions", "link", dir, "--consent"], { stdio: ["ignore", "ignore", "pipe"] });
+    console.log(green("✓"), "Linked into Gemini CLI. Start gemini in a repo and run /nox NOX-<n>.");
+  } catch {
+    console.log(yellow("!"), `Couldn't run gemini. Install Gemini CLI, then: gemini extensions link ${dir}`);
+  }
+}
+
 // ── commands ──────────────────────────────────────────────────────────────
 const commands = {
   async login() {
@@ -273,6 +310,7 @@ const commands = {
       cursor: () => put("cursor/nox.mdc", join(root, ".cursor", "rules", "nox.mdc")),
       codex: () => put("codex/AGENTS.md", join(root, "AGENTS.md"), { append: true }),
       copilot: () => put("copilot/copilot-instructions.md", join(root, ".github", "copilot-instructions.md"), { append: true }),
+      gemini: () => installGeminiExtension(src),
       claude: () => {
         put("claude/nox-command.md", join(root, ".claude", "commands", "nox.md"));
         put("claude/SKILL.md", join(root, ".claude", "skills", "nox", "SKILL.md"));
@@ -464,7 +502,7 @@ ${bold("nox")} — NoX missions and knowledge bases, in your terminal and your c
   ${bold("nox kbs")}                         Knowledge bases you can see
   ${bold("nox pr")} NOX-12 [<pr url>]        Link a pull request (NoX posts a guard comment)
   ${bold("nox complete")} NOX-12             Mark as completed → verification checklists open
-  ${bold("nox init")} <antigravity|cursor|codex|copilot|claude|all>   Install /nox for an agent
+  ${bold("nox init")} <antigravity|gemini|cursor|codex|copilot|claude|all>   Install /nox for an agent
   ${bold("nox kb build")} [--push]            Build this repo's knowledge base locally with Gemma (code stays here)
   ${bold("nox kb sync")} [--push]             Update pages for new commits;  ${bold("nox kb watch")} does it on every commit
   ${bold("nox kb push")}                     Send the local pages to NoX (a KB pull request); ${bold("nox kb status")}

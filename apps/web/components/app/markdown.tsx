@@ -3,6 +3,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { openLesson } from "./lessons";
 import { MediaChip, parseMediaRef } from "./media/media-chip";
 
 /** OKF frontmatter (the few keys NoX shows): a flat YAML subset, enough for type, title, tags and generated. */
@@ -77,6 +78,8 @@ export function KbMarkdown({
     )
     // [[media:<id>#t=42]]: a moment in a capture shown to NoX (Show NoX)
     .replace(/\[\[(media:[^\]|]+)\]\]/g, (_m, target: string) => `[media](#nox-media:${encodeURIComponent(target)})`)
+    // [[memory:<id>]]: a lesson people taught NoX (team memory); opens the file's lessons list on it
+    .replace(/\[\[memory:([0-9a-fA-F-]{36})(?:\|[^\]]*)?\]\]/g, (_m, id: string) => `[lesson](#nox-lesson:${id})`)
     .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, target: string, label?: string) => {
       const t = target.trim();
       return `[${(label ?? t.split("/").pop() ?? t).trim()}](#wiki:${encodeURIComponent(t)})`;
@@ -93,7 +96,15 @@ export function KbMarkdown({
               const ref = parseMediaRef(decodeURIComponent(href.slice(11)));
               return ref ? <MediaChip id={ref.id} t={ref.t} /> : <>{children}</>;
             }
-            if (href.startsWith("#wiki:")) {
+            if (href.startsWith("#nox-lesson:")) {
+              const id = href.slice(12);
+              return (
+                <button type="button" className="lesson-chip" onClick={() => openLesson(id)} title="A rule people taught NoX on an earlier mission">
+                  lesson
+                </button>
+              );
+            }
+                        if (href.startsWith("#wiki:")) {
               const target = decodeURIComponent(href.slice(6)).split("#")[0];
               const cross = target.startsWith("kb:");
               return (

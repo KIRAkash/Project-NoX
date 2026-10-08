@@ -3,10 +3,12 @@
 import { Check, CircleDashed, MonitorPlay, Paperclip, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { RememberToggle } from "@/components/app/lessons";
 import { CaptureBar } from "@/components/app/media/capture-bar";
 import { MediaChip, seekMedia } from "@/components/app/media/media-chip";
 import { Planet } from "@/components/app/planet";
 import { useToast } from "@/components/app/ui";
+import { VoiceInput } from "@/components/app/voice-input";
 import { LiquidMetalButton } from "@/components/liquid-metal/liquid-metal";
 import { api, ApiError } from "@/lib/app/api";
 import { ROLE_BY_ID, type RoleId } from "@/lib/app/roles";
@@ -125,6 +127,7 @@ export function VerifyPanel({ m, file, mine, onChanged }: { m: Mission; file: Sp
   const [flagging, setFlagging] = useState<"back" | "blocked" | null>(null);
   const [note, setNote] = useState("");
   const [backTo, setBackTo] = useState<RoleId>("developer");
+  const [remember, setRemember] = useState(true);
   const [open, setOpen] = useState<number | null>(null);
   const [capturing, setCapturing] = useState(false);
   const [showing, setShowing] = useState<"closed" | "open" | "comparing">("closed");
@@ -164,7 +167,7 @@ export function VerifyPanel({ m, file, mine, onChanged }: { m: Mission; file: Sp
 
   const send = async (v: "verified" | "not_met" | "blocked") => {
     try {
-      await api(`/api/v1/missions/${m.key}/files/${file.role}/verify`, { method: "POST", json: v === "verified" ? { verdict: v } : v === "blocked" ? { verdict: v, note } : { verdict: v, note, backTo } });
+      await api(`/api/v1/missions/${m.key}/files/${file.role}/verify`, { method: "POST", json: v === "verified" ? { verdict: v } : v === "blocked" ? { verdict: v, note } : { verdict: v, note, backTo, remember } });
       toast(
         v === "verified" ? (file.role === "business" ? "Verified: mission done" : "Verified: passed to the next seat") : v === "blocked" ? "Reported as blocked" : `Sent back to the ${ROLE_BY_ID[backTo].name}`,
         "success",
@@ -417,6 +420,7 @@ export function VerifyPanel({ m, file, mine, onChanged }: { m: Mission; file: Sp
       {editable && flagging && (
         <div className="mt-4 space-y-2 rounded-sm border border-[rgba(233,113,60,.35)] p-3">
           <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} autoFocus placeholder={flagging === "blocked" ? "What are you waiting for?" : "What isn't met?"} aria-label={flagging === "blocked" ? "What are you waiting for" : "What isn't met"} className="w-full rounded-sm border border-hairline bg-void p-2 text-[13px] text-ink" />
+          <VoiceInput value={note} onChange={setNote} label="Or say it" className="w-full justify-end" />
           <div className="flex flex-wrap items-center gap-2 text-[13px]">
             {flagging === "back" && (
               <>
@@ -432,6 +436,11 @@ export function VerifyPanel({ m, file, mine, onChanged }: { m: Mission; file: Sp
               </>
             )}
             <span className="flex-1" />
+            {flagging === "back" && (
+              <div className="w-full">
+                <RememberToggle checked={remember} onChange={setRemember} />
+              </div>
+            )}
             <button type="button" onClick={() => setFlagging(null)} className="h-9 px-2 text-ink-dim">
               Cancel
             </button>

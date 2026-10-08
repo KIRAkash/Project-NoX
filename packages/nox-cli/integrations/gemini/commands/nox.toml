@@ -1,0 +1,10 @@
+description = "Build a NoX mission: load its spec files and knowledge base, plan against the build spec, implement, test and open a PR."
+prompt = """
+Work on NoX mission {{args}} in this repository, following the NoX workflow in your context (the "/nox NOX-<n>" steps in GEMINI.md).
+
+This is the mission as NoX holds it right now: its stage, the four spec files and the relevant knowledge-base pages.
+
+!{nox context {{args}}}
+
+Start with step 2 (check the stage), then show your plan before editing anything.
+"""

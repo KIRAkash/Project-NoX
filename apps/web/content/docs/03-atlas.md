@@ -138,6 +138,7 @@ The application page has three tabs: **Overview**, **Explore** and **Ask the KB*
 - **Sources**: every connected source with its last sync time. Add a new one at the bottom; NoX ingests just that source and updates the pages it affects.
 - **Check PR status**: see whether the knowledge-base pull request has been merged.
 - **Check sources for updates**: look for new commits, pages or messages now, without waiting for a webhook or the next poll.
+- **What NoX has learned**: the lessons people taught NoX for this application, each with where it came from (*Learned from NOX-3 · Product owner*) and which seat's files apply it. The product owner, engineering lead and developer can remove a lesson, or write one directly with **Teach NoX**. See [Missions](/docs/missions#sending-a-mission-back).
 - **Quality gate**: the lint summary and the **Agent brief**, the compact description NoX hands to coding agents.
 - A **Built with** badge showing whether the knowledge base was built by NoX's agents on Gemini, or on a developer's machine with NoX Local and Gemma.
 
@@ -152,6 +153,7 @@ The application page has three tabs: **Overview**, **Explore** and **Ask the KB*
 - Every page it read becomes a citation you can click, and code is cited as `path:line`.
 - The answer is pitched to your seat: plain language for a business user, exact files and data shapes for a developer.
 - Conversations are kept in ADK database sessions, so a follow-up question keeps its context, even across server instances.
+- You can ask out loud with the microphone, and **Listen** reads an answer aloud. See [Speaking instead of typing](/docs/missions#speaking-instead-of-typing).
 
 ## Staying in sync
 

@@ -66,9 +66,10 @@ export async function streamPost(
   signal?: AbortSignal,
 ): Promise<void> {
   const headers = await authHeaders();
-  headers.set("Content-Type", "application/json");
+  const form = typeof FormData !== "undefined" && body instanceof FormData; // uploads (a voice recording) go as multipart
+  if (!form) headers.set("Content-Type", "application/json");
   headers.set("Accept", "text/event-stream");
-  const res = await fetch(`${API_URL}${path}`, { method: "POST", headers, body: JSON.stringify(body), signal });
+  const res = await fetch(`${API_URL}${path}`, { method: "POST", headers, body: form ? body : JSON.stringify(body), signal });
   if (!res.ok || !res.body) {
     let detail = `Request failed (${res.status})`;
     try {

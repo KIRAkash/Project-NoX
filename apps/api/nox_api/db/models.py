@@ -11,6 +11,7 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -522,3 +523,32 @@ class SightingSchedule(Base):
     last_run_at = Column(DateTime, nullable=True)
     updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class TeamMemory(Base):
+    """A lesson people taught NoX for one application, and for one seat (or every seat when `seat` is null).
+
+    Learned from a send-back or a Not met (with "Remember this" ticked), or taught directly on the app page.
+    `sources` is [{missionKey, eventId, quote, by, at}]: where the lesson came from, in the person's own words.
+    Postgres is authoritative for `status`; `bank_name` is its Memory Bank memory when NOX_MEMORY=memory_bank.
+    """
+
+    __tablename__ = "team_memories"
+    __table_args__ = (Index("ix_team_memories_kb_status", "kb_id", "status"),)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False, index=True)
+    kb_id = Column(UUID(as_uuid=True), ForeignKey("knowledge_bases.id", ondelete="CASCADE"), nullable=False)
+    seat = Column(Enum(Role), nullable=True)
+    fact = Column(Text, nullable=False)
+    kind = Column(String, nullable=False, default="team_rule")      # team_rule | quality_bar | domain_fact
+    status = Column(String, nullable=False, default="active")       # active | forgotten | superseded
+    sources = Column(JSON, nullable=False, default=list)
+    bank_name = Column(String, nullable=True, index=True)
+    embedding = Column(JSON, nullable=True)                         # the fact's embedding (Postgres backend)
+    applied_count = Column(Integer, nullable=False, default=0)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    forgotten_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    forgotten_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+

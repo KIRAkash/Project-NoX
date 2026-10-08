@@ -84,6 +84,7 @@ body {
 .kb-prose code { font-family: var(--font-mono); font-size: 12.5px; background: rgba(143,160,204,.1); padding: 1px 5px; border-radius: 3px; color: #eceff8; }
 .kb-prose pre { background: #090b13; border: 1px solid rgba(143,160,204,.14); border-radius: 10px; padding: 12px 14px; overflow-x: auto; }
 .kb-prose pre code { background: none; padding: 0; }
+.kb-prose :not(pre) > code { overflow-wrap: anywhere; } /* long file paths wrap instead of spilling out of the column */
 .kb-prose table { width: 100%; border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; }
 .kb-prose th, .kb-prose td { border: 1px solid rgba(143,160,204,.16); padding: 6px 10px; text-align: left; }
 .kb-prose th { color: #eceff8; background: rgba(143,160,204,.05); }
@@ -91,6 +92,8 @@ body {
 .kb-prose a, .kb-prose .wikilink { color: var(--role, #86b9ee); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(143,160,204,.4); }
 .kb-prose .wikilink-cross { font-style: italic; }
 .kb-prose .wikilink-cross::after { content: " ↗"; font-style: normal; }
+.kb-prose .lesson-chip { display: inline-flex; align-items: center; margin: 0 2px; padding: 0 6px; border: 1px solid rgba(95,210,159,.4); border-radius: 999px; font-size: 0.72em; line-height: 1.5; vertical-align: 0.12em; color: #7fddb2; background: transparent; cursor: pointer; }
+.kb-prose .lesson-chip:hover { background: rgba(95,210,159,.08); }
 
 /* --- seat textures ---------------------------------------------------------
    Every seat shares the tokens; each gets its own feel behind the content.

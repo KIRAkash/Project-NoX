@@ -1,7 +1,13 @@
-"""Logging with a per-request id, so one request's lines can be followed across modules."""
+"""Logging with a per-request id, so one request's lines can be followed across modules.
+
+On Cloud Run each line is JSON that Cloud Logging understands (severity, message, and the trace it belongs to
+when tracing is on), so a trace in Cloud Trace shows its own log lines. Locally it stays one readable line.
+"""
 
 import contextvars
+import json
 import logging
+import os
 import uuid
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -16,10 +22,31 @@ class _RequestIdFilter(logging.Filter):
         return True
 
 
+class _CloudFormatter(logging.Formatter):
+    """One JSON object per line, in the shape Cloud Logging reads from Cloud Run's stdout."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        entry = {"severity": record.levelname, "message": record.getMessage(), "logger": record.name,
+                 "request_id": getattr(record, "request_id", "-")}
+        if record.exc_info:
+            entry["message"] += "\n" + self.formatException(record.exc_info)
+        try:
+            from ..ai.tracing import log_trace_field
+
+            if trace := log_trace_field():
+                entry["logging.googleapis.com/trace"] = trace
+        except Exception:
+            pass
+        return json.dumps(entry, default=str)
+
+
 def configure_logging(level: int = logging.INFO) -> None:
     handler = logging.StreamHandler()
     handler.addFilter(_RequestIdFilter())
-    handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] [%(request_id)s] %(name)s: %(message)s"))
+    if os.getenv("K_SERVICE"):  # Cloud Run
+        handler.setFormatter(_CloudFormatter())
+    else:
+        handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] [%(request_id)s] %(name)s: %(message)s"))
     root = logging.getLogger()
     root.handlers[:] = [handler]
     root.setLevel(level)

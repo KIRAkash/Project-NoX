@@ -175,8 +175,9 @@ async def mission_context(key: str, db: AsyncSession = Depends(get_db), actor: A
     return await build_mission_context(db, actor, key)
 
 
-async def build_mission_context(db: AsyncSession, actor: Actor, key: str) -> dict:
-    """What `nox context` prints and MCP's `get_mission` returns."""
+async def build_mission_context(db: AsyncSession, actor: Actor, key: str, *, kb_budget: int = 30000, how_to: bool = True) -> dict:
+    """What `nox context` prints and MCP's `get_mission` returns. Jules gets it with a smaller KB budget and its own
+    working rules instead of the CLI ones (`how_to=False`)."""
     mission = await load_mission(db, actor, key)
     apps = await mission_apps(db, mission)
     j = mission_json(mission, apps, with_bodies=True)
@@ -186,14 +187,17 @@ async def build_mission_context(db: AsyncSession, actor: Actor, key: str) -> dic
         f"Stage: **{mission.stage.value}** · Type: {mission.type} · Apps: {', '.join(a.app_name for a in apps) or '—'}",
         f"Mission page: {mission_url(mission)}",
         f'Request: "{mission.prompt}"',
-        "## How to work on this mission",
-        "\n".join([
-            "1. Read the four spec files below. The build spec (developer file) is the plan; the others are the why and the limits.",
-            "2. Plan against the build spec's Tasks, reuse what 'What to reuse' names, and leave the listed contracts untouched unless the engineering design says otherwise.",
-            f"3. Work on a branch named `{branch}` and put `{mission.key}` in the PR title — NoX links the PR to this mission and posts a guard comment.",
-            "4. Run the Test plan. Then tick nothing yourself: the humans verify each file's checklist in NoX after the developer marks the mission completed.",
-        ]),
     ]
+    if how_to:
+        parts += [
+            "## How to work on this mission",
+            "\n".join([
+                "1. Read the four spec files below. The build spec (developer file) is the plan; the others are the why and the limits.",
+                "2. Plan against the build spec's Tasks, reuse what 'What to reuse' names, and leave the listed contracts untouched unless the engineering design says otherwise.",
+                f"3. Work on a branch named `{branch}` and put `{mission.key}` in the PR title — NoX links the PR to this mission and posts a guard comment.",
+                "4. Run the Test plan. Then tick nothing yourself: the humans verify each file's checklist in NoX after the developer marks the mission completed.",
+            ]),
+        ]
     for f in j["files"]:
         status = f["status"].replace("_", " ")
         parts.append(f"## {TITLE[Role(f['role'])]} — {f['fileName']} ({status})")
@@ -204,8 +208,15 @@ async def build_mission_context(db: AsyncSession, actor: Actor, key: str) -> dic
         parts.append("## Links")
         parts += [f"- Jira {link.external_id}: {(link.state or {}).get('summary', '')} ({(link.state or {}).get('status', '?')}) {link.url or ''}" for link in jira]
         parts += [f"- PR {link.external_id}: {(link.state or {}).get('title', '')} ({(link.state or {}).get('state', '?')}) {link.url or ''}" for link in prs]
+    from ..missions import memory
+
+    lessons = await memory.lessons_for(db, mission, Role.developer)  # coding agents follow what people taught NoX too
+    if lessons:
+        parts.append("## Team lessons")
+        parts.append("People taught NoX these rules for this application on earlier missions. Follow them.\n"
+                     + "\n".join(f"- {m.fact} ({memory.origin(m)})" for m in lessons))
     parts.append("## Knowledge base")
-    parts.append(await kb_context(db, [a.id for a in apps], f"{mission.title} {mission.prompt}", budget=30000))
+    parts.append(await kb_context(db, [a.id for a in apps], f"{mission.title} {mission.prompt}", budget=kb_budget))
     return {"key": mission.key, "title": mission.title, "stage": mission.stage.value, "branch": branch, "url": mission_url(mission), "markdown": "\n\n".join(parts)}
 
 

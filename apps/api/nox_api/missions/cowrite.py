@@ -21,6 +21,7 @@ from ..ai import telemetry
 from ..db.database import AsyncSessionLocal
 from ..db.models import Mission, MissionApp, Role, SpecChatMessage, SpecFile, SpecFileVersion, SpecStatus, User
 from ..services import shield
+from . import memory
 from .context import jira_context, kb_context, mission_apps
 from .drafting import clean_markdown
 from .events import record
@@ -85,7 +86,7 @@ def line_ops(old: str, new: str) -> list[dict]:
     return ops
 
 
-async def _load(db, mission_id: str, role: Role, attached: list[str] | None = None) -> tuple[Mission, SpecFile, dict[Role, str], str, dict[str, str], list]:
+async def _load(db, mission_id: str, role: Role, attached: list[str] | None = None) -> tuple[Mission, SpecFile, dict[Role, str], str, dict[str, str], list, list]:
     mission = (
         await db.execute(select(Mission).options(selectinload(Mission.files), selectinload(Mission.links)).where(Mission.id == uuid.UUID(mission_id)))
     ).scalars().first()
@@ -97,7 +98,8 @@ async def _load(db, mission_id: str, role: Role, attached: list[str] | None = No
     from .media import mission_evidence
 
     evidence = await mission_evidence(db, mission.id, attached)  # captures, as text: the video isn't re-sent each turn
-    return mission, f, upstream, context, await mission_apps(db, list(kb_ids)), evidence
+    lessons = await memory.lessons_for(db, mission, role)  # what people taught NoX on earlier missions
+    return mission, f, upstream, context, await mission_apps(db, list(kb_ids)), evidence, lessons
 
 
 async def _apply(db, mission: Mission, f: SpecFile, new_md: str, reason: str, extra: dict | None = None) -> bool:
@@ -135,7 +137,7 @@ async def refine_file(mission_id: str, role: Role, instruction: str | None = Non
     _busy.add(key)
     try:
         async with AsyncSessionLocal() as db:
-            mission, f, upstream, context, apps, evidence = await _load(db, mission_id, role)
+            mission, f, upstream, context, apps, evidence, lessons = await _load(db, mission_id, role)
             if instruction:
                 verdict = await shield.screen_prompt(instruction, where="cowrite", org_id=mission.org_id, mission_id=mission.id)
                 if verdict.blocked:
@@ -145,12 +147,14 @@ async def refine_file(mission_id: str, role: Role, instruction: str | None = Non
             try:
                 with telemetry.tags(org_id=mission.org_id, mission_id=mission.id):
                     turn = await cowriter.edit_turn(mission, role, current=f.markdown or "", base_version=f.version, upstream=upstream,
-                                                    context=context, apps=apps, instruction=instruction or REFINE, evidence=evidence)
+                                                    context=context, apps=apps, instruction=instruction or REFINE, evidence=evidence,
+                                                    lessons=memory.render(lessons, role, await memory.app_names(db, mission)))
             except Exception as e:
                 logger.exception("refine failed")
                 await record(db, mission, "nox.error", {"role": role.value, "error": str(e)[:200]})
                 return
-            await _apply(db, mission, f, turn.draft, "refine", {"edits": turn.edits, "usage": turn.usage, "tokens": turn.tokens})
+            if await _apply(db, mission, f, turn.draft, "refine", {"edits": turn.edits, "usage": turn.usage, "tokens": turn.tokens}):
+                await memory.record_applied(db, mission, role, lessons, f.markdown)
             if turn.questions:  # decisions NoX needs go to the chat, not the file
                 body = _with_questions(turn.reply, turn.questions)
                 db.add(SpecChatMessage(spec_file_id=f.id, author="nox", body=body))
@@ -172,7 +176,7 @@ async def chat(mission_id: str, role: Role, message: str, user_id: uuid.UUID | N
         await broadcast_transient(mission_id, "nox.step", {"role": role.value, "label": "NoX is watching your recording"})
         await wait_ready(media_ids)
     async with AsyncSessionLocal() as db:
-        mission, f, upstream, context, apps, evidence = await _load(db, mission_id, role, media_ids)
+        mission, f, upstream, context, apps, evidence, lessons = await _load(db, mission_id, role, media_ids)
         verdict = await shield.screen_prompt(message, where="cowrite", org_id=mission.org_id, mission_id=mission.id)
         if verdict.blocked:
             await _refused(db, mission, role, verdict, "chat")
@@ -189,7 +193,7 @@ async def chat(mission_id: str, role: Role, message: str, user_id: uuid.UUID | N
                 turn = await cowriter.edit_turn(
                     mission, role, current=f.markdown or "", base_version=f.version, upstream=upstream, context=context, apps=apps,
                     instruction=f"Recent chat:\n{convo}\n\nThe author now says: {message}", can_edit=not busy, stream_reply=True,
-                    evidence=evidence,
+                    evidence=evidence, lessons=memory.render(lessons, role, await memory.app_names(db, mission)),
                 )
             reply = turn.reply or ("Done." if turn.edits or turn.questions else "I couldn't find anything to change.")
             reply = _with_questions(reply, turn.questions)
@@ -197,6 +201,8 @@ async def chat(mission_id: str, role: Role, message: str, user_id: uuid.UUID | N
             if turn.draft.strip() != (f.markdown or "").strip() and not busy:
                 lost = lost_headings(f.markdown or "", clean_markdown(turn.draft))
                 changed = await _apply(db, mission, f, turn.draft, "chat", {"edits": turn.edits, "usage": turn.usage, "tokens": turn.tokens})
+                if changed:
+                    await memory.record_applied(db, mission, role, lessons, f.markdown)
                 if lost:  # the reply describes edits that weren't kept: say so rather than claim them
                     reply += f"\n\n(I couldn't save that: it would have removed {', '.join(sorted(lost))}. The file is unchanged.)"
             db.add(SpecChatMessage(spec_file_id=f.id, author="nox", body=reply))

@@ -456,6 +456,14 @@ async def approve_file(key: str, role: str, db: AsyncSession = Depends(get_db), 
 class SendBack(BaseModel):
     to_role: Role = Field(alias="toRole")
     reason: str = Field(min_length=3, max_length=1000)
+    remember: bool = True  # "Remember this for next time": NoX learns a lesson from the reason (CP20)
+
+
+def _remember(mission: Mission, event, feedback: str, actor: Actor, to_role: Role) -> None:
+    """Learn from a person's feedback in the background (missions/memory.py)."""
+    from ..missions.memory import learn
+
+    spawn(f"learn {mission.key}", learn, mission.id, str(event.id), feedback, actor.role.value, to_role.value, actor.user.id)
 
 
 @router.post("/{key}/send-back")
@@ -469,7 +477,10 @@ async def send_back(key: str, body: SendBack, db: AsyncSession = Depends(get_db)
     if f.status == SpecStatus.approved:
         f.status = SpecStatus.draft
     await db.commit()
-    await record(db, mission, "mission.sent_back", {"toRole": body.to_role.value, "reason": body.reason}, actor.user, actor.role.value)
+    ev = await record(db, mission, "mission.sent_back", {"toRole": body.to_role.value, "reason": body.reason, "remember": body.remember},
+                      actor.user, actor.role.value)
+    if body.remember:
+        _remember(mission, ev, body.reason, actor, body.to_role)
     from ..missions.jira_sync import on_stage_change
 
     await on_stage_change(db, mission, actor, f"Sent back to {TITLE[body.to_role].lower()}: {body.reason}")
@@ -661,6 +672,7 @@ class Verdict(BaseModel):
     verdict: str = Field(pattern="^(verified|not_met|blocked)$")
     note: str | None = Field(default=None, max_length=2000)
     back_to: Role | None = Field(default=None, alias="backTo")  # not met: which seat fixes it (default: the developer, in Build)
+    remember: bool = True  # not met: NoX learns a lesson from the note and the failing items (CP20)
 
 
 def _update_items(items: list[dict]) -> list[dict]:
@@ -741,7 +753,10 @@ async def verify_file(key: str, role: str, body: Verdict, db: AsyncSession = Dep
         if bf.status == SpecStatus.approved:
             bf.status = SpecStatus.draft
     await db.commit()
-    await record(db, mission, "verify.not_met", {"role": r.value, "note": note, "backTo": back.value}, actor.user, actor.role.value)
+    ev = await record(db, mission, "verify.not_met", {"role": r.value, "note": note, "backTo": back.value, "remember": body.remember},
+                      actor.user, actor.role.value)
+    if body.remember:
+        _remember(mission, ev, "\n".join([note, *(f"- {i['text']}" + (f": {i['note']}" if i["note"] else "") for i in bad)]), actor, back)
     await _send_update(db, mission, actor, update_kind(items), note, bad, back, rnd)
     await on_stage_change(db, mission, actor, f"{TITLE[r]} not met ({who}): {note}" + (f" — failing: {'; '.join(i['text'][:50] for i in bad[:3])}" if bad else ""))
     return mission_json(mission, await mission_apps(db, mission), with_bodies=True)
