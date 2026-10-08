@@ -103,7 +103,73 @@ const SHOTS = {
 };
 const note = (role, id = "") => SHOTS[role] ? `<div class="bk-note" ${id ? `id="${id}"` : ""}>${CLIP}${SHOTS[role].svg}<div class="cap">${SHOTS[role].cap}</div></div>` : "";
 
-/** front: typing targets and live cursors; back: the finished, signed page */
+const BACKS = [
+  // Leaf 0 turns to face Product Owner on the right
+  {
+    role: "product",
+    signer: "Business user",
+    file: "builds on 01-business.md",
+    badge: "original request · signed by Business user",
+    tag: "Initial Requirement",
+    quote: "“Customers keep emailing support for invoices. Can they just download them?”",
+    body: `
+<div class="h2">Problem</div>
+<div class="b">Support answered 1,340 invoice emails last quarter. Each takes about 6 minutes, and the customer waits a day.</div>
+<div class="h2">What changes for customers</div>
+<div class="b">Customers download any past invoice as a PDF from their billing history, without contacting support. <span class="kb">[[kb:billing-service/invoices]]</span></div>
+<div class="h2">Done when</div>
+<div class="b li">Support stops answering invoice emails</div>
+<div class="b li">Invoice tickets fall by 80% within a quarter</div>`,
+  },
+  // Leaf 1 turns to face Engineering Lead on the right
+  {
+    role: "engineering",
+    signer: "Product owner",
+    file: "builds on 02-product.md",
+    badge: "product specification · signed by Product owner",
+    tag: "Product Goal",
+    quote: "“Customers get any invoice themselves, the day it is issued, in the format finance sends today.”",
+    body: `
+<div class="h2">Key acceptance criteria</div>
+<div class="b ck on"><span class="ac">AC-1</span> Any invoice downloads as a PDF from billing history</div>
+<div class="b ck on"><span class="ac">AC-2</span> The tax breakdown is included, the day it is issued</div>
+<div class="b ck on"><span class="ac">AC-3</span> The PDF totals match what reporting reads <span class="kb">[[kb:reporting/invoice-totals]]</span></div>
+<div class="h2">Edge cases from the map</div>
+<div class="b li">Prorated invoices need a “partial period” line</div>
+<div class="b li">Credit notes download the same way</div>`,
+  },
+  // Leaf 2 turns to face Developer on the right
+  {
+    role: "developer",
+    signer: "Engineering lead",
+    file: "builds on 03-engineering.md",
+    badge: "engineering design · signed by Engineering lead",
+    tag: "Architecture Directive",
+    quote: "“billing-service and customer-portal. Reuse receipts.renderPdf() — no new PDF service.”",
+    body: `
+<div class="h2">Contracts</div>
+<div class="b li">Reuse <code>receipts.renderPdf()</code>: keep contract intact</div>
+<div class="b li">Reporting reads invoice totals: unchanged contract <span class="kb">[[kb:reporting/invoice-totals]]</span></div>
+<div class="h2">Sequence</div>
+<div class="pre">GET /invoices/{id}/pdf
+  → load invoice + lines   (billing db)
+  → renderPdf(template="invoice")</div>
+<div class="h2">Failure modes</div>
+<div class="b li">Renderer slow: 2 s budget, then queue and email</div>`,
+  },
+  // Fallback
+  {
+    role: "developer",
+    signer: "Developer",
+    file: "04-developer.md",
+    badge: "build spec · signed by Developer",
+    tag: "Verification",
+    quote: "“PR opened against billing-service, NoX guard green.”",
+    body: `<div class="b">Ready for agent execution.</div>`,
+  },
+];
+
+/** front: typing targets and live cursors; back: the finished, signed upstream context page */
 function faces(p, i) {
   const rc = PAPER[p.role];
   const typed = [];
@@ -115,12 +181,21 @@ function faces(p, i) {
       : `<span class="bkc me" id="${id}c">${ARROW(rc)}<span class="who">${NAME[p.role]}</span></span>`;
     return `<span id="${id}"></span>${caret}`;
   });
-  const back = p.body.replace(/\{\{[nu]:([^}]*)\}\}/g, "$1").replace("status: draft", "status: approved");
   const drag = p.note ? `<div class="bk-drag" id="bk${i}drag" style="--rc:${rc}">${ARROW(rc)}<span class="who">${NAME[p.role]}</span></div>` : "";
+
+  const bp = BACKS[i] || BACKS[3];
+  const bHead = `<div class="hd" style="color:${PAPER[bp.role]}">${pagePl(bp.role, 30)}${NAME[bp.role]}<span class="file">${bp.file}</span></div>`;
+  const backHtml = `
+    <div class="meta">${bp.badge}</div>
+    <div class="h2" style="margin-top:14px;color:#6b7288;font-size:13px;letter-spacing:.08em;text-transform:uppercase;font-family:JB">${bp.tag}</div>
+    <div style="font-family:'Instrument Serif';font-size:31px;line-height:1.2;margin:6px 0 16px;color:#10131f;font-style:italic">${bp.quote}</div>
+    ${bp.body}
+  `;
+
   return {
     typed,
     html: `<div class="bk-face front" style="--rc:${rc}">${head(p)}<div class="pg">${front}</div><div class="fade"></div>${note(p.role, `bk${i}note`)}${drag}<div class="bk-stamp" id="bk${i}st">✓ SIGNED · ${NAME[p.role]}</div><div class="bk-shade"></div></div>
-      <div class="bk-face back" style="--rc:${rc}">${head(p)}<div class="pg">${back}</div><div class="fade"></div>${note(p.role)}<div class="bk-lock">${LOCK}read-only</div><div class="bk-stamp">✓ SIGNED · ${NAME[p.role]}</div><div class="bk-shade"></div></div>`,
+      <div class="bk-face back" style="--rc:${PAPER[bp.role]}">${bHead}<div class="pg">${backHtml}</div><div class="fade"></div><div class="bk-lock">${LOCK}read-only</div><div class="bk-stamp">✓ SIGNED · ${bp.signer}</div><div class="bk-shade"></div></div>`,
   };
 }
 

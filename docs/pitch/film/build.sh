@@ -25,7 +25,16 @@ rm -rf vendor/logos && cp -r "$REPO/apps/web/public/logos" vendor/logos
 node render.mjs video "${WORKERS:-4}"
 
 # 3. sound: the score, synced to cues.json
-python3 score.py
+if [ -f score.wav ]; then
+  echo "Using existing score.wav"
+elif [ -f "$OUT/nox-film.mp4" ]; then
+  echo "Extracting score.wav from previous film build..."
+  ffmpeg -y -loglevel error -i "$OUT/nox-film.mp4" -vn -c:a pcm_s16le score.wav
+elif command -v python3 >/dev/null && python3 -c 'import numpy, soundfile, pretty_midi' 2>/dev/null; then
+  python3 score.py
+else
+  echo "Warning: Python audio libraries not found and no previous audio to extract."
+fi
 
 # 4. grade (soft highlight glow, fine luma grain) and encode
 GRADE="format=gbrp,split[a][b];[b]scale=480:270,curves=all='0/0 0.6/0.04 1/1',gblur=sigma=6,scale=1920:1080[g];[a][g]blend=all_mode=screen:all_opacity=0.32,format=yuv444p,noise=c0s=5:c0f=t+u,format=yuv420p"
