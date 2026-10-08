@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ThemeToggle } from "@/components/app/theme-toggle";
 import ExperienceLoader from "@/components/experience/experience-loader";
 import { LiquidMetalLink } from "@/components/liquid-metal/liquid-metal";
 
@@ -9,9 +10,10 @@ export default function Page() {
       <ExperienceLoader />
       {/* the way into the product (and its docs); fixed so it stays reachable through the whole pinned experience */}
       <div className="fixed right-5 top-5 z-[30] flex items-center gap-2 sm:right-8 sm:top-6 lg:right-12 lg:top-7">
+        <ThemeToggle />
         <Link
           href="/docs"
-          className="rounded-full px-3 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-muted transition hover:text-white"
+          className="rounded-full px-3 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-muted transition hover:text-ink"
         >
           Docs
         </Link>

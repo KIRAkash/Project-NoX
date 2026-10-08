@@ -4,7 +4,7 @@ import type { SourceType } from "@/lib/app/types";
 
 /**
  * Real brand marks for the systems NoX talks to. The SVGs live in `public/logos/` and come from svgl.app
- * (dark-theme variants, since the product sits on the void). svgl has no Jira or Confluence mark, so those
+ * (dark-theme variants; the white-only ones are inverted on the light theme). svgl has no Jira or Confluence mark, so those
  * two are the Simple Icons glyphs filled with Atlassian blue.
  */
 export const BRANDS = {
@@ -28,6 +28,9 @@ export const BRANDS = {
 
 export type Brand = keyof typeof BRANDS;
 
+/** Marks drawn in white only. On the light theme they are inverted to ink (see `.brand-mono` in globals.css). */
+const MONO = new Set<Brand>(["github", "codex", "copilot", "cursor", "ollama", "postgresql"]);
+
 export function isBrand(name: string): name is Brand {
   return name in BRANDS;
 }
@@ -37,7 +40,7 @@ export function BrandLogo({ name, size = 16, className = "", title }: { name: Br
   const label = title ?? BRANDS[name];
   return (
     // Plain <img>: these are tiny static SVGs, next/image adds nothing here.
-    <img src={`/logos/${name}.svg`} alt={label} title={label} width={size} height={size} className={`shrink-0 object-contain ${className}`} style={{ width: size, height: size }} />
+    <img src={`/logos/${name}.svg`} alt={label} title={label} width={size} height={size} className={`shrink-0 object-contain ${MONO.has(name) ? "brand-mono" : ""} ${className}`} style={{ width: size, height: size }} />
   );
 }
 
@@ -60,7 +63,7 @@ export function SourceLogos({ types, size = 14, className = "" }: { types: Sourc
         const n = counts.get(t)!;
         const label = `${n} ${sourceLabel(t)} source${n === 1 ? "" : "s"}`;
         return (
-          <span key={t} title={label} aria-label={label} className="inline-flex items-center gap-1 rounded-sm border border-hairline bg-[rgba(143,160,204,.06)] px-1.5 py-1">
+          <span key={t} title={label} aria-label={label} className="inline-flex items-center gap-1 rounded-sm border border-hairline bg-[rgb(var(--line)/.06)] px-1.5 py-1">
             <BrandLogo name={t} size={size} title={label} />
             {n > 1 && <span className="font-mono text-[10px] leading-none text-ink-faint">{n}</span>}
           </span>

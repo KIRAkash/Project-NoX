@@ -15,7 +15,7 @@ function List({ chapters, groups, current }: Props & { current: string }) {
       <Link
         href="/docs"
         aria-current={current === "" ? "page" : undefined}
-        className={`block rounded-sm px-3 py-1.5 text-[13.5px] ${current === "" ? "bg-[rgba(247,181,66,.1)] text-ink" : "text-ink-muted hover:text-ink"}`}
+        className={`block rounded-sm px-3 py-1.5 text-[13.5px] ${current === "" ? "bg-[rgb(var(--nox-rgb)/.1)] text-ink" : "text-ink-muted hover:text-ink"}`}
       >
         Docs home
       </Link>
@@ -32,7 +32,7 @@ function List({ chapters, groups, current }: Props & { current: string }) {
                     <Link
                       href={`/docs/${c.slug}`}
                       aria-current={on ? "page" : undefined}
-                      className={`relative block rounded-sm px-3 py-1.5 text-[13.5px] transition-colors ${on ? "bg-[rgba(247,181,66,.1)] text-ink" : "text-ink-muted hover:bg-[rgba(236,239,248,.03)] hover:text-ink"}`}
+                      className={`relative block rounded-sm px-3 py-1.5 text-[13.5px] transition-colors ${on ? "bg-[rgb(var(--nox-rgb)/.1)] text-ink" : "text-ink-muted hover:bg-[rgb(var(--line)/.06)] hover:text-ink"}`}
                     >
                       {on && <span aria-hidden className="absolute inset-y-1.5 left-0 w-[2px] rounded-full bg-nox" />}
                       {c.title}

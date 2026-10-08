@@ -35,11 +35,11 @@ export function DocMarkdown({ source }: { source: string }) {
         strong: ({ children }) => <strong className="font-semibold text-ink">{children}</strong>,
         a: ({ href = "", children }) =>
           href.startsWith("/") || href.startsWith("#") ? (
-            <Link href={href} className="text-[#8FC4F2] underline decoration-[rgba(143,196,242,.35)] underline-offset-[3px] hover:decoration-[#8FC4F2]">
+            <Link href={href} className="text-[color:var(--link)] underline decoration-[rgba(143,196,242,.35)] underline-offset-[3px] hover:decoration-[color:var(--link)]">
               {children}
             </Link>
           ) : (
-            <a href={href} target="_blank" rel="noreferrer" className="text-[#8FC4F2] underline decoration-[rgba(143,196,242,.35)] underline-offset-[3px] hover:decoration-[#8FC4F2]">
+            <a href={href} target="_blank" rel="noreferrer" className="text-[color:var(--link)] underline decoration-[rgba(143,196,242,.35)] underline-offset-[3px] hover:decoration-[color:var(--link)]">
               {children}
             </a>
           ),
@@ -49,7 +49,7 @@ export function DocMarkdown({ source }: { source: string }) {
           <li className={className?.includes("task-list-item") ? "list-none" : "list-[inherit] pl-1 [&>p]:mt-2 [&>ul]:mt-2 [&>pre]:mt-3"}>{children}</li>
         ),
         blockquote: ({ children }) => (
-          <blockquote className="mt-6 rounded-md border border-[rgba(247,181,66,.28)] bg-[linear-gradient(135deg,rgba(247,181,66,.09),rgba(247,181,66,.02))] px-5 py-1 pb-4 [&>p]:text-ink">
+          <blockquote className="mt-6 rounded-md border border-[rgb(var(--nox-rgb)/.28)] bg-[linear-gradient(135deg,rgb(var(--nox-rgb)/.09),rgb(var(--nox-rgb)/.02))] px-5 py-1 pb-4 [&>p]:text-ink">
             {children}
           </blockquote>
         ),
@@ -58,26 +58,26 @@ export function DocMarkdown({ source }: { source: string }) {
           className ? (
             <code className={className}>{children}</code>
           ) : (
-            <code className="rounded-[4px] border border-hairline bg-[rgba(143,160,204,.08)] px-1.5 py-[1px] font-mono text-[0.86em] text-[#E7D3A6]">{children}</code>
+            <code className="rounded-[4px] border border-hairline bg-[rgb(var(--line)/.08)] px-1.5 py-[1px] font-mono text-[0.86em] text-[color:var(--code-ink)]">{children}</code>
           ),
         pre: ({ children }) => {
           const child = Children.toArray(children)[0];
           const lang = isValidElement<{ className?: string }>(child) ? (child.props.className ?? "").replace("language-", "") : "";
           return (
-            <div className="mt-5 overflow-hidden rounded-md border border-[rgba(143,160,204,.2)] bg-[linear-gradient(180deg,rgba(21,26,42,.9),rgba(9,11,19,.95))]">
+            <div className="mt-5 overflow-hidden rounded-md border border-[rgb(var(--line)/.2)] bg-[linear-gradient(180deg,rgb(var(--raise)/.9),rgb(var(--deck-rgb)/.95))]">
               {lang && lang !== "text" && (
                 <div className="border-b border-hairline px-4 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-dim">{lang}</div>
               )}
-              <pre className="overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.65] text-[#C9D2EA]">{children}</pre>
+              <pre className="overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.65] text-[color:var(--prose)]">{children}</pre>
             </div>
           );
         },
         table: ({ children }) => (
-          <div className="mt-6 overflow-x-auto rounded-md border border-[rgba(143,160,204,.2)]">
+          <div className="mt-6 overflow-x-auto rounded-md border border-[rgb(var(--line)/.2)]">
             <table className="w-full min-w-[560px] border-collapse text-left text-[13.5px]">{children}</table>
           </div>
         ),
-        thead: ({ children }) => <thead className="bg-[rgba(143,160,204,.07)]">{children}</thead>,
+        thead: ({ children }) => <thead className="bg-[rgb(var(--line)/.07)]">{children}</thead>,
         th: ({ children, style }) => (
           <th style={style} className="border-b border-hairline px-4 py-2.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] text-ink-faint">
             {children}
@@ -89,7 +89,7 @@ export function DocMarkdown({ source }: { source: string }) {
           </td>
         ),
         input: ({ checked }) => (
-          <input type="checkbox" checked={checked} readOnly disabled className="mr-2 translate-y-[1px] accent-[#5FD29F]" />
+          <input type="checkbox" checked={checked} readOnly disabled className="mr-2 translate-y-[1px] accent-[color:var(--verify)]" />
         ),
       }}
     >

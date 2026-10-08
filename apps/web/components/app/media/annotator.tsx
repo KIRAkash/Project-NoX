@@ -2,6 +2,7 @@
 
 import { ArrowUpRight, Pen, Square, Type, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { legible } from "@/lib/app/palette";
 
 type Tool = "box" | "arrow" | "pen" | "text";
 type Shape =
@@ -61,7 +62,7 @@ export function Annotator({ src, hue, onDone, onCancel }: { src: string; hue: st
       } else if (s.tool === "text") {
         ctx.font = `600 ${w * 7}px system-ui, sans-serif`;
         ctx.lineWidth = w * 1.4;
-        ctx.strokeStyle = "rgba(5,6,11,.85)";
+        ctx.strokeStyle = "rgb(var(--void-rgb)/.85)";
         ctx.strokeText(s.text, s.a[0], s.a[1]);
         ctx.fillText(s.text, s.a[0], s.a[1]);
         ctx.strokeStyle = hue;
@@ -131,7 +132,7 @@ export function Annotator({ src, hue, onDone, onCancel }: { src: string; hue: st
             onClick={() => setTool(t.id)}
             aria-pressed={tool === t.id}
             className="flex h-9 items-center gap-1.5 rounded-sm border px-3 text-[12.5px]"
-            style={{ borderColor: tool === t.id ? hue : "rgba(143,160,204,.2)", color: tool === t.id ? hue : "#A6AEC7" }}
+            style={{ borderColor: tool === t.id ? hue : "rgb(var(--line)/.2)", color: tool === t.id ? legible(hue) : "var(--ink-muted)" }}
           >
             <t.icon size={13} /> {t.label}
           </button>
@@ -155,7 +156,7 @@ export function Annotator({ src, hue, onDone, onCancel }: { src: string; hue: st
         <button type="button" onClick={onCancel} className="h-9 px-3 text-[13px] text-ink-dim hover:text-ink">
           Cancel
         </button>
-        <button type="button" onClick={finish} className="h-9 rounded-sm px-4 text-[13px] font-semibold text-void" style={{ background: hue }}>
+        <button type="button" onClick={finish} className="h-9 rounded-sm px-4 text-[13px] font-semibold text-abyss" style={{ background: hue }}>
           {shapes.length ? "Use marked-up copy" : "Use as it is"}
         </button>
       </div>

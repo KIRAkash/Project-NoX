@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { OrgMap } from "@/lib/app/types";
 
 import { KbStatusChip } from "./ui";
+import { legible } from "@/lib/app/palette";
 
 /** The landing page's "constellation" hues. */
 const HUES = ["#E8C97A", "#86B9EE", "#EC8FC2", "#A897F0", "#E9713C", "#5FCBD8", "#F0877E", "#5FD29F"];
@@ -54,7 +55,7 @@ export function ContractMap({ map, lit }: { map: OrgMap; lit?: Record<string, st
   return (
     <div>
       <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Applications and the links between them">
-        <ellipse cx={cx} cy={cy} rx={230} ry={128} fill="none" stroke="rgba(143,160,204,.16)" strokeDasharray="3 5" />
+        <ellipse cx={cx} cy={cy} rx={230} ry={128} fill="none" stroke="rgb(var(--line)/.16)" strokeDasharray="3 5" />
         <circle cx={cx} cy={cy} r={16} fill="url(#sun)" />
         <defs>
           <radialGradient id="sun" cx="35%" cy="30%">
@@ -102,7 +103,7 @@ export function ContractMap({ map, lit }: { map: OrgMap; lit?: Record<string, st
               </circle>
             )}
             <circle cx={n.x} cy={n.y} r={n.r} fill={n.hue} />
-            <text x={n.x} y={n.y + n.r + 16} textAnchor="middle" fill="#ECEFF8" fontSize="12" fontFamily="var(--font-sans)">
+            <text x={n.x} y={n.y + n.r + 16} textAnchor="middle" fill="var(--ink)" fontSize="12" fontFamily="var(--font-sans)">
               {n.name}
             </text>
           </g>
@@ -113,7 +114,7 @@ export function ContractMap({ map, lit }: { map: OrgMap; lit?: Record<string, st
         {focused ? (
           <>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-[14px] font-medium" style={{ color: focused.hue }}>
+              <span className="text-[14px] font-medium" style={{ color: legible(focused.hue) }}>
                 {focused.name} · {focusedContracts.length} interfaces
               </span>
               <KbStatusChip status={focused.status} />

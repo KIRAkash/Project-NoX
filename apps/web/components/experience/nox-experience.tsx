@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { gsap, ScrollTrigger, prefersReducedMotion } from "@/lib/motion";
 import { APPS } from "@/lib/content";
+import { useTheme } from "@/lib/app/theme";
 import { Accent, Check } from "@/components/landing/primitives";
 import { LiquidMetalLink } from "@/components/liquid-metal/liquid-metal";
 import SpecBook, { BOOK_SPAN, type SpecBookHandle } from "@/components/sections/spec-book/spec-book";
@@ -485,6 +486,8 @@ export default function NoxExperience() {
   };
 
   const arrived = phase === "arrived";
+  // The galaxy has its own daylight rendering (see experience-scene.tsx).
+  const light = useTheme().theme === "light";
 
   return (
     <>
@@ -512,6 +515,7 @@ export default function NoxExperience() {
           style={{ position: "absolute", inset: 0 }}
         >
           <ExperienceScene
+            light={light}
             onReady={handleReady}
             rotRef={rotRef}
             layoutRef={layoutRef}
@@ -538,7 +542,7 @@ export default function NoxExperience() {
           ref={projectRef}
           className="pointer-events-none absolute whitespace-nowrap font-mono uppercase tracking-[0.5em] opacity-0"
           style={{
-            color: "#FFFFFF",
+            color: "var(--ink)",
             fontSize: "clamp(13.2px, calc(var(--sun-d) * 0.144), 18px)",
           }}
         >
@@ -565,8 +569,8 @@ export default function NoxExperience() {
           galaxy behind it (now full-bleed) shows through around the text */}
       <div
         ref={textPanelRef}
-        className={`pointer-events-none absolute inset-x-0 top-0 z-[2] flex flex-col justify-center px-6 opacity-0 sm:px-10 lg:px-14 ${
-          arrived ? "h-[40%] lg:h-full lg:w-[42%] lg:pointer-events-auto" : "h-full"
+        className={`pointer-events-none absolute inset-x-0 z-[2] flex flex-col px-6 opacity-0 sm:px-10 lg:px-14 ${
+          arrived ? "top-[76px] h-[40%] justify-start lg:top-0 lg:h-full lg:w-[42%] lg:justify-center lg:pointer-events-auto" : "top-0 h-full justify-center"
         }`}
       >
         <span className="mb-[20px] flex items-center gap-3">
@@ -591,7 +595,7 @@ export default function NoxExperience() {
           not two panels in different places */}
       <div
         ref={mapPanelRef}
-        className="pointer-events-none absolute inset-x-0 top-0 z-[2] flex h-[40%] flex-col justify-center px-6 opacity-0 sm:px-10 lg:h-full lg:w-[42%] lg:px-14"
+        className="pointer-events-none absolute inset-x-0 top-[76px] z-[2] flex h-[40%] flex-col justify-start px-6 opacity-0 sm:px-10 lg:top-0 lg:h-full lg:w-[42%] lg:justify-center lg:px-14"
       >
         <span className="mb-[20px] flex items-center gap-3">
           <span className="block h-px w-[22px] bg-[rgba(247,181,66,.7)]" />
@@ -611,7 +615,7 @@ export default function NoxExperience() {
           and its knowledge sources orbit it as moons, feeding one knowledge base */}
       <div
         ref={sourcesPanelRef}
-        className="pointer-events-none absolute inset-x-0 top-0 z-[2] flex h-[40%] flex-col justify-center px-6 opacity-0 sm:px-10 lg:h-full lg:w-[40%] lg:px-14"
+        className="pointer-events-none absolute inset-x-0 top-[76px] z-[2] flex h-[40%] flex-col justify-start px-6 opacity-0 sm:px-10 lg:top-0 lg:h-full lg:w-[40%] lg:justify-center lg:px-14"
       >
         <span className="mb-[20px] flex items-center gap-3">
           <span className="block h-px w-[22px] bg-[rgba(247,181,66,.7)]" />
@@ -708,7 +712,7 @@ export default function NoxExperience() {
       ref={cornerWordmarkRef}
       className="pointer-events-none fixed left-5 top-5 z-[20] flex select-none flex-col opacity-0 sm:left-8 sm:top-6 lg:left-12 lg:top-7"
     >
-      <span className="font-mono text-[8.5px] uppercase tracking-[0.42em] text-white/75">Project</span>
+      <span className="font-mono text-[8.5px] uppercase tracking-[0.42em] text-ink-muted">Project</span>
       <span className="mt-[3px] flex items-center font-sans text-[24px] font-semibold leading-none text-ink">
         N
         <span

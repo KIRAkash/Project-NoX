@@ -7,6 +7,7 @@ import { ComingSoonPlanet } from "@/components/app/coming-soon-planet";
 import { RequireAuth } from "@/components/app/guards";
 import { PlanetCharacter } from "@/components/app/planet-character";
 import { NoxMark } from "@/components/app/nox-mark";
+import { ThemeToggle } from "@/components/app/theme-toggle";
 import { useAuth } from "@/lib/app/auth";
 import { ROLE_BY_ID, ROLES, type RoleId, UPCOMING_ROLES } from "@/lib/app/roles";
 
@@ -64,9 +65,12 @@ function RolePicker() {
     <main className="mx-auto flex min-h-screen max-w-shell flex-col px-4 pb-16 pt-6 sm:px-8">
       <header className="flex items-center justify-between">
         <NoxMark size={22} />
-        <button type="button" onClick={() => void signOut()} className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-dim hover:text-ink">
-          Sign out
-        </button>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <button type="button" onClick={() => void signOut()} className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-dim hover:text-ink">
+            Sign out
+          </button>
+        </div>
       </header>
 
       <section className="mt-14 text-center sm:mt-20">
@@ -81,7 +85,7 @@ function RolePicker() {
             type="button"
             onClick={() => void pick(current.id)}
             className="mt-6 inline-flex items-center gap-2 text-[14px] font-medium hover:underline"
-            style={{ color: current.hue }}
+            style={{ color: current.ink }}
           >
             Continue as {current.name} →
           </button>
@@ -112,7 +116,7 @@ function RolePicker() {
                 >
                   <PlanetCharacter role={role} size={size} index={index} active={hovered === role.id || isPicked} />
                 </span>
-                <span className="mt-5 text-[18px] font-semibold text-ink" style={{ color: isPicked ? role.hue : undefined }}>
+                <span className="mt-5 text-[18px] font-semibold text-ink" style={{ color: isPicked ? role.ink : undefined }}>
                   {role.name}
                 </span>
                 <span className="mt-2 max-w-[250px] text-[13px] leading-[1.55] text-ink-muted">{role.blurb}</span>
@@ -124,7 +128,7 @@ function RolePicker() {
       </ul>
 
       {error && (
-        <p role="alert" className="mt-8 text-center text-[13px] text-[#F3A27E]">
+        <p role="alert" className="mt-8 text-center text-[13px] text-[color:var(--coral-ink)]">
           {error}
         </p>
       )}

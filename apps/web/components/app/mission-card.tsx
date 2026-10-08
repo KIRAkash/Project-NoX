@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { legible } from "@/lib/app/palette";
 import { ROLE_BY_ID } from "@/lib/app/roles";
 import { STAGE_INDEX, STAGE_LABEL, type Mission, type MissionStage } from "@/lib/app/types";
 
@@ -11,8 +12,8 @@ import { OrbitArc } from "./ui";
 /** The colour a stage wears: the owning seat's hue for the four spec stages, then build (developer), verify, done. */
 export function stageHue(stage: MissionStage): string {
   if (stage === "build") return ROLE_BY_ID.developer.hue;
-  if (stage === "verifying") return "#5FD29F";
-  if (stage === "done") return "#A6AEC7";
+  if (stage === "verifying") return "var(--verify)";
+  if (stage === "done") return "var(--ink-muted)";
   return ROLE_BY_ID[stage].hue;
 }
 
@@ -27,7 +28,7 @@ export function MissionCard({ m, compact = false, showPriority = true }: { m: Mi
       // A stripe and a faint wash in the colour of the seat the mission is with.
       className="block rounded-md border border-hairline p-4 transition hover:border-[color:color-mix(in_srgb,var(--role)_45%,transparent)]"
       style={{
-        background: `linear-gradient(90deg, color-mix(in srgb, ${hue} 8%, transparent), transparent 55%), rgba(6,7,13,.72)`,
+        background: `linear-gradient(90deg, color-mix(in srgb, ${hue} 8%, transparent), transparent 55%), rgb(var(--well)/.72)`,
         boxShadow: `inset 3px 0 0 color-mix(in srgb, ${hue} 70%, transparent)`,
       }}
     >
@@ -35,7 +36,7 @@ export function MissionCard({ m, compact = false, showPriority = true }: { m: Mi
         <span className="font-mono text-[11px] text-ink-dim">{m.key}</span>
         <span className="flex items-center gap-1.5">
           {showPriority && m.priority && <span className="rounded-sm border border-hairline px-1.5 font-mono text-[10px] text-ink-muted">{m.priority}</span>}
-          <span className="font-mono text-[10px] uppercase tracking-[0.1em]" style={{ color: hue }}>
+          <span className="font-mono text-[10px] uppercase tracking-[0.1em]" style={{ color: legible(hue) }}>
             {STAGE_LABEL[m.stage]}
           </span>
         </span>

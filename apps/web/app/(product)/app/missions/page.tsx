@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/app/auth";
 import { ROLE_BY_ID, isRoleId, type RoleDef, type RoleId } from "@/lib/app/roles";
 import { STAGE_LABEL, type Mission, type MissionStage } from "@/lib/app/types";
 import { useApi } from "@/lib/app/use-api";
+import { legible } from "@/lib/app/palette";
 
 const COLUMNS: MissionStage[] = ["business", "product", "engineering", "developer", "build", "verifying", "done"];
 const VIEWS = [
@@ -105,7 +106,7 @@ function Pills<K extends string>({ label, items, value, onChange, role }: { labe
           type="button"
           onClick={() => onChange(v.key)}
           className="rounded-full border px-3 py-1 text-[13px]"
-          style={{ borderColor: value === v.key ? role.hue : "rgba(143,160,204,.2)", color: value === v.key ? role.hue : "#A6AEC7" }}
+          style={{ borderColor: value === v.key ? role.ink : "rgb(var(--line)/.2)", color: value === v.key ? role.ink : "var(--ink-muted)" }}
         >
           {v.label}
         </button>
@@ -129,14 +130,14 @@ function StageLanes({ missions, role }: { missions: Mission[]; role: RoleDef }) 
             aria-label={STAGE_LABEL[col]}
             className="w-[272px] shrink-0 rounded-md border p-3"
             style={{
-              background: `linear-gradient(180deg, color-mix(in srgb, ${hue} ${yours ? 11 : 6}%, rgba(17,21,35,.78)), rgba(12,15,26,.7) 55%)`,
-              borderColor: `color-mix(in srgb, ${hue} ${yours ? 45 : 18}%, rgba(143,160,204,.14))`,
-              boxShadow: "inset 0 1px 0 rgba(236,239,248,.04)",
+              background: `linear-gradient(180deg, color-mix(in srgb, ${hue} ${yours ? 11 : 6}%, rgb(var(--raise)/.78)), rgb(var(--raise-lo)/.7) 55%)`,
+              borderColor: `color-mix(in srgb, ${hue} ${yours ? 45 : 18}%, rgb(var(--line)/.14))`,
+              boxShadow: "inset 0 1px 0 rgb(var(--glint)/.04)",
             }}
           >
             <h2
               className="mb-3 flex items-center gap-2 border-b pb-2.5 font-mono text-[11px] uppercase tracking-[0.14em]"
-              style={{ color: `color-mix(in srgb, ${hue} 78%, #ECEFF8)`, borderColor: `color-mix(in srgb, ${hue} 20%, transparent)` }}
+              style={{ color: legible(hue), borderColor: `color-mix(in srgb, ${hue} 20%, transparent)` }}
             >
               {seat ? <Planet role={seat} size={14} /> : <span aria-hidden className="mx-[3px] h-2 w-2 rounded-full" style={{ background: hue, boxShadow: `0 0 8px ${hue}` }} />}
               {STAGE_LABEL[col]}
@@ -147,7 +148,7 @@ function StageLanes({ missions, role }: { missions: Mission[]; role: RoleDef }) 
               {items.map((m) => (
                 <MissionCard key={m.key} m={m} />
               ))}
-              {!items.length && <div className="h-16 rounded-md border border-dashed" style={{ borderColor: `color-mix(in srgb, ${hue} 22%, rgba(143,160,204,.14))` }} />}
+              {!items.length && <div className="h-16 rounded-md border border-dashed" style={{ borderColor: `color-mix(in srgb, ${hue} 22%, rgb(var(--line)/.14))` }} />}
             </div>
           </section>
         );
@@ -166,7 +167,7 @@ function PriorityBoard({ missions, onChanged, canSet }: { missions: Mission[]; o
       {HORIZON.map((h) => {
         const items = missions.filter((m) => h.match(m.priority));
         return (
-          <section key={h.key} aria-label={h.label} className="rounded-md border border-[rgba(143,160,204,.18)] bg-[linear-gradient(180deg,rgba(21,26,42,.8),rgba(13,16,28,.8))] p-3">
+          <section key={h.key} aria-label={h.label} className="rounded-md border border-[rgb(var(--line)/.18)] bg-[linear-gradient(180deg,rgb(var(--raise)/.8),rgb(var(--raise-lo)/.8))] p-3">
             <h2 className="mb-3 flex items-baseline justify-between border-b border-hairline pb-2.5">
               <span className="text-[16px] font-semibold text-ink">{h.label}</span>
               <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-dim">
@@ -192,7 +193,7 @@ function PriorityBoard({ missions, onChanged, canSet }: { missions: Mission[]; o
 /** The developer's dense list: key, title, apps, stage, pull request, and the command to paste. Cards on a phone. */
 function BuildTable({ missions }: { missions: Mission[] }) {
   return (
-    <div className="mt-6 overflow-hidden rounded-md border border-hairline bg-[rgba(5,6,11,.7)] font-mono text-[12.5px]">
+    <div className="mt-6 overflow-hidden rounded-md border border-hairline bg-[rgb(var(--void-rgb)/.7)] font-mono text-[12.5px]">
       <div className="hidden grid-cols-[80px_minmax(0,1fr)_160px_100px_70px_140px] gap-3 border-b border-hairline px-4 py-2.5 text-[10.5px] uppercase tracking-[0.12em] text-ink-dim xl:grid">
         <span>Key</span>
         <span>Title</span>
@@ -214,7 +215,7 @@ function BuildTable({ missions }: { missions: Mission[] }) {
                 {m.title}
               </Link>
               <span className="truncate text-ink-faint">{m.apps.map((a) => a.name).join(", ")}</span>
-              <span style={{ color: stageHue(m.stage) }}>{STAGE_LABEL[m.stage].toLowerCase()}</span>
+              <span style={{ color: legible(stageHue(m.stage)) }}>{STAGE_LABEL[m.stage].toLowerCase()}</span>
               {pr?.url ? (
                 <a href={pr.url} target="_blank" rel="noreferrer" className="text-ink-muted hover:text-ink">
                   {prState} ↗

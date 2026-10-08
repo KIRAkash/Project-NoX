@@ -131,7 +131,7 @@ function RequestComposer({ role }: { role: RoleDef }) {
       className="rounded-xl border p-5 sm:p-7"
       style={{
         borderColor: "color-mix(in srgb, var(--role) 35%, transparent)",
-        background: "linear-gradient(180deg, color-mix(in srgb, var(--role) 9%, rgba(17,21,35,.85)), rgba(12,15,26,.85))",
+        background: "linear-gradient(180deg, color-mix(in srgb, var(--role) 9%, rgb(var(--raise)/.85)), rgb(var(--raise-lo)/.85))",
       }}
     >
       <label htmlFor="ask" className="block font-display text-[26px] leading-tight text-ink sm:text-[30px]">
@@ -146,7 +146,7 @@ function RequestComposer({ role }: { role: RoleDef }) {
         minLength={8}
         required
         placeholder={EXAMPLES[0]}
-        className="mt-4 w-full resize-y rounded-lg border border-hairline bg-[rgba(5,6,11,.6)] p-4 text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-dim focus:border-[color:var(--role)]"
+        className="mt-4 w-full resize-y rounded-lg border border-hairline bg-[rgb(var(--void-rgb)/.6)] p-4 text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-dim focus:border-[color:var(--role)]"
       />
       <div className="mt-3">
         <CaptureBar

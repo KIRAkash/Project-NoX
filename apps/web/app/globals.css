@@ -2,35 +2,186 @@
 @tailwind components;
 @tailwind utilities;
 
+/* --- theme tokens ----------------------------------------------------------
+   Two themes share one set of names. Dark is the default; `data-theme` on
+   <html> (set before paint by the script in app/layout.tsx) picks light.
+   Colours that need an alpha in arbitrary values are RGB channel triplets,
+   used as `rgb(var(--line)/.14)`. Light accents come in two strengths: the
+   fill (dots, bars, buttons) and the `-ink` tone that holds 4.5:1 as text. */
 :root {
+  color-scheme: dark;
+
+  --void: #05060b;
+  --hull: #07080f;
+  --deck: #090b13;
+  --void-rgb: 5 6 11;
+  --hull-rgb: 7 8 15;
+  --deck-rgb: 9 11 19;
+  /* wells: the dark cards that sit inside a panel */
+  --well: 6 7 13;
+  /* raised surfaces: panels, popovers (top and bottom of their gradient) */
+  --raise: 21 26 42;
+  --raise-lo: 13 16 28;
+  --glint: 236 239 248;
+  --shadow: 0 0 0;
+
   --nox: #f7b542;
+  --nox-rgb: 247 181 66;
   --ember: #e9713c;
   --ice: #86b9ee;
+  --verify: #5fd29f;
+  --violet: #a897f0;
+  --coral: #f3a27e;
+  --nox-ink: #f7b542;
+  --ember-ink: #e9713c;
+  --ice-ink: #86b9ee;
+  --verify-ink: #5fd29f;
+  --violet-ink: #a897f0;
+  --coral-ink: #f3a27e;
+  --sky-ink: #cfe3fa;
+  --link: #8fc4f2;
+  --code-ink: #e7d3a6;
+  /* how much of a raw hue survives when it is used as text (the rest is ink) */
+  --hue-text: 100%;
+
+  --ink: #eceff8;
+  --ink-muted: #a6aec7;
+  --ink-faint: #7c86a3;
+  --ink-dim: #6e7793;
+  --ink-rgb: 236 239 248;
+  --prose: #c9cfe0;
+
+  --line: 143 160 204;
+  --hairline: rgb(var(--line) / 0.14);
+
+  /* seat hues, legible as text in the current theme */
+  --seat-business: #e8c97a;
+  --seat-product: #a897f0;
+  --seat-engineering: #5fcbd8;
+  --seat-developer: #86b9ee;
+
+  /* the acting seat (set by [data-seat] below); outside the product it is NoX gold */
+  --role: var(--nox);
+  --role-glow: var(--nox);
+
+  --selection-bg: rgba(247, 181, 66, 0.28);
+  --selection-text: #ffffff;
 }
 
+/* Sunset Amber light: warm parchment, white decks, ink type. */
+html[data-theme="light"] {
+  color-scheme: light;
+
+  --void: #faf7f5;
+  --hull: #f4efea;
+  --deck: #ffffff;
+  --void-rgb: 250 247 245;
+  --hull-rgb: 244 239 234;
+  --deck-rgb: 255 255 255;
+  --well: 250 247 245;
+  --raise: 255 255 255;
+  --raise-lo: 255 253 251;
+  --glint: 255 255 255;
+  --shadow: 60 44 30;
+
+  --nox: #e9a23b;
+  --nox-rgb: 214 139 22;
+  --ember: #e9713c;
+  --ice: #6fa6e0;
+  --verify: #2eaf78;
+  --violet: #9583e6;
+  --coral: #ee8f66;
+  --nox-ink: #8a5a08;
+  --ember-ink: #b4471a;
+  --ice-ink: #1f5e9e;
+  --verify-ink: #18794e;
+  --violet-ink: #5b45b8;
+  --coral-ink: #b4532a;
+  --sky-ink: #1f5e9e;
+  --link: #1f5e9e;
+  --code-ink: #8a4f12;
+  --hue-text: 50%;
+
+  --ink: #181b26;
+  --ink-muted: #4a5268;
+  --ink-faint: #606980;
+  --ink-dim: #737c93;
+  --ink-rgb: 24 27 38;
+  --prose: #363c50;
+
+  --line: 70 64 86;
+  --hairline: rgb(var(--line) / 0.12);
+
+  --seat-business: #8a640f;
+  --seat-product: #553eab;
+  --seat-engineering: #12636e;
+  --seat-developer: #164e88;
+
+  --role: #c2531b;
+  --role-glow: #e9713c;
+
+  --selection-bg: rgba(233, 113, 60, 0.22);
+  --selection-text: #181b26;
+}
+
+/* The acting seat. `--role` is for text, borders and marks; `--role-glow` is the
+   seat's own pale hue, for halos and washes, in both themes. */
+[data-seat="business"] { --role: var(--seat-business); --role-glow: #e8c97a; }
+[data-seat="product"] { --role: var(--seat-product); --role-glow: #a897f0; }
+[data-seat="engineering"] { --role: var(--seat-engineering); --role-glow: #5fcbd8; }
+[data-seat="developer"] { --role: var(--seat-developer); --role-glow: #86b9ee; }
+
+/* Accent text in light mode takes the deeper tone; fills keep the bright one. */
+html[data-theme="light"] .text-nox { color: var(--nox-ink); }
+html[data-theme="light"] .text-ember { color: var(--ember-ink); }
+html[data-theme="light"] .text-ice { color: var(--ice-ink); }
+html[data-theme="light"] .text-verify { color: var(--verify-ink); }
+
+/* ==========================================================================
+   Root HTML & Body
+   ========================================================================== */
 html {
   scroll-behavior: smooth;
-  background: #05060b;
+  background: var(--void, #05060b);
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body {
-  background: #05060b;
-  color: #eceff8;
+  background: var(--void, #05060b);
+  color: var(--ink, #eceff8);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 ::selection {
-  background: rgba(247, 181, 66, 0.28);
-  color: #fff;
+  background: var(--selection-bg, rgba(247, 181, 66, 0.28));
+  color: var(--selection-text, #fff);
 }
 
 *:focus-visible {
-  outline: 2px solid var(--nox);
+  outline: 2px solid var(--role);
   outline-offset: 3px;
 }
 
-/* --- ambient starfield -------------------------------------------------- */
+/* ==========================================================================
+   Smooth Theme Transitions (Active Toggle Class)
+   ========================================================================== */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition-delay: 0s !important;
+}
+
+/* ==========================================================================
+   Ambient Starfield
+   ========================================================================== */
 .starfield {
   position: absolute;
   inset: 0;
@@ -43,6 +194,7 @@ body {
     radial-gradient(1.2px 1.2px at 204px 344px, rgba(255, 240, 214, 0.38), transparent);
   background-size: 460px 400px;
   animation: twinkle 7s ease-in-out infinite;
+  transition: opacity 0.4s ease;
 }
 
 .starfield--far {
@@ -52,11 +204,28 @@ body {
     radial-gradient(1px 1px at 330px 226px, rgba(255, 255, 255, 0.2), transparent);
   background-size: 720px 620px;
   animation: twinkle 11s ease-in-out infinite reverse;
+  transition: opacity 0.4s ease;
 }
 
 @keyframes twinkle {
   0%, 100% { opacity: 0.85; }
   50% { opacity: 0.38; }
+}
+
+/* On parchment the stars become a printed star chart: fine ink dots. */
+html[data-theme="light"] .starfield {
+  background-image:
+    radial-gradient(1px 1px at 24px 42px, rgba(60, 44, 30, 0.22), transparent),
+    radial-gradient(1px 1px at 132px 180px, rgba(60, 44, 30, 0.14), transparent),
+    radial-gradient(1.6px 1.6px at 290px 96px, rgba(194, 83, 27, 0.2), transparent),
+    radial-gradient(1px 1px at 380px 300px, rgba(60, 44, 30, 0.12), transparent),
+    radial-gradient(1.2px 1.2px at 204px 344px, rgba(60, 44, 30, 0.16), transparent);
+}
+html[data-theme="light"] .starfield--far {
+  background-image:
+    radial-gradient(1px 1px at 70px 110px, rgba(60, 44, 30, 0.12), transparent),
+    radial-gradient(1.4px 1.4px at 246px 38px, rgba(31, 94, 158, 0.14), transparent),
+    radial-gradient(1px 1px at 330px 226px, rgba(60, 44, 30, 0.1), transparent);
 }
 
 /* Elements GSAP will reveal start hidden, but only once GSAP has confirmed it
@@ -71,30 +240,35 @@ body {
   .js-ready [data-reveal] { opacity: 1; }
   /* product pages: pulses and pings hold still */
   .animate-pulse, .animate-ping, .animate-spin { animation: none !important; }
+  html, body, html.theme-transitioning, html.theme-transitioning * {
+    transition: none !important;
+  }
 }
 
-/* --- KB prose (code wiki pages) ----------------------------------------- */
-.kb-prose { color: #c9cfe0; font-size: 14.5px; line-height: 1.7; }
-.kb-prose h1 { font-family: var(--font-display); font-size: 32px; line-height: 1.15; color: #eceff8; margin: 0 0 16px; }
-.kb-prose h2 { font-size: 19px; font-weight: 600; color: #eceff8; margin: 28px 0 10px; }
-.kb-prose h3 { font-size: 16px; font-weight: 600; color: #eceff8; margin: 22px 0 8px; }
+/* ==========================================================================
+   KB Prose (Code Wiki Pages)
+   ========================================================================== */
+.kb-prose { color: var(--prose); font-size: 14.5px; line-height: 1.7; }
+.kb-prose h1 { font-family: var(--font-display); font-size: 32px; line-height: 1.15; color: var(--ink); margin: 0 0 16px; }
+.kb-prose h2 { font-size: 19px; font-weight: 600; color: var(--ink); margin: 28px 0 10px; }
+.kb-prose h3 { font-size: 16px; font-weight: 600; color: var(--ink); margin: 22px 0 8px; }
 .kb-prose p, .kb-prose ul, .kb-prose ol, .kb-prose table, .kb-prose pre, .kb-prose blockquote { margin: 0 0 14px; }
 .kb-prose ul { list-style: disc; padding-left: 22px; }
 .kb-prose ol { list-style: decimal; padding-left: 22px; }
-.kb-prose code { font-family: var(--font-mono); font-size: 12.5px; background: rgba(143,160,204,.1); padding: 1px 5px; border-radius: 3px; color: #eceff8; }
-.kb-prose pre { background: #090b13; border: 1px solid rgba(143,160,204,.14); border-radius: 10px; padding: 12px 14px; overflow-x: auto; }
+.kb-prose code { font-family: var(--font-mono); font-size: 12.5px; background: rgb(var(--line) / .1); padding: 1px 5px; border-radius: 3px; color: var(--ink); }
+.kb-prose pre { background: var(--deck); border: 1px solid rgb(var(--line) / .14); border-radius: 10px; padding: 12px 14px; overflow-x: auto; }
 .kb-prose pre code { background: none; padding: 0; }
 .kb-prose table { width: 100%; border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; }
-.kb-prose th, .kb-prose td { border: 1px solid rgba(143,160,204,.16); padding: 6px 10px; text-align: left; }
-.kb-prose th { color: #eceff8; background: rgba(143,160,204,.05); }
-.kb-prose blockquote { border-left: 2px solid var(--role, #f7b542); padding: 4px 0 4px 14px; color: #eceff8; background: rgba(143,160,204,.04); }
-.kb-prose a, .kb-prose .wikilink { color: var(--role, #86b9ee); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(143,160,204,.4); }
+.kb-prose th, .kb-prose td { border: 1px solid rgb(var(--line) / .16); padding: 6px 10px; text-align: left; }
+.kb-prose th { color: var(--ink); background: rgb(var(--line) / .05); }
+.kb-prose blockquote { border-left: 2px solid var(--role); padding: 4px 0 4px 14px; color: var(--ink); background: rgb(var(--line) / .04); }
+.kb-prose a, .kb-prose .wikilink { color: var(--role); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgb(var(--line) / .4); }
 .kb-prose .wikilink-cross { font-style: italic; }
 .kb-prose .wikilink-cross::after { content: " ↗"; font-style: normal; }
 
-/* --- seat textures ---------------------------------------------------------
-   Every seat shares the tokens; each gets its own feel behind the content.
-   business: warm and airy · product: board · engineering: blueprint · developer: terminal */
+/* ==========================================================================
+   Seat Textures
+   ========================================================================== */
 .seat-main > * {
   position: relative;
   z-index: 1;
@@ -108,6 +282,7 @@ body {
   z-index: 0;
 }
 
+/* Dark Mode Seat Textures */
 [data-seat="business"] .seat-main::before {
   background:
     radial-gradient(900px 340px at 50% -80px, rgba(232, 201, 122, 0.13), transparent 70%),
@@ -147,9 +322,40 @@ body {
   letter-spacing: -0.02em;
 }
 
-/* Liquid metal calls to action (components/liquid-metal). The plate and its
-   shadows follow ThreeUI's LiquidMetalButton; the canvas sits between the
-   plate and the label, and reaches past the button to hold the bloom. */
+/* Light Mode Seat Textures (Delicate warm parchment washes) */
+html[data-theme="light"] [data-seat="business"] .seat-main::before {
+  background:
+    radial-gradient(900px 340px at 50% -80px, rgba(232, 201, 122, 0.22), transparent 70%),
+    radial-gradient(600px 260px at 90% 0, rgba(233, 113, 60, 0.12), transparent 70%);
+}
+
+html[data-theme="light"] [data-seat="product"] .seat-main::before {
+  background:
+    radial-gradient(800px 320px at 20% -60px, rgba(168, 151, 240, 0.18), transparent 70%),
+    repeating-linear-gradient(90deg, transparent 0 279px, rgba(85, 62, 171, 0.05) 279px 280px);
+  mask-image: linear-gradient(180deg, #000, transparent 70%);
+}
+
+html[data-theme="light"] [data-seat="engineering"] .seat-main::before {
+  background-image:
+    linear-gradient(rgba(18, 99, 110, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(18, 99, 110, 0.08) 1px, transparent 1px),
+    linear-gradient(rgba(18, 99, 110, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(18, 99, 110, 0.04) 1px, transparent 1px);
+  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+  mask-image: linear-gradient(180deg, #000 0, rgba(0, 0, 0, 0.5) 50%, transparent 100%);
+}
+
+html[data-theme="light"] [data-seat="developer"] .seat-main::before {
+  background:
+    repeating-linear-gradient(180deg, rgba(22, 78, 136, 0.04) 0 1px, transparent 1px 4px),
+    radial-gradient(700px 300px at 85% -60px, rgba(134, 185, 238, 0.18), transparent 70%);
+  mask-image: linear-gradient(180deg, #000, transparent 75%);
+}
+
+/* ==========================================================================
+   Liquid Metal CTA
+   ========================================================================== */
 @layer components {
   .lm {
     position: relative;
@@ -196,4 +402,68 @@ body {
     pointer-events: none;
     display: block;
   }
+
+}
+
+/* --- panels ----------------------------------------------------------------
+   A lifted surface over the void, so panels separate from the starfield and
+   the cards inside read as wells. On parchment it is a white deck with a soft
+   warm shadow. */
+.surface-panel {
+  border: 1px solid rgb(var(--line) / 0.2);
+  background: linear-gradient(180deg, rgb(var(--raise) / 0.86), rgb(var(--raise-lo) / 0.86));
+  box-shadow: inset 0 1px 0 rgb(var(--glint) / 0.05), 0 18px 40px -24px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(2px);
+}
+.surface-panel--flat {
+  box-shadow: inset 0 1px 0 rgb(var(--glint) / 0.05);
+}
+html[data-theme="light"] .surface-panel {
+  border-color: rgb(var(--line) / 0.13);
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(60, 44, 30, 0.04), 0 10px 28px -14px rgba(60, 44, 30, 0.14);
+}
+html[data-theme="light"] .surface-panel--flat {
+  box-shadow: 0 1px 2px rgba(60, 44, 30, 0.04);
+}
+
+/* On parchment the seat's navigation carries a breath of its hue. */
+html[data-theme="light"] .seat-sidebar {
+  background: color-mix(in srgb, var(--role-glow) 7%, rgb(var(--hull-rgb) / 0.94));
+}
+
+html[data-theme="light"] .brand-mono {
+  filter: invert(0.86);
+}
+
+/* --- console ---------------------------------------------------------------
+   Terminal-style blocks (CLI commands, /nox prompts). Near-black in the dark
+   theme; on parchment a warm sheet of console paper with ink type. */
+.console {
+  background: #04050a;
+  border-color: rgb(var(--line) / 0.16);
+}
+html[data-theme="light"] .console {
+  background: #f3eee7;
+  border-color: rgb(var(--line) / 0.16);
+  box-shadow: inset 0 1px 2px rgba(60, 44, 30, 0.05);
+}
+
+/* Liquid-metal calls to action on parchment: the plate takes the seat's deep
+   colour (gold outside the product) and the label turns white, so the main
+   action is still the strongest thing on the page without a black slab. */
+html[data-theme="light"] .lm {
+  background: color-mix(in srgb, var(--role) 92%, #000);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(60, 44, 30, 0.12), 0 8px 20px -10px color-mix(in srgb, var(--role) 60%, transparent);
+}
+html[data-theme="light"] .lm[data-metal="hot"] {
+  background: color-mix(in srgb, var(--role) 82%, #000);
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(60, 44, 30, 0.14), 0 12px 26px -10px color-mix(in srgb, var(--role) 70%, transparent);
+}
+html[data-theme="light"] .lm[data-metal="press"] {
+  background: color-mix(in srgb, var(--role) 75%, #000);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(60, 44, 30, 0.16);
 }

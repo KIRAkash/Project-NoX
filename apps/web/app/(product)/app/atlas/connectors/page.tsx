@@ -6,6 +6,7 @@ import Link from "next/link";
 import { BrandLogo, BRANDS, isBrand } from "@/components/app/brand-logo";
 import { PageHeader, Panel } from "@/components/app/ui";
 import { useApi } from "@/lib/app/use-api";
+import { C } from "@/lib/app/palette";
 
 type Integration = { name: string; required: boolean; configured: boolean; ok: boolean; detail: string };
 
@@ -43,18 +44,18 @@ export default function ConnectorsPage() {
           <Panel key={i.name} title={isBrand(i.name) ? BRANDS[i.name] : i.name}>
             <div className="flex items-start gap-3">
               {isBrand(i.name) && (
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-hairline bg-[rgba(143,160,204,.06)]">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-hairline bg-[rgb(var(--line)/.06)]">
                   <BrandLogo name={i.name} size={22} />
                 </span>
               )}
               <div className="min-w-0">
                 <p className="flex items-center gap-2 text-[14px] text-ink">
-                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: !i.configured ? "#6E7793" : i.ok ? "#5FD29F" : "#E9713C" }} />
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: !i.configured ? "var(--ink-dim)" : i.ok ? C.verify : C.ember }} />
                   {!i.configured ? "Not configured" : i.ok ? "Connected" : "Failing"}
                 </p>
                 <p className="mt-0.5 text-[13px] text-ink-faint">{i.detail}</p>
                 <p className="mt-3 text-[12.5px] leading-relaxed text-ink-muted">{ABOUT[i.name]}</p>
-                {i.required && !i.ok && <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#F3A27E]">Needed for the demo</p>}
+                {i.required && !i.ok && <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.1em] text-[color:var(--coral-ink)]">Needed for the demo</p>}
               </div>
             </div>
           </Panel>

@@ -41,11 +41,11 @@ function LoginInner() {
       </Link>
 
       <div className="relative mb-10 flex h-28 w-28 items-center justify-center">
-        <span className="absolute inset-0 animate-[spin_24s_linear_infinite] rounded-full border border-dashed border-[rgba(247,181,66,.25)]" aria-hidden />
+        <span className="absolute inset-0 animate-[spin_24s_linear_infinite] rounded-full border border-dashed border-[rgb(var(--nox-rgb)/.25)]" aria-hidden />
         <NoxMark size={34} />
       </div>
 
-      <div className="w-full max-w-[380px] rounded-md border border-hairline bg-[rgba(9,11,19,.72)] p-7 backdrop-blur">
+      <div className="w-full max-w-[380px] rounded-md border border-hairline bg-[rgb(var(--deck-rgb)/.72)] p-7 backdrop-blur">
         <h1 className="font-display text-[34px] leading-tight text-ink">Enter NoX</h1>
         <p className="mt-2 text-[14px] leading-relaxed text-ink-muted">Sign in to chart your applications and work missions.</p>
 
@@ -82,7 +82,7 @@ function LoginInner() {
                     required
                     value={devEmail}
                     onChange={(e) => setDevEmail(e.target.value)}
-                    className="h-10 min-w-0 flex-1 rounded-sm border border-hairline bg-deck px-3 text-[13px] text-ink outline-none focus:border-[rgba(247,181,66,.6)]"
+                    className="h-10 min-w-0 flex-1 rounded-sm border border-hairline bg-deck px-3 text-[13px] text-ink outline-none focus:border-[rgb(var(--nox-rgb)/.6)]"
                   />
                   <button type="submit" disabled={busy} className="h-10 rounded-sm border border-hairline px-4 text-[13px] text-ink hover:border-ink-faint">
                     Go
@@ -94,7 +94,7 @@ function LoginInner() {
         )}
 
         {error && (
-          <p role="alert" className="mt-4 rounded-sm border border-[rgba(233,113,60,.35)] bg-[rgba(233,113,60,.08)] px-3 py-2 text-[13px] text-[#F3A27E]">
+          <p role="alert" className="mt-4 rounded-sm border border-[rgba(233,113,60,.35)] bg-[rgba(233,113,60,.08)] px-3 py-2 text-[13px] text-[color:var(--coral-ink)]">
             {error}
           </p>
         )}

@@ -7,7 +7,10 @@ export type RoleDef = {
   name: string;
   /** One-to-two lines under the planet on the role picker. */
   blurb: string;
+  /** The seat's own pale hue: planets, halos and washes. */
   hue: string;
+  /** The seat's colour as a CSS variable that stays legible as text in either theme (see globals.css). */
+  ink: string;
   /** Planet surface: highlight → base → shadow. */
   surface: [string, string, string];
   feature: "plain" | "moon" | "ring" | "bands";
@@ -24,6 +27,7 @@ export const ROLES: RoleDef[] = [
     name: "Business user",
     blurb: "Ask for a change in one plain sentence. Confirm at the end that what shipped is what you meant.",
     hue: "#E8C97A",
+    ink: "var(--seat-business)",
     surface: ["#FFF3CF", "#E8C97A", "#8C6A22"],
     feature: "ring",
     desk: "Request desk",
@@ -35,6 +39,7 @@ export const ROLES: RoleDef[] = [
     name: "Product owner",
     blurb: "Turn a request into a product spec — goals, acceptance criteria, edge cases, the metric. Configure applications.",
     hue: "#A897F0",
+    ink: "var(--seat-product)",
     surface: ["#E6E0FF", "#A897F0", "#4F3F9E"],
     feature: "moon",
     desk: "Product board",
@@ -46,6 +51,7 @@ export const ROLES: RoleDef[] = [
     name: "Engineering lead",
     blurb: "Decide which applications change and what must not break. Own the org hierarchy and the atlas.",
     hue: "#5FCBD8",
+    ink: "var(--seat-engineering)",
     surface: ["#D6F7FB", "#5FCBD8", "#1F6B75"],
     feature: "plain",
     desk: "Flight director",
@@ -57,6 +63,7 @@ export const ROLES: RoleDef[] = [
     name: "Developer",
     blurb: "Onboard applications, generate code wikis, and build missions with your own coding agent via /nox.",
     hue: "#86B9EE",
+    ink: "var(--seat-developer)",
     surface: ["#E3F0FF", "#86B9EE", "#2D5C91"],
     feature: "bands",
     desk: "Build bay",

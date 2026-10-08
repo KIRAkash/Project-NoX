@@ -43,7 +43,7 @@ export function ComingSoonPlanet({ size, active, className = "" }: { size: numbe
 
         {/* the orbit, drawn behind the planet and again in front of it */}
         <g transform="rotate(-16 50 50)" className="transition-opacity duration-500 motion-reduce:transition-none" style={{ opacity: active ? 1 : 0 }}>
-          <ellipse cx="50" cy="50" rx={RX} ry={RY} fill="none" stroke="#7C86A3" strokeOpacity="0.45" strokeWidth="0.8" strokeDasharray="2 3" />
+          <ellipse cx="50" cy="50" rx={RX} ry={RY} fill="none" stroke="var(--ink-faint)" strokeOpacity="0.45" strokeWidth="0.8" strokeDasharray="2 3" />
         </g>
 
         <circle cx="50" cy="50" r="48" fill="url(#coming-soon-body)" />
@@ -52,14 +52,14 @@ export function ComingSoonPlanet({ size, active, className = "" }: { size: numbe
           cy="50"
           r="48"
           fill="none"
-          stroke={active ? "#A6AEC7" : "#6E7793"}
+          stroke={active ? "var(--ink-muted)" : "var(--ink-dim)"}
           strokeWidth="1.2"
           strokeDasharray="4 5"
           className="transition-[stroke,transform] duration-700 motion-reduce:transition-none"
           style={{ transformOrigin: "50px 50px", transform: active ? "rotate(40deg)" : "rotate(0deg)" }}
         />
         <g
-          stroke={active ? "#F7B542" : "#7C86A3"}
+          stroke={active ? "#F7B542" : "var(--ink-faint)"}
           strokeWidth="3"
           strokeLinecap="round"
           className="transition-[stroke] duration-500 motion-reduce:transition-none"
@@ -69,7 +69,7 @@ export function ComingSoonPlanet({ size, active, className = "" }: { size: numbe
         </g>
 
         <g transform="rotate(-16 50 50)" className="transition-opacity duration-500 motion-reduce:transition-none" style={{ opacity: active ? 1 : 0 }}>
-          <ellipse cx="50" cy="50" rx={RX} ry={RY} fill="none" stroke="#7C86A3" strokeOpacity="0.45" strokeWidth="0.8" strokeDasharray="2 3" clipPath="url(#coming-soon-front)" />
+          <ellipse cx="50" cy="50" rx={RX} ry={RY} fill="none" stroke="var(--ink-faint)" strokeOpacity="0.45" strokeWidth="0.8" strokeDasharray="2 3" clipPath="url(#coming-soon-front)" />
         </g>
 
         {UPCOMING_ROLES.map((seat, i) => {

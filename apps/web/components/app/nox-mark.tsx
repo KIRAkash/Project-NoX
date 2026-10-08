@@ -10,7 +10,7 @@ export function NoxMark({ size = 24 }: { size?: number }) {
           width: "0.76em",
           height: "0.76em",
           background: "radial-gradient(circle at 34% 30%, #FFF7E2, #FFDD82 42%, #F7B542 68%, #E9713C 100%)",
-          boxShadow: "0 0 10px 2px rgba(247,181,66,.5)",
+          boxShadow: "0 0 10px 2px rgb(var(--nox-rgb)/.5)",
         }}
       />
       X

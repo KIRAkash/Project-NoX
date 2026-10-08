@@ -2,7 +2,7 @@
  * Everything printed on the spec book, drawn onto 2D canvases that become
  * the page textures. The book is a mission file, not a diploma: a deep-space
  * cover with the N●X star and the four seats' planets on their orbits, and
- * pages of cool star-chart paper (a faint dot grid, an orbit watermark)
+ * pages of clean white paper (a faint dot grid, an orbit watermark)
  * carrying the spec files in dense Markdown.
  *
  * Page text is laid out once per page into positioned runs; a redraw only
@@ -205,8 +205,8 @@ function cutToShape(x: CanvasRenderingContext2D, mirrored: boolean) {
 const paperCache: HTMLCanvasElement[] = [];
 
 /**
- * Cool star-chart paper: a pale blue-grey sheet with a fine dot grid, an
- * orbit watermark in the outer corner and a soft shadow at the spine.
+ * Clean white paper with a fine dot grid, an orbit watermark in the outer
+ * corner, a soft shadow at the spine and a fine printed edge.
  * `mirrored` puts the spine on the right, for the back of a leaf.
  */
 function paper(mirrored = false): HTMLCanvasElement {
@@ -215,8 +215,8 @@ function paper(mirrored = false): HTMLCanvasElement {
   const c = makeCanvas();
   const x = c.getContext("2d")!;
   const g = x.createLinearGradient(0, 0, TEX_W, TEX_H);
-  g.addColorStop(0, "#EEF1F7");
-  g.addColorStop(1, "#E3E8F1");
+  g.addColorStop(0, "#FFFFFF");
+  g.addColorStop(1, "#F8F7F4");
   x.fillStyle = g;
   x.fillRect(0, 0, TEX_W, TEX_H);
   const img = x.getImageData(0, 0, TEX_W, TEX_H);
@@ -228,7 +228,7 @@ function paper(mirrored = false): HTMLCanvasElement {
     img.data[p + 2] += n;
   }
   x.putImageData(img, 0, 0);
-  x.fillStyle = "rgba(47,72,130,.13)";
+  x.fillStyle = "rgba(47,72,130,.09)";
   for (let py = 40; py < TEX_H; py += 34) for (let px = 40; px < TEX_W; px += 34) x.fillRect(px, py, 2, 2);
   // orbit watermark in the outer bottom corner
   const wx = mirrored ? 150 : TEX_W - 150;
@@ -245,10 +245,15 @@ function paper(mirrored = false): HTMLCanvasElement {
   x.fill();
   const sx = mirrored ? TEX_W - 90 : 0;
   const s = x.createLinearGradient(mirrored ? TEX_W : 0, 0, sx + (mirrored ? 0 : 90), 0);
-  s.addColorStop(0, "rgba(20,30,60,.18)");
+  s.addColorStop(0, "rgba(20,30,60,.12)");
   s.addColorStop(1, "rgba(20,30,60,0)");
   x.fillStyle = s;
   x.fillRect(sx, 0, 90, TEX_H);
+  // the sheet's own edge, so white paper still reads against a pale page behind the book
+  x.strokeStyle = "rgba(60,44,30,.24)";
+  x.lineWidth = 4;
+  sheetPath(x, mirrored, 2);
+  x.stroke();
   paperCache[i] = c;
   return c;
 }

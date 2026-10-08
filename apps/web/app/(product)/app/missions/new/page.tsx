@@ -177,7 +177,7 @@ export default function NewMissionPage() {
                 aria-checked={type === v}
                 onClick={() => setType(v)}
                 className="rounded-full border px-3 py-1 text-[12.5px]"
-                style={{ borderColor: type === v ? role.hue : "rgba(143,160,204,.2)", color: type === v ? role.hue : "#A6AEC7" }}
+                style={{ borderColor: type === v ? role.ink : "rgb(var(--line)/.2)", color: type === v ? role.ink : "var(--ink-muted)" }}
               >
                 {label}
               </button>
@@ -197,10 +197,10 @@ export default function NewMissionPage() {
                       onClick={() => toggle(a.id)}
                       aria-pressed={on}
                       className="flex w-full items-center justify-between gap-2 rounded-sm border px-3 py-2.5 text-left text-[13.5px]"
-                      style={{ borderColor: on ? role.hue : "rgba(143,160,204,.18)", color: on ? "#ECEFF8" : "#A6AEC7" }}
+                      style={{ borderColor: on ? role.ink : "rgb(var(--line)/.18)", color: on ? "var(--ink)" : "var(--ink-muted)" }}
                     >
                       <span className="flex items-center gap-2">
-                        <span className="flex h-4 w-4 items-center justify-center rounded-[5px] border" style={{ borderColor: on ? role.hue : "rgba(143,160,204,.35)", background: on ? role.hue : "transparent" }}>
+                        <span className="flex h-4 w-4 items-center justify-center rounded-[5px] border" style={{ borderColor: on ? role.ink : "rgb(var(--line)/.35)", background: on ? role.ink : "transparent" }}>
                           {on && <Check size={11} className="text-void" strokeWidth={3} />}
                         </span>
                         {a.name}
@@ -224,7 +224,7 @@ export default function NewMissionPage() {
         </Panel>
 
         {upstream.length > 0 && (
-          <p className="rounded-sm border border-hairline bg-[rgba(143,160,204,.04)] p-3 text-[13px] text-ink-muted">
+          <p className="rounded-sm border border-hairline bg-[rgb(var(--line)/.04)] p-3 text-[13px] text-ink-muted">
             Starting from the {role.name} seat: NoX drafts the {upstream.join(", ")} for you from this request and the knowledge base, then asks before you go ahead without their owners&rsquo; approval.
           </p>
         )}

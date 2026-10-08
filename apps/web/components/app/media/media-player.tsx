@@ -49,7 +49,7 @@ export const MediaPlayer = forwardRef<PlayerHandle, { capture: MediaCapture; cla
   }));
 
   if (failed) return <p className="text-[12.5px] text-ink-faint">The recording can&rsquo;t be played right now.</p>;
-  if (!urls) return <div className={`aspect-video w-full animate-pulse rounded-sm bg-[rgba(143,160,204,.06)] ${className}`} aria-hidden />;
+  if (!urls) return <div className={`aspect-video w-full animate-pulse rounded-sm bg-[rgb(var(--line)/.06)] ${className}`} aria-hidden />;
   const isImage = capture.kind === "image" || capture.kind === "screenshot";
   if (isImage) {
     // eslint-disable-next-line @next/next/no-img-element -- a signed, short-lived URL: next/image can't optimise it

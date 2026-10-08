@@ -106,7 +106,7 @@ export default function OnboardPage() {
           <li key={s} className="flex flex-1 items-center gap-2">
             <span
               className="flex h-6 w-6 items-center justify-center rounded-full border text-[11px]"
-              style={{ borderColor: i <= step ? role.hue : "rgba(143,160,204,.25)", color: i <= step ? role.hue : "#6E7793" }}
+              style={{ borderColor: i <= step ? role.ink : "rgb(var(--line)/.25)", color: i <= step ? role.ink : "var(--ink-dim)" }}
               aria-current={i === step ? "step" : undefined}
             >
               {i < step ? <Check size={12} /> : i + 1}
@@ -227,7 +227,7 @@ export default function OnboardPage() {
               </ul>
             </dd>
           </dl>
-          <p className="mt-6 rounded-sm border border-hairline bg-[rgba(143,160,204,.04)] p-3 text-[13px] text-ink-muted">
+          <p className="mt-6 rounded-sm border border-hairline bg-[rgb(var(--line)/.04)] p-3 text-[13px] text-ink-muted">
             NoX will read every source, compile the code wiki, and open it as a pull request on a new <span className="font-mono">kb-</span> repository. Review and merge it to put the application in orbit.
           </p>
           <Footer>
@@ -271,7 +271,7 @@ function CheckLine({ check, onRetry }: { check: Check; onRetry: () => void }) {
       </p>
     );
   return (
-    <p className={`mt-2 flex items-center gap-1.5 text-[12px] ${check.state === "ok" ? "text-verify" : "text-[#F3A27E]"}`}>
+    <p className={`mt-2 flex items-center gap-1.5 text-[12px] ${check.state === "ok" ? "text-verify" : "text-[color:var(--coral-ink)]"}`}>
       {check.state === "ok" ? <Check size={12} /> : <X size={12} />}
       {check.detail}
       {check.state === "fail" && (

@@ -48,7 +48,7 @@ export default function DocsHome() {
 
       <section aria-label="The four seats" className="mt-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {SEATS.map((s, i) => (
-          <div key={s.name} className="rounded-md border border-hairline bg-[linear-gradient(160deg,rgba(21,26,42,.8),rgba(9,11,19,.8))] p-4">
+          <div key={s.name} className="rounded-md border border-hairline bg-[linear-gradient(160deg,rgb(var(--raise)/.8),rgb(var(--deck-rgb)/.8))] p-4">
             <div className="flex items-center gap-2.5">
               <span
                 aria-hidden
@@ -71,7 +71,7 @@ export default function DocsHome() {
               <Link
                 key={c.slug}
                 href={`/docs/${c.slug}`}
-                className="group flex flex-col justify-between gap-4 rounded-md border border-[rgba(143,160,204,.18)] bg-[rgba(236,239,248,.02)] p-5 transition-colors hover:border-[rgba(247,181,66,.45)]"
+                className="group flex flex-col justify-between gap-4 rounded-md border border-[rgb(var(--line)/.18)] bg-[rgb(var(--raise)/.35)] p-5 transition-colors hover:border-[rgb(var(--nox-rgb)/.45)]"
               >
                 <div>
                   <span className="font-mono text-[11px] text-ink-dim">{String(CHAPTERS.indexOf(c) + 1).padStart(2, "0")}</span>
@@ -87,7 +87,7 @@ export default function DocsHome() {
         </section>
       ))}
 
-      <section aria-label="Built on Google" className="mt-16 rounded-md border border-hairline bg-[linear-gradient(135deg,rgba(134,185,238,.06),rgba(5,6,11,0))] p-6">
+      <section aria-label="Built on Google" className="mt-16 rounded-md border border-hairline bg-[linear-gradient(135deg,rgba(134,185,238,.06),rgb(var(--void-rgb)/0))] p-6">
         <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-dim">Built on</h2>
         <dl className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2">
           {STACK.map((s) => (
@@ -97,7 +97,7 @@ export default function DocsHome() {
             </div>
           ))}
         </dl>
-        <Link href="/docs/google-ai" className="mt-5 inline-flex items-center gap-1.5 text-[13px] text-[#8FC4F2] hover:underline">
+        <Link href="/docs/google-ai" className="mt-5 inline-flex items-center gap-1.5 text-[13px] text-[color:var(--link)] hover:underline">
           Agentic AI on Google <ArrowRight size={13} />
         </Link>
       </section>

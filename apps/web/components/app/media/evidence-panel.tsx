@@ -4,12 +4,13 @@ import { Panel } from "@/components/app/ui";
 
 import { seekMedia } from "./media-chip";
 import { addedBy, KIND_ICON, useMissionMedia } from "./mission-media";
+import { C } from "@/lib/app/palette";
 
 const STATUS: Record<string, { color: string; label: string }> = {
-  uploading: { color: "#A897F0", label: "Uploading" },
-  analyzing: { color: "#A897F0", label: "NoX is looking" },
-  failed: { color: "#E9713C", label: "Couldn't read it" },
-  withheld: { color: "#E9713C", label: "Withheld by NoX Shield" },
+  uploading: { color: C.violetInk, label: "Uploading" },
+  analyzing: { color: C.violetInk, label: "NoX is looking" },
+  failed: { color: C.emberInk, label: "Couldn't read it" },
+  withheld: { color: C.emberInk, label: "Withheld by NoX Shield" },
 };
 
 /** The rail's list of everything shown to NoX on this mission: who added it, and one click to open it. */
@@ -34,7 +35,7 @@ export function EvidencePanel({ onOpenTab }: { onOpenTab: () => void }) {
                 <button
                   type="button"
                   onClick={() => seekMedia(c.id, 0)}
-                  className="-mx-1.5 flex w-[calc(100%+12px)] items-start gap-2 rounded-sm px-1.5 py-1.5 text-left hover:bg-[rgba(143,160,204,.07)]"
+                  className="-mx-1.5 flex w-[calc(100%+12px)] items-start gap-2 rounded-sm px-1.5 py-1.5 text-left hover:bg-[rgb(var(--line)/.07)]"
                 >
                   <span className="mt-px w-6 shrink-0 font-mono text-[11px] text-[color:var(--role)]">E{i + 1}</span>
                   <Icon size={13} className="mt-0.5 shrink-0 text-ink-dim" aria-hidden />

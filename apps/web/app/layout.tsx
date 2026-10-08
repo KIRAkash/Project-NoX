@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Outfit, DM_Sans, JetBrains_Mono } from "next/font/google";
+import { ThemeProvider } from "@/lib/app/theme";
 import "./globals.css";
 
 const display = Outfit({
@@ -30,9 +31,25 @@ export const metadata: Metadata = {
     "NoX holds a living map of every application in your enterprise and how they depend on one another, then carries a change from a business user's first sentence through product, architecture, implementation and verification.",
 };
 
+/**
+ * Pre-hydration theme initialization script.
+ * Runs synchronously before <body> rendering to eliminate any Flash of Wrong Theme (FOWT).
+ */
+const NOX_THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('nox-theme');var d=(t==='light'||t==='dark')?t:'dark';document.documentElement.setAttribute('data-theme',d);document.documentElement.style.colorScheme=d;}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${display.variable} ${sans.variable} ${mono.variable}`}
+    >
+      <head>
+        <script
+          id="nox-theme-init"
+          dangerouslySetInnerHTML={{ __html: NOX_THEME_INIT_SCRIPT }}
+        />
+      </head>
       <body className="bg-void font-sans text-ink antialiased">
         {/* Runs before hydration. The browser restores whatever scroll
             position the tab had on a reload, which — since the hero's own
@@ -45,7 +62,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script id="reset-scroll" strategy="beforeInteractive">
           {`try{if('scrollRestoration' in history){history.scrollRestoration='manual';}window.scrollTo(0,0);}catch(e){}`}
         </Script>
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

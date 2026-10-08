@@ -11,6 +11,7 @@ import { STAGE_LABEL, type Mission } from "@/lib/app/types";
 import { useApi } from "@/lib/app/use-api";
 
 import { AtlasPanel, MissionPanel, NoxCommand } from "./shared";
+import { C, legible } from "@/lib/app/palette";
 
 type Token = { id: string; name: string; createdAt: string; lastUsedAt: string | null };
 
@@ -33,11 +34,11 @@ export function DeveloperHome({ role }: { role: RoleDef }) {
           ) : waiting.data?.length ? (
             <ul className="space-y-2">
               {waiting.data.map((m) => (
-                <li key={m.key} className="flex flex-col gap-2 rounded-md border border-hairline bg-[rgba(5,6,11,.6)] p-3 sm:flex-row sm:items-center sm:justify-between">
+                <li key={m.key} className="flex flex-col gap-2 rounded-md border border-hairline bg-[rgb(var(--void-rgb)/.6)] p-3 sm:flex-row sm:items-center sm:justify-between">
                   <Link href={`/app/missions/${m.key}`} className="min-w-0 hover:text-[color:var(--role)]">
                     <span className="flex items-center gap-2 font-mono text-[11px]">
                       <span className="text-ink-muted">{m.key}</span>
-                      <span style={{ color: stageHue(m.stage) }}>{m.stage === "build" ? "building" : STAGE_LABEL[m.stage].toLowerCase()}</span>
+                      <span style={{ color: legible(stageHue(m.stage)) }}>{m.stage === "build" ? "building" : STAGE_LABEL[m.stage].toLowerCase()}</span>
                       <span className="truncate text-ink-dim">{m.apps.map((a) => a.name).join(" · ")}</span>
                     </span>
                     <span className="mt-0.5 block truncate text-[14px] text-ink">{m.title}</span>
@@ -68,8 +69,8 @@ export function DeveloperHome({ role }: { role: RoleDef }) {
                       <ExternalLink size={11} className="shrink-0 text-ink-dim" />
                     </a>
                     <span className="flex shrink-0 items-center gap-2">
-                      {guard && <span style={{ color: guard.compliant ? "#5FD29F" : "#E9713C" }}>{guard.compliant ? "guard ok" : "guard ✕"}</span>}
-                      <span style={{ color: state === "merged" ? "#A897F0" : state === "closed" ? "#6E7793" : "#5FD29F" }}>{state}</span>
+                      {guard && <span style={{ color: guard.compliant ? C.verifyInk : C.emberInk }}>{guard.compliant ? "guard ok" : "guard ✕"}</span>}
+                      <span style={{ color: state === "merged" ? C.violetInk : state === "closed" ? "var(--ink-dim)" : C.verifyInk }}>{state}</span>
                     </span>
                   </li>
                 );
@@ -98,7 +99,7 @@ function CliPanel({ tokens, loading }: { tokens: Token[] | null; loading: boolea
         </Link>
       }
     >
-      <div className="rounded-md border border-hairline bg-[#04050A] p-4 font-mono text-[12.5px] leading-6">
+      <div className="rounded-md console border p-4 font-mono text-[12.5px] leading-6">
         {loading ? (
           <span className="text-ink-dim">checking…</span>
         ) : connected ? (
@@ -108,7 +109,7 @@ function CliPanel({ tokens, loading }: { tokens: Token[] | null; loading: boolea
             {last && <div className="text-ink-dim">last call {new Date(last).toLocaleString()}</div>}
             <div className="mt-2 text-ink-dim">$ nox missions --view waiting</div>
             <div className="text-ink-dim">
-              then in your agent: <span className="text-[#CFE3FA]">/nox NOX-n</span>
+              then in your agent: <span className="text-[color:var(--sky-ink)]">/nox NOX-n</span>
             </div>
           </>
         ) : (
@@ -118,7 +119,7 @@ function CliPanel({ tokens, loading }: { tokens: Token[] | null; loading: boolea
             <div className="text-ink">$ nox login</div>
             <div className="text-ink">$ nox init antigravity</div>
             <div className="mt-1 text-ink-dim">then in your agent:</div>
-            <div className="text-[#CFE3FA]">&gt; /nox NOX-n</div>
+            <div className="text-[color:var(--sky-ink)]">&gt; /nox NOX-n</div>
           </>
         )}
       </div>

@@ -43,7 +43,7 @@ export default function Home() {
             <PlanetCharacter role={role} size={72} active={hovered} />
           </span>
           <div>
-            <span className="font-mono text-[11px] uppercase tracking-[0.2em]" style={{ color: role.hue }}>
+            <span className="font-mono text-[11px] uppercase tracking-[0.2em]" style={{ color: role.ink }}>
               {role.deskLine}
             </span>
             <h1 className="mt-1 font-display text-[34px] leading-tight text-ink sm:text-[40px]">

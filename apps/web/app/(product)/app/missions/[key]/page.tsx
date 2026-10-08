@@ -25,16 +25,17 @@ import { ROLE_BY_ID, type RoleId } from "@/lib/app/roles";
 import { subscribe } from "@/lib/app/stream";
 import { SPEC_STATUS_LABEL, STAGE_INDEX, STAGE_LABEL, type Mission, type MissionEvent, type SpecFile, type TicketState } from "@/lib/app/types";
 import { useApi } from "@/lib/app/use-api";
+import { C } from "@/lib/app/palette";
 
 const ORDER: RoleId[] = ["business", "product", "engineering", "developer"];
 
 const STATUS_COLOR: Record<SpecFile["status"], string> = {
-  empty: "#6E7793",
-  drafting: "#A897F0",
-  ai_drafted: "#F7B542",
-  draft: "#86B9EE",
-  approved: "#5FD29F",
-  stale: "#E9713C",
+  empty: "var(--ink-dim)",
+  drafting: C.violetInk,
+  ai_drafted: C.noxInk,
+  draft: C.iceInk,
+  approved: C.verifyInk,
+  stale: C.emberInk,
 };
 
 export default function MissionPage() {
@@ -134,7 +135,7 @@ export default function MissionPage() {
                     onClick={() => setTab(r)}
                     aria-current={active ? "page" : undefined}
                     className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-[13.5px] ${active ? "text-ink" : "border-transparent text-ink-dim hover:text-ink"}`}
-                    style={{ borderColor: active ? role.hue : "transparent" }}
+                    style={{ borderColor: active ? role.ink : "transparent" }}
                   >
                     <Planet role={role} size={14} />
                     {f.title}
@@ -245,7 +246,7 @@ function ProceedBanner({ m, onChanged, onReview }: { m: Mission; onChanged: () =
   if (drafting) {
     return (
       <div className="mt-6 flex items-center gap-3 rounded-md border border-[rgba(168,151,240,.35)] bg-[rgba(168,151,240,.07)] px-4 py-3 text-[14px] text-ink" role="status">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-[#A897F0]" /> NoX is drafting the {upstream.join(", ")} from your request and the knowledge base…
+        <span className="h-2 w-2 animate-pulse rounded-full bg-[color:var(--violet)]" /> NoX is drafting the {upstream.join(", ")} from your request and the knowledge base…
       </div>
     );
   }
@@ -253,7 +254,7 @@ function ProceedBanner({ m, onChanged, onReview }: { m: Mission; onChanged: () =
     return <p className="mt-6 text-[13px] text-ink-faint">Waiting for the {creator.name} who started this mission to decide whether to proceed.</p>;
   }
   return (
-    <div className="mt-6 rounded-md border border-[rgba(247,181,66,.4)] bg-[rgba(247,181,66,.07)] p-4" role="alertdialog" aria-label="Proceed without approval?">
+    <div className="mt-6 rounded-md border border-[rgb(var(--nox-rgb)/.4)] bg-[rgb(var(--nox-rgb)/.07)] p-4" role="alertdialog" aria-label="Proceed without approval?">
       <p className="text-[14.5px] text-ink">
         <strong>No one has approved the {upstream.join(" and ")} yet.</strong> NoX drafted {upstream.length > 1 ? "them" : "it"} from your prompt and the knowledge base. Do you want to proceed anyway?
       </p>
@@ -350,19 +351,19 @@ function FilePane({ m, file, onChanged }: { m: Mission; file: SpecFile; onChange
       <VerifyPanel m={m} file={file} mine={mine} onChanged={onChanged} />
 
       {file.status === "ai_drafted" && mine && (
-        <p className="mb-4 rounded-sm border border-[rgba(247,181,66,.3)] bg-[rgba(247,181,66,.06)] px-3 py-2 text-[13px] text-ink-muted">
+        <p className="mb-4 rounded-sm border border-[rgb(var(--nox-rgb)/.3)] bg-[rgb(var(--nox-rgb)/.06)] px-3 py-2 text-[13px] text-ink-muted">
           NoX drafted this for your seat. Edit anything that&rsquo;s off, then confirm it — or leave it and the mission continues on the draft.
         </p>
       )}
       {file.status === "stale" && (
-        <p className="mb-4 rounded-sm border border-[rgba(233,113,60,.35)] bg-[rgba(233,113,60,.07)] px-3 py-2 text-[13px] text-[#F3A27E]">
+        <p className="mb-4 rounded-sm border border-[rgba(233,113,60,.35)] bg-[rgba(233,113,60,.07)] px-3 py-2 text-[13px] text-[color:var(--coral-ink)]">
           An upstream file changed after this was approved. Review it against the new version and approve again.
         </p>
       )}
 
       {file.status === "drafting" ? (
         <div className="flex min-h-[40vh] items-center justify-center rounded-md border border-hairline text-[14px] text-ink-faint">
-          <span className="mr-2 h-2 w-2 animate-pulse rounded-full bg-[#A897F0]" /> NoX is writing the first draft…
+          <span className="mr-2 h-2 w-2 animate-pulse rounded-full bg-[color:var(--violet)]" /> NoX is writing the first draft…
         </div>
       ) : file.status === "empty" ? (
         <div className="flex min-h-[30vh] flex-col items-center justify-center rounded-md border border-dashed border-hairline text-center text-[14px] text-ink-faint">
@@ -387,7 +388,7 @@ function FilePane({ m, file, onChanged }: { m: Mission; file: SpecFile; onChange
           />
         </>
       ) : mine ? (
-        <article className="rounded-md border border-hairline bg-[rgba(9,11,19,.66)] p-6 sm:p-8">
+        <article className="rounded-md border border-hairline bg-[rgb(var(--deck-rgb)/.66)] p-6 sm:p-8">
           <div className="mb-4 flex items-center justify-between gap-3">
             <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-dim">Approved — your final spec</span>
             {m.stage !== "done" && m.stage !== "verifying" && (
@@ -399,7 +400,7 @@ function FilePane({ m, file, onChanged }: { m: Mission; file: SpecFile; onChange
           <KbMarkdown content={file.markdown ?? ""} />
         </article>
       ) : (
-        <article className="rounded-md border border-hairline bg-[rgba(9,11,19,.66)] p-6 sm:p-8">
+        <article className="rounded-md border border-hairline bg-[rgb(var(--deck-rgb)/.66)] p-6 sm:p-8">
           <div className="mb-4 flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-dim">
             <Lock size={11} /> Locked — only the {role.name} edits this file
           </div>
@@ -539,7 +540,7 @@ function LinksPanel({ m, onChanged }: { m: Mission; onChanged: () => void }) {
                 const g = l.state?.guard as { compliant?: boolean; violations?: number; rules?: number } | undefined;
                 if (!g) return null;
                 return (
-                  <div className={`mt-0.5 text-[11.5px] ${g.compliant ? "text-[#5FD29F]" : "text-[#F7B542]"}`}>
+                  <div className={`mt-0.5 text-[11.5px] ${g.compliant ? "text-verify" : "text-nox"}`}>
                     Guard: {g.compliant ? `clear against ${g.rules ?? 0} rules` : `${g.violations} possible conflict${g.violations === 1 ? "" : "s"} — see the PR`}
                   </div>
                 );
@@ -575,7 +576,7 @@ function LinksPanel({ m, onChanged }: { m: Mission; onChanged: () => void }) {
           <ul className="max-h-[220px] space-y-1 overflow-y-auto">
             {hits.map((h) => (
               <li key={h.key}>
-                <button type="button" disabled={busy} onClick={() => void run(() => api(`/api/v1/missions/${m.key}/jira/link`, { method: "POST", json: { issueKey: h.key } }), `${h.key} linked`)} className="w-full rounded-sm px-2 py-1.5 text-left text-[12.5px] hover:bg-[rgba(143,160,204,.08)]">
+                <button type="button" disabled={busy} onClick={() => void run(() => api(`/api/v1/missions/${m.key}/jira/link`, { method: "POST", json: { issueKey: h.key } }), `${h.key} linked`)} className="w-full rounded-sm px-2 py-1.5 text-left text-[12.5px] hover:bg-[rgb(var(--line)/.08)]">
                   <span className="font-mono text-ink">{h.key}</span> <span className="text-ink-muted">{h.summary}</span>
                   <span className="ml-1 text-[11px] text-ink-dim">· {h.status}</span>
                 </button>

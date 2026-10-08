@@ -421,11 +421,11 @@ export function SpecEditor({
     <>
       {(noxBusy || typing) && (
         <div className="flex items-center gap-2 border border-b-0 border-hairline bg-[rgba(168,151,240,.08)] px-3 py-2 text-[13px] text-ink" role="status">
-          <Sparkles size={14} className="text-[#A897F0]" /> {typing ? "NoX is writing…" : noxBusy}
+          <Sparkles size={14} className="text-[color:var(--violet-ink)]" /> {typing ? "NoX is writing…" : noxBusy}
         </div>
       )}
       {pendingEdit && (
-        <div className="flex flex-wrap items-center gap-3 border border-b-0 border-hairline bg-[rgba(247,181,66,.07)] px-3 py-2 text-[13px] text-ink">
+        <div className="flex flex-wrap items-center gap-3 border border-b-0 border-hairline bg-[rgb(var(--nox-rgb)/.07)] px-3 py-2 text-[13px] text-ink">
           NoX finished an edit while you were typing.
           <button type="button" className="underline" onClick={() => { setText(base.markdown); const e = pendingEdit; setPendingEdit(null); void animate(e); }}>
             Show NoX&rsquo;s version (discards your unsaved changes)
@@ -437,17 +437,17 @@ export function SpecEditor({
       )}
       {lastEdit && !typing && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border border-b-0 border-hairline bg-[rgba(168,151,240,.1)] px-3 py-2 text-[13px] text-ink-muted">
-          <Sparkles size={13} className="text-[#A897F0]" />
+          <Sparkles size={13} className="text-[color:var(--violet-ink)]" />
           <span className="text-ink">{tintHidden ? "Review NoX’s changes — open the preview to see them tinted." : "Review NoX’s changes — they’re tinted in the page."}</span>
           {tintHidden ? (
-            <button type="button" onClick={() => setLayout("split")} className="rounded-sm border border-[rgba(168,151,240,.4)] px-2 py-0.5 text-[12px] text-ink hover:border-[#A897F0]">
+            <button type="button" onClick={() => setLayout("split")} className="rounded-sm border border-[rgba(168,151,240,.4)] px-2 py-0.5 text-[12px] text-ink hover:border-[color:var(--violet)]">
               Show side by side
             </button>
           ) : (
             lastEdit.edits.map((what, i) => {
               const heading = editedHeading(what);
               return heading ? (
-                <button key={i} type="button" onClick={() => jumpTo(heading)} className="rounded-sm border border-[rgba(168,151,240,.4)] px-2 py-0.5 text-[12px] text-ink hover:border-[#A897F0]">
+                <button key={i} type="button" onClick={() => jumpTo(heading)} className="rounded-sm border border-[rgba(168,151,240,.4)] px-2 py-0.5 text-[12px] text-ink hover:border-[color:var(--violet)]">
                   {what.charAt(0).toUpperCase() + what.slice(1)}
                 </button>
               ) : (
@@ -475,7 +475,7 @@ export function SpecEditor({
           </span>
           <span className="ml-auto flex items-center gap-2">
             <button type="button" onClick={refine} disabled={busy} className={barBtn}>
-              <Sparkles size={13} className="text-[#A897F0]" aria-hidden /> Ask NoX to refine
+              <Sparkles size={13} className="text-[color:var(--violet-ink)]" aria-hidden /> Ask NoX to refine
             </button>
             <button type="button" onClick={edit} disabled={!!typing} className="flex h-8 items-center gap-1.5 rounded-sm px-3 text-[12.5px] font-semibold text-void disabled:opacity-40" style={{ background: "var(--role)" }}>
               <Pencil size={13} aria-hidden /> Edit
@@ -483,7 +483,7 @@ export function SpecEditor({
           </span>
         </div>
         {banners}
-        <div ref={previewRef} className="relative min-h-[40vh] rounded-b-md border border-hairline bg-[rgba(9,11,19,.66)] p-6 sm:p-8">
+        <div ref={previewRef} className="relative min-h-[40vh] rounded-b-md border border-hairline bg-[rgb(var(--deck-rgb)/.66)] p-6 sm:p-8">
           {preview}
         </div>
         <ChatDock missionKey={missionKey} role={role} busy={noxMode === "chat"} status={noxMode === "chat" ? noxBusy : null} />
@@ -495,7 +495,7 @@ export function SpecEditor({
     <div className="relative">
       <div className="flex flex-wrap items-center gap-1 rounded-t-md border border-b-0 border-hairline bg-deck px-2 py-1.5">
         {tools.map((t) => (
-          <button key={t.label} type="button" onClick={t.run} title={t.label} aria-label={t.label} disabled={!!typing || layout === "preview"} className="flex h-8 w-8 items-center justify-center rounded-sm text-ink-muted hover:bg-[rgba(143,160,204,.1)] hover:text-ink disabled:opacity-40">
+          <button key={t.label} type="button" onClick={t.run} title={t.label} aria-label={t.label} disabled={!!typing || layout === "preview"} className="flex h-8 w-8 items-center justify-center rounded-sm text-ink-muted hover:bg-[rgb(var(--line)/.1)] hover:text-ink disabled:opacity-40">
             <t.icon size={15} strokeWidth={1.7} />
           </button>
         ))}
@@ -533,7 +533,7 @@ export function SpecEditor({
                 role="radio"
                 aria-checked={layout === v}
                 onClick={() => setLayout(v)}
-                className={`${v === "split" ? "hidden lg:flex" : "flex"} items-center gap-1 px-2 py-1 text-[12px] ${layout === v ? "bg-[rgba(143,160,204,.12)] text-ink" : "text-ink-dim hover:text-ink"}`}
+                className={`${v === "split" ? "hidden lg:flex" : "flex"} items-center gap-1 px-2 py-1 text-[12px] ${layout === v ? "bg-[rgb(var(--line)/.12)] text-ink" : "text-ink-dim hover:text-ink"}`}
               >
                 {Icon && <Icon size={12} aria-hidden />}
                 {label}
@@ -557,7 +557,7 @@ export function SpecEditor({
         />
         <div
           ref={previewRef}
-          className={`${layout === "write" ? "hidden" : layout === "split" ? "max-h-[80vh] overflow-y-auto" : ""} relative min-h-[62vh] bg-[rgba(9,11,19,.66)] p-6`}
+          className={`${layout === "write" ? "hidden" : layout === "split" ? "max-h-[80vh] overflow-y-auto" : ""} relative min-h-[62vh] bg-[rgb(var(--deck-rgb)/.66)] p-6`}
         >
           {preview}
         </div>
@@ -655,16 +655,16 @@ function PreviewBlocks({
             key={`${b.start}-${b.text.slice(0, 12)}`}
             data-block={bi}
             data-heading={heading ? normHeading(heading) : undefined}
-            className={`relative -mx-2 rounded-sm px-2 transition-colors duration-500 ${isTouched ? "bg-[rgba(168,151,240,.14)] shadow-[inset_3px_0_0_#A897F0]" : ""}`}
+            className={`relative -mx-2 rounded-sm px-2 transition-colors duration-500 ${isTouched ? "bg-[rgba(168,151,240,.14)] shadow-[inset_3px_0_0_var(--violet)]" : ""}`}
           >
             {newSection && (
-              <span className="absolute right-2 top-2 rounded-sm bg-[rgba(168,151,240,.22)] px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#CFC6FA]">
+              <span className="absolute right-2 top-2 rounded-sm bg-[rgba(168,151,240,.22)] px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[color:var(--violet-ink)]">
                 New · NoX
               </span>
             )}
             <KbMarkdown content={b.text} />
             {hasCursor && (
-              <span className="pointer-events-none absolute -bottom-1 right-2 inline-flex items-center gap-1 rounded-sm bg-[#A897F0] px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-void shadow">
+              <span className="pointer-events-none absolute -bottom-1 right-2 inline-flex items-center gap-1 rounded-sm bg-[color:var(--violet)] px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-abyss shadow">
                 <span className="h-3 w-[2px] animate-pulse bg-void" /> NoX
               </span>
             )}
@@ -727,8 +727,8 @@ function ChatDock({ missionKey, role, busy, status }: { missionKey: string; role
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="fixed bottom-20 right-4 z-40 flex h-12 items-center gap-2 rounded-full border border-[rgba(168,151,240,.5)] bg-deck px-4 text-[13px] text-ink shadow-xl hover:border-[#A897F0] lg:bottom-6 lg:right-6">
-        <MessageSquare size={16} className="text-[#A897F0]" /> Ask NoX
+      <button type="button" onClick={() => setOpen(true)} className="fixed bottom-20 right-4 z-40 flex h-12 items-center gap-2 rounded-full border border-[rgba(168,151,240,.5)] bg-deck px-4 text-[13px] text-ink shadow-xl hover:border-[color:var(--violet)] lg:bottom-6 lg:right-6">
+        <MessageSquare size={16} className="text-[color:var(--violet-ink)]" /> Ask NoX
       </button>
     );
   }
@@ -736,7 +736,7 @@ function ChatDock({ missionKey, role, busy, status }: { missionKey: string; role
     <section aria-label="Chat with NoX" className="fixed bottom-20 right-4 z-40 flex h-[min(520px,calc(100vh-7rem))] w-[min(360px,calc(100vw-2rem))] flex-col overflow-hidden rounded-md border border-hairline bg-deck shadow-2xl lg:bottom-6 lg:right-6">
       <header className="flex items-center justify-between border-b border-hairline px-4 py-2.5">
         <span className="flex items-center gap-2 text-[13px] text-ink">
-          <Sparkles size={14} className="text-[#A897F0]" /> NoX · this file
+          <Sparkles size={14} className="text-[color:var(--violet-ink)]" /> NoX · this file
         </span>
         <button type="button" onClick={() => setOpen(false)} aria-label="Close chat" className="text-ink-dim hover:text-ink">
           <X size={15} />
@@ -745,7 +745,7 @@ function ChatDock({ missionKey, role, busy, status }: { missionKey: string; role
       <ol ref={listRef} className="flex-1 space-y-2 overflow-y-auto p-3">
         {!msgs.length && <li className="text-[12.5px] text-ink-faint">Ask NoX to add a section, rewrite the acceptance criteria, or explain something from the knowledge base. Edits appear in the file as NoX types them.</li>}
         {msgs.map((m) => (
-          <li key={m.id} className={`max-w-[88%] whitespace-pre-line rounded-md px-3 py-2 text-[13px] leading-snug ${m.author === "user" ? "ml-auto bg-[rgba(143,160,204,.12)] text-ink" : "bg-[rgba(168,151,240,.1)] text-ink"}`}>
+          <li key={m.id} className={`max-w-[88%] whitespace-pre-line rounded-md px-3 py-2 text-[13px] leading-snug ${m.author === "user" ? "ml-auto bg-[rgb(var(--line)/.12)] text-ink" : "bg-[rgba(168,151,240,.1)] text-ink"}`}>
             {m.body}
             {!!m.mediaIds?.length && <span className="mt-1 block font-mono text-[10.5px] text-ink-dim">+ {m.mediaIds.length} capture{m.mediaIds.length > 1 ? "s" : ""}</span>}
           </li>
@@ -782,8 +782,8 @@ function ChatDock({ missionKey, role, busy, status }: { missionKey: string; role
         <button type="button" onClick={() => setAttach((a) => !a)} aria-label="Attach a recording, screenshot or voice note" aria-expanded={attach} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-hairline text-ink-muted hover:text-ink">
           <Paperclip size={14} />
         </button>
-        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Add a rollback section…" aria-label="Message NoX" className="h-9 min-w-0 flex-1 rounded-sm border border-hairline bg-void px-3 text-[13px] text-ink outline-none focus:border-[#A897F0]" />
-        <button type="submit" aria-label="Send" className="flex h-9 w-9 items-center justify-center rounded-sm bg-[#A897F0] text-void">
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Add a rollback section…" aria-label="Message NoX" className="h-9 min-w-0 flex-1 rounded-sm border border-hairline bg-void px-3 text-[13px] text-ink outline-none focus:border-[color:var(--violet)]" />
+        <button type="submit" aria-label="Send" className="flex h-9 w-9 items-center justify-center rounded-sm bg-[color:var(--violet)] text-abyss">
           <Send size={14} />
         </button>
       </form>

@@ -33,7 +33,7 @@ export function RecordingPill({
     return () => window.removeEventListener("keydown", onKey);
   }, [state, onStop]);
 
-  const btn = "flex h-9 items-center gap-1.5 rounded-full px-3 text-[12.5px] text-ink hover:bg-[rgba(143,160,204,.14)]";
+  const btn = "flex h-9 items-center gap-1.5 rounded-full px-3 text-[12.5px] text-ink hover:bg-[rgb(var(--line)/.14)]";
   return (
     <div
       role="region"
@@ -47,7 +47,7 @@ export function RecordingPill({
       ) : (
         <>
           <span className="flex items-center gap-2 px-2 font-mono text-[12.5px] text-ink" aria-live="polite">
-            <span className={`h-2.5 w-2.5 rounded-full bg-[#E9713C] ${state === "recording" ? "animate-pulse motion-reduce:animate-none" : "opacity-50"}`} aria-hidden />
+            <span className={`h-2.5 w-2.5 rounded-full bg-ember ${state === "recording" ? "animate-pulse motion-reduce:animate-none" : "opacity-50"}`} aria-hidden />
             {fmtT(elapsed)} / {fmtT(maxS)}
           </span>
           {state === "recording" ? (
@@ -60,7 +60,7 @@ export function RecordingPill({
             </button>
           )}
           <button type="button" onClick={onStop} className={`${btn} font-semibold`}>
-            <Square size={12} className="fill-[#E9713C] text-[#E9713C]" /> Stop
+            <Square size={12} className="fill-ember text-ember" /> Stop
           </button>
         </>
       )}

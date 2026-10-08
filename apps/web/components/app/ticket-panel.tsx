@@ -66,7 +66,7 @@ export function TicketPanel({ missionKey, state, onChanged }: { missionKey: stri
           {people.loading && <li className="px-2 py-1.5 text-[12.5px] text-ink-faint">Loading people…</li>}
           {(people.data ?? []).map((p) => (
             <li key={p.id}>
-              <button type="button" disabled={busy} onClick={() => void assign(p.id)} className="flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-left text-[12.5px] hover:bg-[rgba(143,160,204,.08)] disabled:opacity-50">
+              <button type="button" disabled={busy} onClick={() => void assign(p.id)} className="flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-left text-[12.5px] hover:bg-[rgb(var(--line)/.08)] disabled:opacity-50">
                 <span className="min-w-0 truncate">
                   <span className="text-ink">{p.name || p.email}</span>
                   {p.name && p.email && <span className="ml-1.5 text-ink-dim">{p.email}</span>}
@@ -77,7 +77,7 @@ export function TicketPanel({ missionKey, state, onChanged }: { missionKey: stri
           ))}
           {a && (
             <li>
-              <button type="button" disabled={busy} onClick={() => void assign(null)} className="w-full rounded-sm px-2 py-1.5 text-left text-[12.5px] text-ink-muted hover:bg-[rgba(143,160,204,.08)] disabled:opacity-50">
+              <button type="button" disabled={busy} onClick={() => void assign(null)} className="w-full rounded-sm px-2 py-1.5 text-left text-[12.5px] text-ink-muted hover:bg-[rgb(var(--line)/.08)] disabled:opacity-50">
                 Clear assignee
               </button>
             </li>
@@ -93,14 +93,14 @@ export function TicketPanel({ missionKey, state, onChanged }: { missionKey: stri
               <li key={s.id} className="flex items-center gap-2.5 text-[12.5px]" aria-current={s.status === "current" ? "step" : undefined}>
                 <span
                   className={`h-2 w-2 shrink-0 rounded-full ${s.status === "current" ? "motion-safe:animate-pulse" : ""}`}
-                  style={{ background: s.status === "pending" ? "transparent" : hue, border: `1px solid ${s.status === "pending" ? "rgba(143,160,204,.35)" : hue}` }}
+                  style={{ background: s.status === "pending" ? "transparent" : hue, border: `1px solid ${s.status === "pending" ? "rgb(var(--line)/.35)" : hue}` }}
                 />
                 <span className={s.status === "current" ? "text-ink" : s.status === "done" ? "text-ink-muted" : "text-ink-dim"}>{s.label}</span>
                 {s.status === "current" && <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.1em] text-[color:var(--role)]">now</span>}
               </li>
             );
           })}
-          {state.currentStep === null && <li className="text-[12.5px] text-[#5FD29F]">Done</li>}
+          {state.currentStep === null && <li className="text-[12.5px] text-verify">Done</li>}
         </ol>
       )}
     </Panel>

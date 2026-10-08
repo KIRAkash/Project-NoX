@@ -230,7 +230,7 @@ export function CaptureBar({
                 setSheet(null);
                 void rec.start({ voice: voiceOn, tabAudio });
               }}
-              className="h-9 rounded-sm px-4 font-semibold text-void"
+              className="h-9 rounded-sm px-4 font-semibold text-abyss"
               style={{ background: hue }}
             >
               Choose what to share
@@ -243,7 +243,7 @@ export function CaptureBar({
         <div className="rounded-md border border-hairline bg-deck p-4 text-[13px]">
           <div className="flex h-10 items-center gap-[3px]" aria-hidden>
             {Array.from({ length: 48 }, (_, i) => voice.levels[i - (48 - voice.levels.length)] ?? 0).map((v, i) => (
-              <span key={i} className="w-[3px] rounded-full" style={{ height: `${Math.max(6, v * 100)}%`, background: voice.recording ? hue : "rgba(143,160,204,.25)" }} />
+              <span key={i} className="w-[3px] rounded-full" style={{ height: `${Math.max(6, v * 100)}%`, background: voice.recording ? hue : "rgb(var(--line)/.25)" }} />
             ))}
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
@@ -255,17 +255,17 @@ export function CaptureBar({
                 Cancel
               </button>
               {voice.recording ? (
-                <button type="button" onClick={voice.stop} className="h-9 rounded-sm bg-[#E9713C] px-4 font-semibold text-void">
+                <button type="button" onClick={voice.stop} className="h-9 rounded-sm bg-ember px-4 font-semibold text-abyss">
                   Stop
                 </button>
               ) : (
-                <button type="button" onClick={() => void voice.start()} className="h-9 rounded-sm px-4 font-semibold text-void" style={{ background: hue }}>
+                <button type="button" onClick={() => void voice.start()} className="h-9 rounded-sm px-4 font-semibold text-abyss" style={{ background: hue }}>
                   Start recording
                 </button>
               )}
             </span>
           </div>
-          {voice.error && <p className="mt-2 text-[12.5px] text-[#F3A27E]">{voice.error}</p>}
+          {voice.error && <p className="mt-2 text-[12.5px] text-[color:var(--coral-ink)]">{voice.error}</p>}
         </div>
       )}
 
@@ -297,7 +297,7 @@ export function CaptureBar({
             >
               {sheet.item.kind === "video" ? "Cancel" : "Retake"}
             </button>
-            <button type="button" onClick={() => void sendItem(sheet.item)} className="h-9 rounded-sm px-4 font-semibold text-void" style={{ background: hue }}>
+            <button type="button" onClick={() => void sendItem(sheet.item)} className="h-9 rounded-sm px-4 font-semibold text-abyss" style={{ background: hue }}>
               Use this
             </button>
           </div>
@@ -324,7 +324,7 @@ export function CaptureBar({
             <span>Uploading your {sheet.label}…</span>
             <span className="font-mono">{Math.round(sheet.share * 100)}%</span>
           </div>
-          <div className="mt-2 h-1 overflow-hidden rounded-full bg-[rgba(143,160,204,.12)]">
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-[rgb(var(--line)/.12)]">
             <div className="h-full transition-[width]" style={{ width: `${sheet.share * 100}%`, background: hue }} />
           </div>
         </div>
@@ -341,7 +341,7 @@ export function CaptureBar({
 export function CaptureChip({ capture, onRemove }: { capture: MediaCapture; onRemove?: () => void }) {
   return (
     <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-hairline px-2 py-0.5 text-[11.5px] text-ink-muted">
-      <span className={`h-1.5 w-1.5 rounded-full ${capture.status === "ready" ? "bg-[#5FD29F]" : "animate-pulse bg-[#A897F0]"}`} aria-hidden />
+      <span className={`h-1.5 w-1.5 rounded-full ${capture.status === "ready" ? "bg-verify" : "animate-pulse bg-[color:var(--violet)]"}`} aria-hidden />
       <span className="truncate">{capture.label}</span>
       {onRemove && (
         <button type="button" onClick={onRemove} aria-label={`Remove ${capture.label}`} className="text-ink-dim hover:text-ink">

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { NoxMark } from "@/components/app/nox-mark";
+import { ThemeToggle } from "@/components/app/theme-toggle";
 import { DocsNav } from "@/components/docs/docs-nav";
 import { LiquidMetalLink } from "@/components/liquid-metal/liquid-metal";
 import { CHAPTERS, GROUPS } from "@/lib/docs";
@@ -15,7 +16,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="relative min-h-screen bg-void">
       <div className="starfield starfield--far pointer-events-none fixed inset-0 opacity-50" aria-hidden />
-      <header className="sticky top-0 z-30 border-b border-hairline bg-[rgba(5,6,11,.82)] backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-hairline bg-[rgb(var(--void-rgb)/.82)] backdrop-blur">
         <div className="mx-auto flex h-14 max-w-[1320px] items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <Link href="/" aria-label="NoX home">
@@ -26,12 +27,15 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
               Docs
             </Link>
           </div>
-          <LiquidMetalLink
-            href="/login"
-            className="rounded-full px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em]"
-          >
-            Enter NoX
-          </LiquidMetalLink>
+          <div className="flex items-center gap-2">
+            <ThemeToggle size="sm" />
+            <LiquidMetalLink
+              href="/login"
+              className="rounded-full px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em]"
+            >
+              Enter NoX
+            </LiquidMetalLink>
+          </div>
         </div>
       </header>
       {/* Phones: the chapter menu sits above the page. Wide screens: a sticky sidebar beside it. */}

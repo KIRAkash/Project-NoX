@@ -36,7 +36,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
 
         <nav aria-label="More chapters" className="mt-16 grid gap-3 border-t border-hairline pt-8 sm:grid-cols-2">
           {prev ? (
-            <Link href={`/docs/${prev.slug}`} className="group rounded-md border border-hairline p-4 transition-colors hover:border-[rgba(247,181,66,.45)]">
+            <Link href={`/docs/${prev.slug}`} className="group rounded-md border border-hairline p-4 transition-colors hover:border-[rgb(var(--nox-rgb)/.45)]">
               <span className="flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-dim">
                 <ArrowLeft size={12} /> Previous
               </span>
@@ -46,7 +46,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
             <span />
           )}
           {next && (
-            <Link href={`/docs/${next.slug}`} className="group rounded-md border border-hairline p-4 text-right transition-colors hover:border-[rgba(247,181,66,.45)]">
+            <Link href={`/docs/${next.slug}`} className="group rounded-md border border-hairline p-4 text-right transition-colors hover:border-[rgb(var(--nox-rgb)/.45)]">
               <span className="flex items-center justify-end gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-dim">
                 Next <ArrowRight size={12} />
               </span>

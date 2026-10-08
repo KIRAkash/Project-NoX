@@ -9,6 +9,7 @@ import { EmptyState, KbStatusChip, type KbStatus, Panel } from "@/components/app
 import type { RoleDef } from "@/lib/app/roles";
 import type { Mission, MissionStage, Org, OrgMap } from "@/lib/app/types";
 import { useApi } from "@/lib/app/use-api";
+import { C, legible } from "@/lib/app/palette";
 
 type Kb = { id: string; appName: string; status: KbStatus; prUrl?: string | null };
 type Integration = { name: string; required: boolean; configured: boolean; ok: boolean; detail: string };
@@ -45,7 +46,7 @@ export function AtlasPanel({ role, className, title = "Atlas · applications" }:
       title={title}
       className={className}
       action={
-        <Link href="/app/atlas" className="text-[12px] hover:underline" style={{ color: role.hue }}>
+        <Link href="/app/atlas" className="text-[12px] hover:underline" style={{ color: role.ink }}>
           Open atlas →
         </Link>
       }
@@ -53,7 +54,7 @@ export function AtlasPanel({ role, className, title = "Atlas · applications" }:
       {loading ? (
         <p className="text-[13px] text-ink-faint">Loading…</p>
       ) : error ? (
-        <p className="text-[13px] text-[#F3A27E]">Couldn&rsquo;t load applications: {error.detail}</p>
+        <p className="text-[13px] text-[color:var(--coral-ink)]">Couldn&rsquo;t load applications: {error.detail}</p>
       ) : !data?.length ? (
         <EmptyState line="No applications in your orbit yet. Onboard one from the atlas." />
       ) : (
@@ -91,7 +92,7 @@ export function ConnectorHealth({ className }: { className?: string }) {
             .filter((i) => i.configured || i.required)
             .map((i) => (
               <li key={i.name} className="flex items-start gap-2.5 text-[13px]">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: i.ok ? "#5FD29F" : "#E9713C" }} />
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: i.ok ? C.verify : C.ember }} />
                 <span>
                   <span className="capitalize text-ink">{i.name}</span>
                   <span className="block text-[12px] text-ink-faint">{i.detail}</span>
@@ -123,7 +124,7 @@ export function NoxCommand({ missionKey, className = "" }: { missionKey: string;
     <button
       type="button"
       onClick={(e) => void copy(e)}
-      className={`inline-flex items-center gap-2 rounded-sm border border-[rgba(134,185,238,.3)] bg-[rgba(5,6,11,.8)] px-2.5 py-1 font-mono text-[12px] text-[#CFE3FA] hover:border-[rgba(134,185,238,.6)] ${className}`}
+      className={`inline-flex items-center gap-2 rounded-sm border border-[rgba(134,185,238,.3)] bg-[rgb(var(--void-rgb)/.8)] px-2.5 py-1 font-mono text-[12px] text-[color:var(--sky-ink)] hover:border-[rgba(134,185,238,.6)] ${className}`}
       aria-label={`Copy ${text}`}
     >
       <span className="text-ink-dim">&gt;</span>
@@ -167,13 +168,13 @@ export function RequestCard({ m, highlight }: { m: Mission; highlight?: string }
       href={`/app/missions/${m.key}`}
       className="block rounded-lg border p-5 transition hover:border-[color:color-mix(in_srgb,var(--role)_55%,transparent)]"
       style={{
-        borderColor: highlight ? "color-mix(in srgb, var(--role) 55%, transparent)" : "rgba(143,160,204,.18)",
+        borderColor: highlight ? "color-mix(in srgb, var(--role) 55%, transparent)" : "rgb(var(--line)/.18)",
         background: highlight
-          ? "linear-gradient(180deg, color-mix(in srgb, var(--role) 12%, rgba(17,21,35,.8)), rgba(12,15,26,.8))"
-          : "linear-gradient(180deg, rgba(21,26,42,.7), rgba(13,16,28,.7))",
+          ? "linear-gradient(180deg, color-mix(in srgb, var(--role) 12%, rgb(var(--raise)/.8)), rgb(var(--raise-lo)/.8))"
+          : "linear-gradient(180deg, rgb(var(--raise)/.7), rgb(var(--raise-lo)/.7))",
       }}
     >
-      {highlight && <div className="mb-2 text-[12.5px] font-semibold" style={{ color: hue }}>{highlight}</div>}
+      {highlight && <div className="mb-2 text-[12.5px] font-semibold" style={{ color: legible(hue) }}>{highlight}</div>}
       <p className="text-[16px] leading-snug text-ink">&ldquo;{m.prompt}&rdquo;</p>
       <ol className="mt-5 grid grid-cols-5 gap-1" aria-label={`Progress: ${REQUEST_STEPS[step]}`}>
         {REQUEST_STEPS.map((label, i) => {
@@ -183,7 +184,7 @@ export function RequestCard({ m, highlight }: { m: Mission; highlight?: string }
             <li key={label} className="min-w-0">
               <span
                 className={`block h-1.5 rounded-full ${now ? "motion-safe:animate-pulse" : ""}`}
-                style={{ background: done ? hue : now ? "color-mix(in srgb, var(--role) 70%, transparent)" : "rgba(143,160,204,.16)" }}
+                style={{ background: done ? hue : now ? "color-mix(in srgb, var(--role) 70%, transparent)" : "rgb(var(--line)/.16)" }}
               />
               <span className={`mt-1.5 block truncate text-[11px] ${now ? "text-ink" : done ? "text-ink-muted" : "text-ink-dim"}`}>{label}</span>
             </li>

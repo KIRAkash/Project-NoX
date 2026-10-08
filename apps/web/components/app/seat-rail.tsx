@@ -37,7 +37,7 @@ function BusinessTrack({ m }: { m: Mission }) {
   return (
     <section
       className="mt-6 rounded-xl border p-5"
-      style={{ borderColor: "color-mix(in srgb, var(--role) 35%, transparent)", background: "linear-gradient(180deg, color-mix(in srgb, var(--role) 9%, rgba(17,21,35,.85)), rgba(12,15,26,.85))" }}
+      style={{ borderColor: "color-mix(in srgb, var(--role) 35%, transparent)", background: "linear-gradient(180deg, color-mix(in srgb, var(--role) 9%, rgb(var(--raise)/.85)), rgb(var(--raise-lo)/.85))" }}
     >
       <ol className="grid grid-cols-5 gap-1.5" aria-label={`Progress: ${REQUEST_STEPS[step]}`}>
         {REQUEST_STEPS.map((label, i) => {
@@ -45,7 +45,7 @@ function BusinessTrack({ m }: { m: Mission }) {
           const now = i === step && step !== 4;
           return (
             <li key={label} className="min-w-0">
-              <span className={`block h-2 rounded-full ${now ? "motion-safe:animate-pulse" : ""}`} style={{ background: done ? "var(--role)" : now ? "color-mix(in srgb, var(--role) 70%, transparent)" : "rgba(143,160,204,.16)" }} />
+              <span className={`block h-2 rounded-full ${now ? "motion-safe:animate-pulse" : ""}`} style={{ background: done ? "var(--role)" : now ? "color-mix(in srgb, var(--role) 70%, transparent)" : "rgb(var(--line)/.16)" }} />
               <span className={`mt-2 block truncate text-[12px] ${now ? "text-ink" : done ? "text-ink-muted" : "text-ink-dim"}`}>{label}</span>
             </li>
           );
@@ -78,7 +78,7 @@ function AcceptanceSummary({ m }: { m: Mission }) {
 
 function Stat({ label, value, hint }: { label: string; value: React.ReactNode; hint: string }) {
   return (
-    <div className="rounded-md border border-[rgba(143,160,204,.18)] bg-[linear-gradient(180deg,rgba(21,26,42,.8),rgba(13,16,28,.8))] px-4 py-3">
+    <div className="rounded-md border border-[rgb(var(--line)/.18)] bg-[linear-gradient(180deg,rgb(var(--raise)/.8),rgb(var(--raise-lo)/.8))] px-4 py-3">
       <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[color:var(--role)]">{label}</div>
       <div className="mt-1 font-display text-[28px] leading-none text-ink">{value}</div>
       <div className="mt-1 text-[12px] text-ink-faint">{hint}</div>
@@ -91,7 +91,7 @@ function BuildCard({ m }: { m: Mission }) {
   const jira = m.links.find((l) => l.system === "jira" && l.primary);
   const buildable = m.stage === "developer" || m.stage === "build";
   return (
-    <section className="mt-6 rounded-md border border-[rgba(134,185,238,.28)] bg-[#04050A] p-4 font-mono text-[12.5px]">
+    <section className="mt-6 rounded-md console border p-4 font-mono text-[12.5px]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
           <div className="text-ink-dim"># {buildable ? "build it with your coding agent" : `stage: ${m.stage}`}</div>
@@ -103,7 +103,7 @@ function BuildCard({ m }: { m: Mission }) {
       </div>
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 border-t border-hairline pt-3 text-[12px]">
         <span className="text-ink-dim">branch</span>
-        <span className="text-[#CFE3FA]">nox/{m.key}</span>
+        <span className="text-[color:var(--sky-ink)]">nox/{m.key}</span>
         {jira && (
           <a href={jira.url ?? "#"} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-ink-muted hover:text-ink">
             <BrandLogo name="jira" size={12} />

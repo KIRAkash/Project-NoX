@@ -93,7 +93,7 @@ export const CaptureCard = forwardRef<PlayerHandle, {
   const problems = new Set(c.problemTimes ?? []);
 
   return (
-    <article className="rounded-md border border-hairline bg-[rgba(9,11,19,.66)] p-4" aria-label={`Capture: ${c.label}`} data-media={c.id}>
+    <article className="rounded-md border border-hairline bg-[rgb(var(--deck-rgb)/.66)] p-4" aria-label={`Capture: ${c.label}`} data-media={c.id}>
       <header className="mb-3 flex flex-wrap items-center justify-between gap-2 text-[12.5px]">
         <span className="flex min-w-0 items-center gap-2 text-ink">
           <Icon size={14} className="shrink-0 text-[color:var(--role)]" aria-hidden />
@@ -117,7 +117,7 @@ export const CaptureCard = forwardRef<PlayerHandle, {
       {working && (
         <div className="mt-3 space-y-1 text-[12.5px]" role="status" aria-live="polite">
           <p className="flex items-center gap-2 text-ink">
-            <Sparkles size={13} className="text-[#A897F0]" /> {c.status === "uploading" ? "Uploading…" : "NoX is watching…"}
+            <Sparkles size={13} className="text-[color:var(--violet-ink)]" /> {c.status === "uploading" ? "Uploading…" : "NoX is watching…"}
           </p>
           <ol className="space-y-0.5 pl-5 text-ink-faint">
             {steps.map((s, i) => (
@@ -130,7 +130,7 @@ export const CaptureCard = forwardRef<PlayerHandle, {
       )}
 
       {c.status === "failed" && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-sm border border-[rgba(233,113,60,.35)] px-3 py-2 text-[12.5px] text-[#F3A27E]">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-sm border border-[rgba(233,113,60,.35)] px-3 py-2 text-[12.5px] text-[color:var(--coral-ink)]">
           <span className="flex items-center gap-2">
             <AlertTriangle size={13} /> {c.statusReason ?? "NoX couldn't watch this capture."}
           </span>
@@ -142,7 +142,7 @@ export const CaptureCard = forwardRef<PlayerHandle, {
         </div>
       )}
       {c.status === "withheld" && (
-        <p className="mt-1 flex items-start gap-2 rounded-sm border border-[rgba(233,113,60,.35)] px-3 py-2 text-[12.5px] text-[#F3A27E]">
+        <p className="mt-1 flex items-start gap-2 rounded-sm border border-[rgba(233,113,60,.35)] px-3 py-2 text-[12.5px] text-[color:var(--coral-ink)]">
           <ShieldAlert size={14} className="mt-0.5 shrink-0" /> {c.statusReason ?? "NoX Shield withheld this capture."} Only you can see it, and NoX won&rsquo;t use it.
         </p>
       )}

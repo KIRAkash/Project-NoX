@@ -32,7 +32,7 @@ export function EngineeringHome({ role }: { role: RoleDef }) {
           title={root ? `Blast radius · ${root.name}` : "Blast radius"}
           className="lg:col-span-2"
           action={
-            <Link href="/app/atlas" className="text-[12px] hover:underline" style={{ color: role.hue }}>
+            <Link href="/app/atlas" className="text-[12px] hover:underline" style={{ color: role.ink }}>
               Open atlas →
             </Link>
           }

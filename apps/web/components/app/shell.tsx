@@ -7,11 +7,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAuth } from "@/lib/app/auth";
 import { navFor } from "@/lib/app/nav";
+import { C, tint } from "@/lib/app/palette";
 import { ROLE_BY_ID, type RoleDef } from "@/lib/app/roles";
 import { useApi } from "@/lib/app/use-api";
 
 import { Planet } from "./planet";
 import { NoxMark } from "./nox-mark";
+import { ThemeToggle } from "./theme-toggle";
 import { ToastProvider, usePopover } from "./ui";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -20,8 +22,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const role = ROLE_BY_ID[me.role];
   return (
     <ToastProvider>
-      {/* `data-seat` picks the seat's texture in globals.css: warm and airy, board, blueprint or terminal. */}
-      <div data-seat={role.id} className="seat-shell min-h-screen lg:pl-[232px]" style={{ ["--role" as string]: role.hue }}>
+      {/* `data-seat` sets the seat's colour (`--role`) and texture in globals.css: warm and airy, board, blueprint or terminal. */}
+      <div data-seat={role.id} className="seat-shell min-h-screen lg:pl-[232px]">
         <Sidebar role={role} />
         <div className="flex min-h-screen flex-col">
           <DemoRibbon />
@@ -45,10 +47,10 @@ function useActive(role: RoleDef) {
 function Sidebar({ role }: { role: RoleDef }) {
   const isActive = useActive(role);
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[232px] flex-col border-r border-hairline bg-[rgba(7,8,15,.92)] backdrop-blur lg:flex">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden seat-sidebar w-[232px] flex-col border-r border-hairline bg-[rgb(var(--hull-rgb)/.92)] backdrop-blur lg:flex">
       <Link href="/app" className="flex h-[72px] flex-col justify-center px-6">
         <NoxMark size={22} />
-        <span className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.18em]" style={{ color: role.hue }}>
+        <span className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.18em]" style={{ color: role.ink }}>
           {role.desk}
         </span>
       </Link>
@@ -62,21 +64,21 @@ function Sidebar({ role }: { role: RoleDef }) {
               href={`/app${item.path}`}
               aria-current={active ? "page" : undefined}
               className={`relative flex h-10 items-center gap-3 rounded-sm px-3 text-[14px] transition ${
-                active ? "bg-[rgba(143,160,204,.08)] text-ink" : "text-ink-muted hover:bg-[rgba(143,160,204,.05)] hover:text-ink"
+                active ? "bg-[rgb(var(--line)/.08)] text-ink" : "text-ink-muted hover:bg-[rgb(var(--line)/.05)] hover:text-ink"
               }`}
             >
-              {active && <span className="absolute left-0 top-2 bottom-2 w-[2px] rounded-full" style={{ background: role.hue }} />}
-              <Icon size={17} strokeWidth={1.6} style={active ? { color: role.hue } : undefined} />
+              {active && <span className="absolute left-0 top-2 bottom-2 w-[2px] rounded-full" style={{ background: role.ink }} />}
+              <Icon size={17} strokeWidth={1.6} style={active ? { color: role.ink } : undefined} />
               {item.label}
             </Link>
           );
         })}
       </nav>
       <div className="mt-auto px-6 pb-6">
-        <Link href="/choose-role" className="flex items-center gap-3 rounded-md border border-hairline p-3 hover:border-[rgba(143,160,204,.3)]">
+        <Link href="/choose-role" className="flex items-center gap-3 rounded-md border border-hairline p-3 hover:border-[rgb(var(--line)/.3)]">
           <Planet role={role} size={28} />
           <span className="min-w-0">
-            <span className="block text-[13px] font-medium" style={{ color: role.hue }}>
+            <span className="block text-[13px] font-medium" style={{ color: role.ink }}>
               {role.name}
             </span>
             <span className="block text-[11px] text-ink-faint">Switch role</span>
@@ -90,7 +92,7 @@ function Sidebar({ role }: { role: RoleDef }) {
 function BottomNav({ role }: { role: RoleDef }) {
   const isActive = useActive(role);
   return (
-    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 flex border-t border-hairline bg-[rgba(7,8,15,.95)] backdrop-blur lg:hidden">
+    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 seat-sidebar flex border-t border-hairline bg-[rgb(var(--hull-rgb)/.95)] backdrop-blur lg:hidden">
       {navFor(role.id).map((item) => {
         const active = isActive(item.path);
         const Icon = item.icon;
@@ -100,7 +102,7 @@ function BottomNav({ role }: { role: RoleDef }) {
             href={`/app${item.path}`}
             aria-current={active ? "page" : undefined}
             className="flex min-h-[58px] flex-1 flex-col items-center justify-center gap-1 text-[10.5px]"
-            style={{ color: active ? role.hue : "#7C86A3" }}
+            style={{ color: active ? role.ink : "var(--ink-faint)" }}
           >
             <Icon size={18} strokeWidth={1.6} />
             {item.label}
@@ -114,7 +116,7 @@ function BottomNav({ role }: { role: RoleDef }) {
 // The seat is already named in the sidebar, so the ribbon only says this is a demo.
 function DemoRibbon() {
   return (
-    <div className="flex h-7 items-center justify-center gap-2 border-b border-hairline bg-[rgba(247,181,66,.05)] font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-dim">
+    <div className="flex h-7 items-center justify-center gap-2 border-b border-hairline bg-[rgb(var(--nox-rgb)/.05)] font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-dim">
       <span className="text-nox">Demo mode</span>
       <span aria-hidden>·</span>
       <span>Sample data</span>
@@ -142,7 +144,7 @@ function TopBar({ role }: { role: RoleDef }) {
   const initials = (me?.name || me?.email || "?").slice(0, 1).toUpperCase();
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-hairline bg-[rgba(5,6,11,.82)] px-4 backdrop-blur sm:px-8">
+    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-hairline bg-[rgb(var(--void-rgb)/.82)] px-4 backdrop-blur sm:px-8">
       <Link href="/app" className="lg:hidden" aria-label="Home">
         <NoxMark size={19} />
       </Link>
@@ -150,7 +152,7 @@ function TopBar({ role }: { role: RoleDef }) {
       <button
         type="button"
         onClick={() => setPaletteOpen(true)}
-        className="ml-auto flex h-9 items-center gap-2 rounded-sm border border-hairline px-3 text-[13px] text-ink-faint hover:border-[rgba(143,160,204,.3)] hover:text-ink-muted lg:ml-0 lg:w-[320px]"
+        className="ml-auto flex h-9 items-center gap-2 rounded-sm border border-hairline px-3 text-[13px] text-ink-faint hover:border-[rgb(var(--line)/.3)] hover:text-ink-muted lg:ml-0 lg:w-[320px]"
       >
         <Search size={15} />
         <span className="hidden sm:inline">Search NoX</span>
@@ -163,11 +165,13 @@ function TopBar({ role }: { role: RoleDef }) {
 
       {role.id === "developer" && <CliPill />}
 
+      <ThemeToggle />
+
       {/* On desktop the sidebar's seat card already names the seat and switches it. */}
       <Link
         href="/choose-role"
         className="hidden items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] font-medium sm:flex lg:hidden"
-        style={{ borderColor: `${role.hue}55`, color: role.hue }}
+        style={{ borderColor: tint(role.ink, 33), color: role.ink }}
         title="Switch role"
       >
         <Planet role={role} size={16} />
@@ -175,7 +179,7 @@ function TopBar({ role }: { role: RoleDef }) {
       </Link>
 
       <div className="relative" data-popover>
-        <button type="button" onClick={bell.toggle} aria-label="Notifications" aria-expanded={bell.open} className="flex h-9 w-9 items-center justify-center rounded-full text-ink-muted hover:bg-[rgba(143,160,204,.08)] hover:text-ink">
+        <button type="button" onClick={bell.toggle} aria-label="Notifications" aria-expanded={bell.open} className="flex h-9 w-9 items-center justify-center rounded-full text-ink-muted hover:bg-[rgb(var(--line)/.08)] hover:text-ink">
           <Bell size={17} strokeWidth={1.6} />
         </button>
         {bell.open && (
@@ -192,7 +196,7 @@ function TopBar({ role }: { role: RoleDef }) {
           aria-label="Account menu"
           aria-expanded={avatar.open}
           className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border text-[13px] font-semibold text-ink"
-          style={{ borderColor: role.hue }}
+          style={{ borderColor: role.ink }}
         >
           {me?.photoUrl ? <img src={me.photoUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : initials}
         </button>
@@ -202,10 +206,10 @@ function TopBar({ role }: { role: RoleDef }) {
               <div className="truncate text-ink">{me?.name}</div>
               <div className="truncate text-ink-faint">{me?.email}</div>
             </div>
-            <Link href="/choose-role" className="flex items-center gap-2 px-4 py-2.5 text-ink-muted hover:bg-[rgba(143,160,204,.06)] hover:text-ink">
+            <Link href="/choose-role" className="flex items-center gap-2 px-4 py-2.5 text-ink-muted hover:bg-[rgb(var(--line)/.06)] hover:text-ink">
               <Repeat size={14} /> Switch role
             </Link>
-            <button type="button" onClick={() => void signOut()} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-ink-muted hover:bg-[rgba(143,160,204,.06)] hover:text-ink">
+            <button type="button" onClick={() => void signOut()} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-ink-muted hover:bg-[rgb(var(--line)/.06)] hover:text-ink">
               <LogOut size={14} /> Sign out
             </button>
           </div>
@@ -228,7 +232,7 @@ function CliPill() {
       title={connected ? "The nox CLI is signed in" : "Set up the nox CLI"}
     >
       <SquareTerminal size={14} />
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: connected ? "#5FD29F" : "#6E7793" }} />
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: connected ? C.verify : "var(--ink-dim)" }} />
       {connected ? "cli connected" : "cli not set up"}
     </Link>
   );
@@ -259,7 +263,7 @@ function CommandPalette({ role, onClose }: { role: RoleDef; onClose: () => void 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(5,6,11,.7)] px-4 pt-[14vh] backdrop-blur-sm" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgb(var(--void-rgb)/.7)] px-4 pt-[14vh] backdrop-blur-sm" onMouseDown={onClose}>
       <div role="dialog" aria-label="Search" className="w-full max-w-[520px] overflow-hidden rounded-md border border-hairline bg-deck shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <input
           ref={inputRef}
@@ -283,7 +287,7 @@ function CommandPalette({ role, onClose }: { role: RoleDef; onClose: () => void 
                 onMouseEnter={() => setIndex(i)}
                 onClick={() => choose(i)}
                 className="w-full px-4 py-2.5 text-left text-[13px]"
-                style={{ background: i === index ? "rgba(143,160,204,.08)" : undefined, color: i === index ? role.hue : "#A6AEC7" }}
+                style={{ background: i === index ? "rgb(var(--line)/.08)" : undefined, color: i === index ? role.ink : "var(--ink-muted)" }}
               >
                 {item.label}
               </button>

@@ -47,9 +47,9 @@ export function PriorityChips({ m, onChanged }: { m: Mission; onChanged: () => v
             onClick={(e) => void set(e, p)}
             className="h-6 rounded-sm border px-1.5 font-mono text-[10.5px] transition disabled:opacity-50"
             style={{
-              borderColor: on ? "var(--role)" : "rgba(143,160,204,.2)",
+              borderColor: on ? "var(--role)" : "rgb(var(--line)/.2)",
               background: on ? "var(--role)" : "transparent",
-              color: on ? "#05060B" : "#A6AEC7",
+              color: on ? "var(--void)" : "var(--ink-muted)",
             }}
           >
             {p}

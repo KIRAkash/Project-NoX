@@ -30,7 +30,7 @@ export const FOCUS_APP = "refunds";
 
 /** The focused application's knowledge sources, drawn as its moons. */
 const SOURCES = [
-  { name: "GitHub", what: "code", hue: "#E6EAF4" },
+  { name: "GitHub", what: "code", hue: "#E6EAF4", day: "#3A3446" },
   { name: "Jira", what: "tickets", hue: "#F7B542" },
   { name: "Confluence", what: "decisions", hue: "#5FCBD8" },
   { name: "Slack", what: "threads", hue: "#EC8FC2" },
@@ -64,11 +64,17 @@ const PARTICLE_COUNT = 3200;
 
 // White through gold only — no cool or orange-red flecks.
 const EMBER_PALETTE = ["#FFFFFF", "#FFF8E7", "#FFEFC2", "#FFDD82", "#F7B542"];
+// Daylight: the same field as fine ink and amber dust on parchment.
+const DUST_PALETTE = ["#2E2838", "#4A4058", "#6B5E70", "#C2531B", "#B9781A"];
 
-function particleColor() {
-  const hex = EMBER_PALETTE[Math.floor(Math.random() * EMBER_PALETTE.length)];
-  return new THREE.Color(hex);
-}
+/*
+ * Light theme. Additive glow and bloom only work against black, so on parchment
+ * the scene renders as a daylight star chart instead: normal blending, ink dust
+ * for embers, a solid limb-shaded sun with a soft amber halo, ink orbit rings,
+ * and contract lines in deep blue. Every component takes `light` and picks its
+ * materials from it; nothing else about the choreography changes.
+ */
+const blendFor = (light: boolean) => (light ? THREE.NormalBlending : THREE.AdditiveBlending);
 
 /**
  * A vertical multi-stop gradient, 8×N px. Mapped onto a sphere's default
@@ -138,6 +144,7 @@ const PARTICLE_VERTEX = /* glsl */ `
   uniform float uTime;
   varying vec3 vColor;
   varying float vSeed;
+  varying float vPx;
   void main() {
     vColor = color;
     vSeed = aSeed;
@@ -148,6 +155,7 @@ const PARTICLE_VERTEX = /* glsl */ `
     pos.z += sin(uTime * 0.15 + aSeed * 4.1) * 1.6;
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     gl_PointSize = aSize * (340.0 / -mvPosition.z);
+    vPx = gl_PointSize;
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
@@ -156,13 +164,19 @@ const PARTICLE_FRAGMENT = /* glsl */ `
   varying vec3 vColor;
   varying float vSeed;
   uniform float uTime;
+  uniform float uGain;
+  uniform float uAlpha;
+  uniform float uNearFade;
+  varying float vPx;
   void main() {
     vec2 uv = gl_PointCoord - 0.5;
     float d = length(uv);
     if (d > 0.5) discard;
     float glow = smoothstep(0.5, 0.0, d);
     float twinkle = 0.72 + 0.28 * sin(uTime * 2.2 + vSeed * 18.0);
-    gl_FragColor = vec4(vColor * (1.4 * twinkle), glow * glow);
+    // In daylight a mote right in front of the camera is a blurry smudge, not a glow: fade the big ones.
+    float near = mix(1.0, clamp(14.0 / max(vPx, 1.0), 0.0, 1.0), uNearFade);
+    gl_FragColor = vec4(vColor * (uGain * twinkle), glow * glow * uAlpha * near);
   }
 `;
 
@@ -170,13 +184,14 @@ const PARTICLE_FRAGMENT = /* glsl */ `
  *  dense core near the star, thinning into a long tail that reaches well
  *  past the rest camera's frustum, so the field still spans the frame once
  *  the dolly settles instead of shrinking to a clump at screen centre. */
-function ParticleField({ settleRef }: { settleRef: React.MutableRefObject<number> }) {
+function ParticleField({ settleRef, light }: { settleRef: React.MutableRefObject<number>; light: boolean }) {
   const points = useRef<THREE.Points>(null);
   const material = useRef<THREE.ShaderMaterial>(null);
 
-  const [positions, colors, sizes, seeds] = useMemo(() => {
+  const [positions, colors, dust, sizes, seeds] = useMemo(() => {
     const pos = new Float32Array(PARTICLE_COUNT * 3);
     const col = new Float32Array(PARTICLE_COUNT * 3);
+    const ink = new Float32Array(PARTICLE_COUNT * 3);
     const size = new Float32Array(PARTICLE_COUNT);
     const seed = new Float32Array(PARTICLE_COUNT);
     for (let i = 0; i < PARTICLE_COUNT; i++) {
@@ -189,15 +204,20 @@ function ParticleField({ settleRef }: { settleRef: React.MutableRefObject<number
       pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
       pos[i * 3 + 2] = r * Math.cos(phi);
-      const c = particleColor();
+      const pick = Math.floor(Math.random() * EMBER_PALETTE.length);
+      const c = new THREE.Color(EMBER_PALETTE[pick]);
       col[i * 3] = c.r;
       col[i * 3 + 1] = c.g;
       col[i * 3 + 2] = c.b;
+      const d = new THREE.Color(DUST_PALETTE[pick]);
+      ink[i * 3] = d.r;
+      ink[i * 3 + 1] = d.g;
+      ink[i * 3 + 2] = d.b;
       // Distant particles read as pinpoint stars, not blobs.
       size[i] = r < 120 ? 1.6 + Math.random() * 3.6 : 0.7 + Math.random() * 1.6;
       seed[i] = Math.random() * 100;
     }
-    return [pos, col, size, seed];
+    return [pos, col, ink, size, seed];
   }, []);
 
   useFrame((state) => {
@@ -206,6 +226,9 @@ function ParticleField({ settleRef }: { settleRef: React.MutableRefObject<number
       // Recedes to a faint ambient sparkle once the dolly settles, rather
       // than vanishing outright — the estate should still feel inhabited.
       material.current.opacity = THREE.MathUtils.lerp(1, 0.45, settleRef.current);
+      material.current.uniforms.uGain.value = light ? 1 : 1.4;
+      material.current.uniforms.uAlpha.value = light ? THREE.MathUtils.lerp(0.7, 0.85, settleRef.current) : 1;
+      material.current.uniforms.uNearFade.value = light ? 1 : 0;
     }
     if (points.current) {
       points.current.rotation.y = state.clock.elapsedTime * 0.012;
@@ -216,7 +239,7 @@ function ParticleField({ settleRef }: { settleRef: React.MutableRefObject<number
     <points ref={points}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-        <bufferAttribute attach="attributes-color" args={[colors, 3]} />
+        <bufferAttribute key={light ? "dust" : "embers"} attach="attributes-color" args={[light ? dust : colors, 3]} />
         <bufferAttribute attach="attributes-aSize" args={[sizes, 1]} />
         <bufferAttribute attach="attributes-aSeed" args={[seeds, 1]} />
       </bufferGeometry>
@@ -225,19 +248,45 @@ function ParticleField({ settleRef }: { settleRef: React.MutableRefObject<number
         vertexColors
         transparent
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={blendFor(light)}
         vertexShader={PARTICLE_VERTEX}
         fragmentShader={PARTICLE_FRAGMENT}
-        uniforms={{ uTime: { value: 0 } }}
+        uniforms={{ uTime: { value: 0 }, uGain: { value: 1.4 }, uAlpha: { value: 1 }, uNearFade: { value: 0 } }}
       />
     </points>
   );
 }
 
+/** Daylight sun surface: a limb-darkened disc (pale centre, ember rim) from
+ *  the view angle, so the star reads as a solid sun without bloom behind it. */
+const SUN_DAY_VERTEX = /* glsl */ `
+  varying vec3 vNormal;
+  varying vec3 vView;
+  void main() {
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vNormal = normalize(normalMatrix * normal);
+    vView = normalize(-mv.xyz);
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+const SUN_DAY_FRAGMENT = /* glsl */ `
+  varying vec3 vNormal;
+  varying vec3 vView;
+  void main() {
+    float f = clamp(dot(normalize(vNormal), normalize(vView)), 0.0, 1.0);
+    vec3 rim = vec3(0.86, 0.38, 0.16);
+    vec3 mid = vec3(0.97, 0.66, 0.24);
+    vec3 core = vec3(1.0, 0.93, 0.74);
+    vec3 c = mix(rim, mid, smoothstep(0.0, 0.45, f));
+    c = mix(c, core, smoothstep(0.45, 1.0, f));
+    gl_FragColor = vec4(c, 1.0);
+  }
+`;
+
 /** The star: a banded-gradient core (never a flat fill) plus two layered,
  *  camera-facing glow sprites that truly fade to nothing at their edge —
  *  the corona is no longer a uniform, hard-edged sphere silhouette. */
-function Star() {
+function Star({ light }: { light: boolean }) {
   const innerGlow = useRef<THREE.Sprite>(null);
   const outerGlow = useRef<THREE.Sprite>(null);
 
@@ -262,6 +311,27 @@ function Star() {
       ]),
     [],
   );
+  // Daylight halo: painted over parchment, so it carries its own colour rather than adding light.
+  const dayInnerTex = useMemo(
+    () =>
+      glowTexture([
+        [0, "rgba(255,214,140,0.9)"],
+        [0.3, "rgba(247,181,66,0.5)"],
+        [0.62, "rgba(233,113,60,0.14)"],
+        [1, "rgba(233,113,60,0)"],
+      ]),
+    [],
+  );
+  const dayOuterTex = useMemo(
+    () =>
+      glowTexture([
+        [0, "rgba(247,181,66,0.24)"],
+        [0.45, "rgba(233,113,60,0.08)"],
+        [0.8, "rgba(233,113,60,0.02)"],
+        [1, "rgba(233,113,60,0)"],
+      ]),
+    [],
+  );
 
   useFrame((state) => {
     const breathe = 1 + Math.sin(state.clock.elapsedTime * 0.7) * 0.06;
@@ -273,25 +343,29 @@ function Star() {
     <group>
       <sprite ref={outerGlow} scale={[SUN_R * 9.5, SUN_R * 9.5, 1]}>
         <spriteMaterial
-          map={outerGlowTex}
+          map={light ? dayOuterTex : outerGlowTex}
           transparent
           depthWrite={false}
-          blending={THREE.AdditiveBlending}
+          blending={blendFor(light)}
           toneMapped={false}
         />
       </sprite>
       <sprite ref={innerGlow} scale={[SUN_R * 4.4, SUN_R * 4.4, 1]}>
         <spriteMaterial
-          map={innerGlowTex}
+          map={light ? dayInnerTex : innerGlowTex}
           transparent
           depthWrite={false}
-          blending={THREE.AdditiveBlending}
+          blending={blendFor(light)}
           toneMapped={false}
         />
       </sprite>
       <mesh>
         <sphereGeometry args={[SUN_R, 48, 48]} />
-        <meshBasicMaterial map={sunTexture} color="#ffffff" toneMapped={false} />
+        {light ? (
+          <shaderMaterial key="day" vertexShader={SUN_DAY_VERTEX} fragmentShader={SUN_DAY_FRAGMENT} toneMapped={false} />
+        ) : (
+          <meshBasicMaterial key="night" map={sunTexture} color="#ffffff" toneMapped={false} />
+        )}
       </mesh>
       <pointLight color="#FFDFA6" intensity={420} distance={0} decay={2} />
     </group>
@@ -392,11 +466,13 @@ function Connections({
   hoverRef,
   rotRef,
   mapRevealRef,
+  light,
 }: {
   planetRefs: React.MutableRefObject<Map<string, PlanetRef>>;
   hoverRef: React.MutableRefObject<string | null>;
   rotRef: React.MutableRefObject<RotationDrive>;
   mapRevealRef: React.MutableRefObject<number>;
+  light: boolean;
 }) {
   const { size } = useThree();
 
@@ -426,6 +502,18 @@ function Connections({
   const baseColor = useMemo(() => new THREE.Color("#86B9EE"), []);
   const revealGlowColor = useMemo(() => new THREE.Color("#F2F8FF"), []);
   const focusColor = useMemo(() => new THREE.Color("#F7B542"), []);
+  // daylight: ink-blue wires that deepen as the map reveals, ember on focus
+  const dayBase = useMemo(() => new THREE.Color("#3F78B5"), []);
+  const dayReveal = useMemo(() => new THREE.Color("#1F4F86"), []);
+  const dayFocus = useMemo(() => new THREE.Color("#C2531B"), []);
+
+  useEffect(() => {
+    lines.forEach((line) => {
+      const mat = line.material as LineMaterial;
+      mat.blending = blendFor(light);
+      mat.needsUpdate = true;
+    });
+  }, [lines, light]);
 
   // `linewidth` above is in screen pixels, which LineMaterial converts using
   // this — without it every line renders at the wrong (usually invisible)
@@ -470,15 +558,21 @@ function Connections({
         // so the brightening is a genuine glow Bloom picks up, not just a
         // more-opaque tint — doubled in intensity at full reveal.
         const reveal = mapRevealRef.current;
-        mat.color.copy(baseColor).lerp(revealGlowColor, reveal).multiplyScalar(1 + reveal);
-        mat.opacity = THREE.MathUtils.lerp(0.06, 0.7, reveal);
+        if (light) {
+          mat.color.copy(dayBase).lerp(dayReveal, reveal);
+          mat.opacity = THREE.MathUtils.lerp(0.14, 0.75, reveal);
+        } else {
+          mat.color.copy(baseColor).lerp(revealGlowColor, reveal).multiplyScalar(1 + reveal);
+          mat.opacity = THREE.MathUtils.lerp(0.06, 0.7, reveal);
+        }
       } else if (lit) {
         // Doubled glow on hover focus, the same way.
-        mat.color.copy(focusColor).multiplyScalar(2);
-        mat.opacity = 0.8;
+        if (light) mat.color.copy(dayFocus);
+        else mat.color.copy(focusColor).multiplyScalar(2);
+        mat.opacity = light ? 0.9 : 0.8;
       } else {
-        mat.color.copy(baseColor);
-        mat.opacity = 0.02;
+        mat.color.copy(light ? dayBase : baseColor);
+        mat.opacity = light ? 0.05 : 0.02;
       }
     });
   });
@@ -526,6 +620,7 @@ function Planets({
   focusRef,
   showLabels,
   interactive,
+  light,
 }: {
   planetRefs: React.MutableRefObject<Map<string, PlanetRef>>;
   rotRef: React.MutableRefObject<RotationDrive>;
@@ -536,6 +631,7 @@ function Planets({
   focusRef: React.MutableRefObject<number>;
   showLabels: boolean;
   interactive: boolean;
+  light: boolean;
 }) {
   const t = useRef(0);
   const groupRef = useRef<THREE.Group>(null);
@@ -638,7 +734,7 @@ function Planets({
         entry.glow.position.set(px, py, pz);
         const glowSize = bodyScale * (isFocus ? 4.2 : 3.1);
         entry.glow.scale.set(glowSize, glowSize, 1);
-        (entry.glow.material as THREE.SpriteMaterial).opacity = reveal * (isFocus ? 1 : 0.8) * dim;
+        (entry.glow.material as THREE.SpriteMaterial).opacity = reveal * (isFocus ? 1 : 0.8) * dim * (light ? 0.6 : 1);
       }
       if (entry.labelAnchor) {
         entry.labelAnchor.position.set(px, py + bodyScale + 3.4, pz);
@@ -653,7 +749,7 @@ function Planets({
         // while zoomed in, the hero's own name moves to its knowledge-base label; the rest step back
         const zoomFade = isHero ? 1 - zoom : 1 - 0.45 * zoom;
         entry.labelEl.style.opacity = (reveal * dim * shrinkFade * zoomFade).toFixed(3);
-        entry.labelEl.style.color = isFocus ? "#ECEFF8" : "";
+        entry.labelEl.style.color = isFocus ? "var(--ink)" : "";
         entry.labelEl.style.background = isFocus ? "rgba(247,181,66,.16)" : "";
       }
     }
@@ -683,6 +779,14 @@ function Planets({
       }),
     [],
   );
+
+  useEffect(() => {
+    rings.forEach((ring) => {
+      const mat = ring.material as THREE.LineBasicMaterial;
+      mat.color.set(light ? "#4A4058" : "#C6D0E8");
+      mat.opacity = light ? 0.3 : 0.22;
+    });
+  }, [rings, light]);
 
   // All refs for one app merge into the same map entry defensively, since
   // which of several sibling refs fires first is not guaranteed — each
@@ -714,7 +818,7 @@ function Planets({
       {/* Held back until arrival — the one-time reveal is meant to read as a
           pure graphic moment, not the estate's contract diagram. */}
       {showLabels && (
-        <Connections planetRefs={planetRefs} hoverRef={hoverRef} rotRef={rotRef} mapRevealRef={mapRevealRef} />
+        <Connections planetRefs={planetRefs} hoverRef={hoverRef} rotRef={rotRef} mapRevealRef={mapRevealRef} light={light} />
       )}
       {APPS.map((app) => (
         <group key={app.id}>
@@ -723,7 +827,7 @@ function Planets({
               map={glowTextures.get(app.id)}
               transparent
               depthWrite={false}
-              blending={THREE.AdditiveBlending}
+              blending={blendFor(light)}
               opacity={0}
               toneMapped={false}
             />
@@ -771,7 +875,7 @@ function Planets({
               <Html center zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
                 <span
                   ref={(el) => patch(app.id, { labelEl: el })}
-                  className="whitespace-nowrap rounded-[2px] bg-[rgba(5,6,11,.55)] px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-muted transition-colors duration-150"
+                  className="whitespace-nowrap rounded-[2px] bg-[rgb(var(--void-rgb)/.62)] px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-muted transition-colors duration-150"
                 >
                   {app.name}
                 </span>
@@ -866,9 +970,11 @@ function ringTexture(): THREE.CanvasTexture {
 function SourceMoons({
   planetRefs,
   focusRef,
+  light,
 }: {
   planetRefs: React.MutableRefObject<Map<string, PlanetRef>>;
   focusRef: React.MutableRefObject<number>;
+  light: boolean;
 }) {
   const { size } = useThree();
   const rig = useRef<THREE.Group>(null);
@@ -934,6 +1040,17 @@ function SourceMoons({
   useEffect(() => {
     feeds.forEach((line) => (line.material as LineMaterial).resolution.set(size.width, size.height));
   }, [feeds, size]);
+  // a source's own colour, or its daylight stand-in where the night colour is near-white
+  const hueOf = (src: (typeof SOURCES)[number]) => (light && "day" in src && src.day) || src.hue;
+  useEffect(() => {
+    feeds.forEach((line, i) => {
+      const mat = line.material as LineMaterial;
+      mat.blending = blendFor(light);
+      mat.color.set(hueOf(SOURCES[i]));
+      mat.needsUpdate = true;
+    });
+    (orbitLine.material as THREE.LineBasicMaterial).color.set(light ? "#4A4058" : "#C6D0E8");
+  }, [feeds, orbitLine, light]);
 
   useFrame((state) => {
     const f = focusRef.current;
@@ -1047,22 +1164,22 @@ function SourceMoons({
               <sprite ref={(el) => {
                   glowRefs.current[i] = el;
                 }}>
-                <spriteMaterial map={glowTex} color={src.hue} transparent depthWrite={false} blending={THREE.AdditiveBlending} opacity={0} toneMapped={false} />
+                <spriteMaterial map={glowTex} color={hueOf(src)} transparent depthWrite={false} blending={blendFor(light)} opacity={0} toneMapped={false} />
               </sprite>
               <mesh ref={(el) => {
                   moonRefs.current[i] = el;
                 }}>
                 <sphereGeometry args={[1, 24, 24]} />
-                <meshStandardMaterial color={src.hue} emissive={src.hue} emissiveIntensity={0.3} roughness={0.6} transparent opacity={0} />
+                <meshStandardMaterial color={hueOf(src)} emissive={hueOf(src)} emissiveIntensity={0.3} roughness={0.6} transparent opacity={0} />
                 <Html center zIndexRange={[12, 0]} style={{ pointerEvents: "none" }}>
                   <span
                     ref={(el) => {
                   labelEls.current[i] = el;
                 }}
-                    className="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[rgba(198,208,232,.16)] bg-[rgba(5,6,11,.7)] px-2 py-[3px] font-mono text-[10px] uppercase tracking-[0.12em] text-ink"
+                    className="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[rgb(var(--line)/.2)] bg-[rgb(var(--void-rgb)/.78)] px-2 py-[3px] font-mono text-[10px] uppercase tracking-[0.12em] text-ink"
                     style={{ opacity: 0 }}
                   >
-                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: src.hue, boxShadow: `0 0 6px ${src.hue}` }} />
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: hueOf(src), boxShadow: `0 0 6px ${hueOf(src)}` }} />
                     {src.name}
                     <span className="hidden normal-case tracking-normal text-ink-dim sm:inline">{src.what}</span>
                   </span>
@@ -1079,11 +1196,11 @@ function SourceMoons({
         <sprite key={src.name} ref={(el) => {
                   packetRefs.current[i] = el;
                 }}>
-          <spriteMaterial map={glowTex} color={src.hue} transparent depthWrite={false} blending={THREE.AdditiveBlending} opacity={0} toneMapped={false} />
+          <spriteMaterial map={glowTex} color={hueOf(src)} transparent depthWrite={false} blending={blendFor(light)} opacity={0} toneMapped={false} />
         </sprite>
       ))}
       <sprite ref={kbRing}>
-        <spriteMaterial map={ringTex} color={heroHue} transparent depthWrite={false} blending={THREE.AdditiveBlending} opacity={0} toneMapped={false} />
+        <spriteMaterial map={ringTex} color={heroHue} transparent depthWrite={false} blending={blendFor(light)} opacity={0} toneMapped={false} />
       </sprite>
       <group ref={kbLabel}>
         <Html center zIndexRange={[12, 0]} style={{ pointerEvents: "none" }}>
@@ -1130,6 +1247,7 @@ export default function ExperienceScene({
   focusRef,
   showLabels,
   interactive,
+  light = false,
 }: {
   onReady: (handle: SceneHandle) => void;
   rotRef: React.MutableRefObject<RotationDrive>;
@@ -1141,6 +1259,8 @@ export default function ExperienceScene({
   focusRef: React.MutableRefObject<number>;
   showLabels: boolean;
   interactive: boolean;
+  /** Render the daylight star chart instead of the night sky (the site's light theme). */
+  light?: boolean;
 }) {
   const cameraRef = useRef<THREE.PerspectiveCamera>(null!);
   const planetRefs = useRef(new Map<string, PlanetRef>());
@@ -1158,10 +1278,11 @@ export default function ExperienceScene({
   return (
     <>
       <PerspectiveCamera ref={cameraRef} makeDefault fov={50} near={0.5} far={4000} position={[0, 0, CAM_START_Z]} />
-      <ambientLight intensity={0.12} />
+      {/* in daylight the night sides of the planets lift a little, so they don't read as holes in the paper */}
+      <ambientLight intensity={light ? 0.5 : 0.12} />
       <SystemGroup offsetRef={offsetRef} scaleRef={scaleRef}>
-        <Star />
-        <ParticleField settleRef={settleRef} />
+        <Star light={light} />
+        <ParticleField settleRef={settleRef} light={light} />
         <Planets
           planetRefs={planetRefs}
           rotRef={rotRef}
@@ -1172,11 +1293,14 @@ export default function ExperienceScene({
           focusRef={focusRef}
           showLabels={showLabels}
           interactive={interactive}
+          light={light}
         />
       </SystemGroup>
-      {showLabels && <SourceMoons planetRefs={planetRefs} focusRef={focusRef} />}
+      {showLabels && <SourceMoons planetRefs={planetRefs} focusRef={focusRef} light={light} />}
       <AmbientCamera settleRef={settleRef} focusRef={focusRef} planetRefs={planetRefs} />
-      <EffectComposer>
+      {/* Bloom picks out what is brighter than its surroundings; on parchment that is everything.
+          Disabled rather than unmounted, so switching theme keeps the composer's buffers intact. */}
+      <EffectComposer enabled={!light}>
         <Bloom mipmapBlur luminanceThreshold={0.22} luminanceSmoothing={0.3} intensity={1.15} radius={0.85} />
       </EffectComposer>
     </>

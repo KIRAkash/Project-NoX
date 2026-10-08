@@ -137,7 +137,7 @@ export default function ImpactPage() {
 
 function Stat({ label, value, note }: { label: string; value: string; note: string }) {
   return (
-    <div className="min-w-0 rounded-md border border-[rgba(143,160,204,.2)] bg-[rgba(13,16,28,.7)] p-4">
+    <div className="min-w-0 rounded-md border border-[rgb(var(--line)/.2)] bg-[rgb(var(--raise-lo)/.7)] p-4">
       <dt className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-dim">{label}</dt>
       <dd className="mt-1.5 font-display text-[28px] leading-none text-ink">{value}</dd>
       <dd className="mt-1.5 text-[11.5px] leading-snug text-ink-faint">{note}</dd>

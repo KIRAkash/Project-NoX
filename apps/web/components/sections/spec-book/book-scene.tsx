@@ -76,6 +76,7 @@ type LeafUniforms = {
   uZ: { value: number };
   uTime: { value: number };
   uRim: { value: number };
+  uSelfLit: { value: THREE.Vector2 };
   uBack: { value: THREE.Texture | null };
 };
 
@@ -90,6 +91,9 @@ function leafMaterial(front: THREE.Texture, back: THREE.Texture, opts: { w: numb
     uZ: { value: 0 },
     uTime: { value: 0 },
     uRim: { value: opts.cover ? 0.4 : 0.32 },
+    // how much of the print shows through unlit (front face, back face): paper stays white whatever
+    // the light does. The cover's outside is board, lit normally; its inside is paper.
+    uSelfLit: { value: new THREE.Vector2(opts.cover ? 0 : 0.6, 0.6) },
     uBack: { value: back },
   };
   const mat = new THREE.MeshPhysicalMaterial({
@@ -104,6 +108,8 @@ function leafMaterial(front: THREE.Texture, back: THREE.Texture, opts: { w: numb
     sheenColor: new THREE.Color("#fff6e8"),
     envMapIntensity: opts.cover ? 0.9 : 0.55,
     transparent: true,
+    // filmic tone mapping greys white down; paper should print white
+    toneMapped: false,
   });
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
@@ -119,7 +125,7 @@ function leafMaterial(front: THREE.Texture, back: THREE.Texture, opts: { w: numb
       )
       .replace("#include <begin_vertex>", "vec3 transformed = leafP;");
     shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", "#include <common>\nuniform sampler2D uBack;\nuniform float uRim;")
+      .replace("#include <common>", "#include <common>\nuniform sampler2D uBack;\nuniform float uRim;\nuniform vec2 uSelfLit;")
       // front and back of the leaf carry different prints; the back reads mirrored across the spine
       .replace(
         "#include <map_fragment>",
@@ -134,6 +140,7 @@ function leafMaterial(front: THREE.Texture, back: THREE.Texture, opts: { w: numb
       .replace(
         "#include <opaque_fragment>",
         `float fres = pow( 1.0 - clamp( abs( dot( geometryNormal, geometryViewDir ) ), 0.0, 1.0 ), 3.0 );
+         outgoingLight = mix( outgoingLight, diffuseColor.rgb, gl_FrontFacing ? uSelfLit.x : uSelfLit.y );
          outgoingLight += fres * uRim * vec3( 1.0, 0.96, 0.9 );
          #include <opaque_fragment>`,
       );
@@ -152,8 +159,9 @@ function canvasTexture(c: HTMLCanvasElement, anisotropy: number) {
   return t;
 }
 
-/** A soft studio: warm key upper left, cool fill, as an environment for the cover's clearcoat. */
-function envTexture() {
+/** A soft studio: warm key upper left, cool fill, as an environment for the cover's clearcoat.
+ *  On the light theme the studio is a bright, warm room, so the pages read as paper, not slate. */
+function envTexture(light: boolean) {
   const w = 512;
   const h = 256;
   const c = document.createElement("canvas");
@@ -161,9 +169,9 @@ function envTexture() {
   c.height = h;
   const x = c.getContext("2d")!;
   const g = x.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, "#3a3d47");
-  g.addColorStop(0.5, "#171820");
-  g.addColorStop(1, "#08080a");
+  g.addColorStop(0, light ? "#fbf6ef" : "#3a3d47");
+  g.addColorStop(0.5, light ? "#e6dfd6" : "#171820");
+  g.addColorStop(1, light ? "#b9b1a7" : "#08080a");
   x.fillStyle = g;
   x.fillRect(0, 0, w, h);
   const blob = (cx: number, cy: number, r: number, col: string) => {
@@ -188,11 +196,14 @@ export default function BookScene({
   pointerRef,
   isVisible,
   onStep,
+  light = false,
 }: {
   timeRef: MutableRefObject<number>;
   pointerRef: MutableRefObject<Pointer>;
   isVisible: () => boolean;
   onStep: (step: number) => void;
+  /** The site's light theme: a bright studio and a soft shadow behind the book that fades inside the frame. */
+  light?: boolean;
 }) {
   const { gl, scene, camera, size, invalidate } = useThree();
   const root = useRef<THREE.Group>(null);
@@ -235,25 +246,34 @@ export default function BookScene({
     c.width = c.height = s;
     const x = c.getContext("2d")!;
     const g = x.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
-    g.addColorStop(0, "rgba(247,181,66,.16)");
-    g.addColorStop(0.45, "rgba(134,185,238,.05)");
+    if (light) {
+      // on parchment, a soft warm shadow pool instead of a glow: white pages need something darker to sit on
+      g.addColorStop(0, "rgba(60,44,30,.16)");
+      g.addColorStop(0.35, "rgba(60,44,30,.09)");
+      g.addColorStop(0.62, "rgba(60,44,30,.02)");
+      g.addColorStop(0.7, "rgba(60,44,30,0)");
+    } else {
+      g.addColorStop(0, "rgba(247,181,66,.16)");
+      g.addColorStop(0.45, "rgba(134,185,238,.05)");
+    }
     g.addColorStop(1, "rgba(0,0,0,0)");
     x.fillStyle = g;
     x.fillRect(0, 0, s, s);
     const t = new THREE.CanvasTexture(c);
     return new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false });
-  }, []);
+  }, [light]);
 
   useEffect(() => {
     const pmrem = new THREE.PMREMGenerator(gl);
-    const env = pmrem.fromEquirectangular(envTexture()).texture;
+    const env = pmrem.fromEquirectangular(envTexture(light)).texture;
     scene.environment = env;
+    invalidate();
     return () => {
       scene.environment = null;
       env.dispose();
       pmrem.dispose();
     };
-  }, [gl, scene]);
+  }, [gl, scene, light, invalidate]);
 
   // draw the static faces once the page fonts are in, so canvas text uses them
   useEffect(() => {
@@ -406,7 +426,7 @@ export default function BookScene({
 
   return (
     <>
-      <ambientLight intensity={0.45} />
+      <ambientLight intensity={light ? 0.55 : 0.45} />
       <directionalLight position={[-3.2, 2.4, 3]} intensity={1.9} color="#fff4e6" />
       <directionalLight position={[3.6, -1.6, 2]} intensity={0.35} color="#9fb6ff" />
       <mesh position={[0, 0, -0.9]} scale={[6.5, 5.2, 1]} material={halo}>

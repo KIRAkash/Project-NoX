@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/app/auth";
 import { ROLE_BY_ID } from "@/lib/app/roles";
 import type { Kb, Members, Org, OrgMap, OrgTree } from "@/lib/app/types";
 import { useApi } from "@/lib/app/use-api";
+import { C } from "@/lib/app/palette";
 
 export default function AtlasPage() {
   const { me } = useAuth();
@@ -73,7 +74,7 @@ function OrgExplorer() {
   }, [roots, selected]);
 
   if (orgs.loading) return <p className="mt-8 text-[13px] text-ink-faint">Loading the atlas…</p>;
-  if (orgs.error) return <p className="mt-8 text-[13px] text-[#F3A27E]">Couldn&rsquo;t load organizations: {orgs.error.detail}</p>;
+  if (orgs.error) return <p className="mt-8 text-[13px] text-[color:var(--coral-ink)]">Couldn&rsquo;t load organizations: {orgs.error.detail}</p>;
 
   if (!roots.length) {
     return (
@@ -100,9 +101,9 @@ function OrgExplorer() {
                 onClick={() => setSelected(o.id)}
                 className="flex items-center gap-2 rounded-md border px-3.5 py-2 text-[13px] transition-colors"
                 style={{
-                  borderColor: on ? "color-mix(in srgb, var(--role) 55%, transparent)" : "rgba(143,160,204,.2)",
-                  background: on ? "color-mix(in srgb, var(--role) 12%, transparent)" : "rgba(21,26,42,.6)",
-                  color: on ? "#ECEFF8" : "#A6AEC7",
+                  borderColor: on ? "color-mix(in srgb, var(--role) 55%, transparent)" : "rgb(var(--line)/.2)",
+                  background: on ? "color-mix(in srgb, var(--role) 12%, transparent)" : "rgb(var(--raise)/.6)",
+                  color: on ? "var(--ink)" : "var(--ink-muted)",
                 }}
               >
                 <Building2 size={14} style={{ color: on ? "var(--role)" : undefined }} />
@@ -162,7 +163,7 @@ function OrgCanvas({ orgId, canManageOrgs, onChanged }: { orgId: string; canMana
   if (!tree.data || !totals) {
     return (
       <Panel title="Organization">
-        {tree.error ? <p className="text-[13px] text-[#F3A27E]">{tree.error.detail}</p> : <p className="text-[13px] text-ink-faint">Charting the organization…</p>}
+        {tree.error ? <p className="text-[13px] text-[color:var(--coral-ink)]">{tree.error.detail}</p> : <p className="text-[13px] text-ink-faint">Charting the organization…</p>}
       </Panel>
     );
   }
@@ -172,14 +173,14 @@ function OrgCanvas({ orgId, canManageOrgs, onChanged }: { orgId: string; canMana
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="min-w-0 space-y-5">
         <section
-          className="overflow-hidden rounded-md border border-[rgba(143,160,204,.2)] bg-[linear-gradient(180deg,rgba(21,26,42,.86),rgba(13,16,28,.86))] shadow-[inset_0_1px_0_rgba(236,239,248,.05),0_18px_40px_-24px_rgba(0,0,0,.8)]"
+          className="overflow-hidden rounded-md surface-panel"
           aria-label={org.name}
         >
           <header
             className="flex flex-col gap-4 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
             style={{
               background: "linear-gradient(90deg, color-mix(in srgb, var(--role) 12%, transparent), transparent 75%)",
-              borderColor: "color-mix(in srgb, var(--role) 22%, rgba(143,160,204,.14))",
+              borderColor: "color-mix(in srgb, var(--role) 22%, rgb(var(--line)/.14))",
             }}
           >
             <div className="flex min-w-0 items-center gap-3">
@@ -198,7 +199,7 @@ function OrgCanvas({ orgId, canManageOrgs, onChanged }: { orgId: string; canMana
             <dl className="flex gap-5 text-[12px]">
               <Stat label="Teams" value={totals.teams} />
               <Stat label="Applications" value={totals.apps} />
-              <Stat label="In orbit" value={totals.orbit} tone="#5FD29F" />
+              <Stat label="In orbit" value={totals.orbit} tone={C.verifyInk} />
             </dl>
           </header>
 
@@ -272,7 +273,7 @@ function TeamBody({ node, depth, canManageOrgs, onChanged, filtering }: { node: 
           {offerOnboard && (
             <Link
               href={`/app/atlas/new?org=${node.id}`}
-              className="flex min-h-[112px] flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-[rgba(143,160,204,.25)] text-[12.5px] text-ink-dim transition-colors hover:border-[color:var(--role)] hover:text-[color:var(--role)]"
+              className="flex min-h-[112px] flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-[rgb(var(--line)/.25)] text-[12.5px] text-ink-dim transition-colors hover:border-[color:var(--role)] hover:text-[color:var(--role)]"
             >
               <Plus size={16} />
               Onboard into {node.name}
@@ -318,14 +319,14 @@ function TeamBox({ node, depth, canManageOrgs, onChanged, filtering }: { node: O
       id={`team-${node.id}`}
       className="scroll-mt-24 overflow-hidden rounded-md border"
       style={{
-        borderColor: top ? "rgba(143,160,204,.22)" : "rgba(143,160,204,.16)",
-        background: top ? "rgba(236,239,248,.025)" : "rgba(5,6,11,.45)",
+        borderColor: top ? "rgb(var(--line)/.22)" : "rgb(var(--line)/.16)",
+        background: top ? "rgb(var(--glint)/.025)" : "rgb(var(--void-rgb)/.45)",
       }}
       aria-label={node.name}
     >
       <header className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="h-5 w-1 shrink-0 rounded-full" style={{ background: top ? "var(--role)" : "color-mix(in srgb, var(--role) 45%, #6E7793)" }} aria-hidden />
+          <span className="h-5 w-1 shrink-0 rounded-full" style={{ background: top ? "var(--role)" : "color-mix(in srgb, var(--role) 45%, var(--ink-dim))" }} aria-hidden />
           {top ? <Users size={15} className="shrink-0 text-ink-muted" aria-hidden /> : <GitFork size={14} className="shrink-0 rotate-180 text-ink-dim" aria-hidden />}
           <h3 className={`truncate ${top ? "text-[15px] font-semibold" : "text-[14px] font-medium"} text-ink`}>{node.name}</h3>
         </div>
@@ -359,7 +360,7 @@ function AppCard({ app }: { app: Kb }) {
   return (
     <Link
       href={`/app/atlas/apps/${app.id}`}
-      className="group relative flex min-h-[112px] flex-col justify-between gap-3 overflow-hidden rounded-md border border-[rgba(143,160,204,.18)] bg-[linear-gradient(160deg,rgba(28,34,54,.9),rgba(12,15,26,.9))] p-3.5 transition-all hover:-translate-y-0.5 hover:border-[color:var(--role)] hover:shadow-[0_12px_28px_-16px_var(--role)] motion-reduce:hover:translate-y-0"
+      className="group relative flex min-h-[112px] flex-col justify-between gap-3 overflow-hidden rounded-md border border-[rgb(var(--line)/.18)] bg-[linear-gradient(160deg,rgb(var(--raise)/.9),rgb(var(--raise-lo)/.9))] p-3.5 transition-all hover:-translate-y-0.5 hover:border-[color:var(--role)] hover:shadow-[0_12px_28px_-16px_var(--role)] motion-reduce:hover:translate-y-0"
     >
       <span className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full opacity-[.12] blur-xl" style={{ background: hue }} aria-hidden />
       <div className="flex items-start gap-2.5">
@@ -454,7 +455,7 @@ function NewOrgForm({ parentId, onCreated, onCancel }: { parentId?: string; onCr
           </button>
         )}
       </div>
-      {error && <p className="text-[12px] text-[#F3A27E]">{error}</p>}
+      {error && <p className="text-[12px] text-[color:var(--coral-ink)]">{error}</p>}
     </form>
   );
 }

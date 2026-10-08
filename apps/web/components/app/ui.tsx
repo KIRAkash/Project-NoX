@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
+import { C, tint } from "@/lib/app/palette";
 import type { RoleDef } from "@/lib/app/roles";
 
 import { Planet } from "./planet";
@@ -22,18 +23,16 @@ export function Panel({
   return (
     // A lifted slate surface over the void, so panels separate from the starfield and the dark cards inside
     // read as wells. The header carries the acting seat's hue (`--role`, set by the shell).
-    <section
-      className={`overflow-hidden rounded-md border border-[rgba(143,160,204,.2)] bg-[linear-gradient(180deg,rgba(21,26,42,.86),rgba(13,16,28,.86))] shadow-[inset_0_1px_0_rgba(236,239,248,.05),0_18px_40px_-24px_rgba(0,0,0,.8)] backdrop-blur-[2px] ${className}`}
-    >
+    <section className={`surface-panel overflow-hidden rounded-md ${className}`}>
       <header
         className="flex items-center justify-between gap-3 border-b px-5 py-3.5"
         style={{
-          background: "linear-gradient(90deg, color-mix(in srgb, var(--role, #86b9ee) 10%, transparent), transparent 70%)",
-          borderColor: "color-mix(in srgb, var(--role, #86b9ee) 22%, rgba(143,160,204,.14))",
+          background: "linear-gradient(90deg, color-mix(in srgb, var(--role-glow) 10%, transparent), transparent 70%)",
+          borderColor: "color-mix(in srgb, var(--role) 22%, rgb(var(--line)/.14))",
         }}
       >
-        <h2 className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: "color-mix(in srgb, var(--role, #86b9ee) 75%, #ECEFF8)" }}>
-          <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--role, #86b9ee)", boxShadow: "0 0 8px var(--role, #86b9ee)" }} />
+        <h2 className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: "color-mix(in srgb, var(--role) 75%, var(--ink))" }}>
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--role)", boxShadow: "0 0 8px var(--role-glow)" }} />
           {title}
         </h2>
         {action}
@@ -45,7 +44,7 @@ export function Panel({
 
 // ── Scrolling feed: a fixed-height, keyboard-scrollable list for logs and timelines ──
 
-export const FEED_LIST = "-mr-2 max-h-[340px] overflow-y-auto overscroll-contain pr-2 outline-none [scrollbar-color:rgba(143,160,204,.3)_transparent] [scrollbar-width:thin] focus-visible:ring-1 focus-visible:ring-[color:var(--role)]";
+export const FEED_LIST = "-mr-2 max-h-[340px] overflow-y-auto overscroll-contain pr-2 outline-none [scrollbar-color:rgb(var(--line)/.3)_transparent] [scrollbar-width:thin] focus-visible:ring-1 focus-visible:ring-[color:var(--role)]";
 
 // ── Empty state: a lone planet and one line ─────────────────────────────────
 
@@ -55,7 +54,7 @@ export function EmptyState({ role, line, children }: { role?: RoleDef; line: str
       {role ? (
         <Planet role={role} size={36} />
       ) : (
-        <span className="h-9 w-9 rounded-full border border-dashed border-[rgba(143,160,204,.35)]" aria-hidden />
+        <span className="h-9 w-9 rounded-full border border-dashed border-[rgb(var(--line)/.35)]" aria-hidden />
       )}
       <p className="mt-4 max-w-[320px] text-[14px] leading-relaxed text-ink-faint">{line}</p>
       {children && <div className="mt-4">{children}</div>}
@@ -68,12 +67,12 @@ export function EmptyState({ role, line, children }: { role?: RoleDef; line: str
 export type KbStatus = "queued" | "ingesting" | "generating" | "in_review" | "published" | "failed";
 
 const KB_STATUS: Record<KbStatus, { label: string; color: string; pulse?: boolean }> = {
-  queued: { label: "In the Void", color: "#7C86A3" },
-  ingesting: { label: "Scanning Nebula", color: "#86B9EE", pulse: true },
-  generating: { label: "Compiling Stars", color: "#A897F0", pulse: true },
-  in_review: { label: "Awaiting Launch", color: "#F7B542" },
-  published: { label: "In Orbit", color: "#5FD29F" },
-  failed: { label: "Lost Signal", color: "#E9713C" },
+  queued: { label: "In the Void", color: C.inkFaint },
+  ingesting: { label: "Scanning Nebula", color: C.iceInk, pulse: true },
+  generating: { label: "Compiling Stars", color: C.violetInk, pulse: true },
+  in_review: { label: "Awaiting Launch", color: C.noxInk },
+  published: { label: "In Orbit", color: C.verifyInk },
+  failed: { label: "Lost Signal", color: C.emberInk },
 };
 
 export function KbStatusChip({ status }: { status: KbStatus }) {
@@ -81,7 +80,7 @@ export function KbStatusChip({ status }: { status: KbStatus }) {
   return (
     <span
       className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em]"
-      style={{ borderColor: `${s.color}55`, color: s.color }}
+      style={{ borderColor: tint(s.color, 33), color: s.color }}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${s.pulse ? "animate-pulse motion-reduce:animate-none" : ""}`} style={{ background: s.color }} />
       {s.label}
@@ -106,7 +105,7 @@ export function OrbitArc({ current, reverse = false, width = 132 }: { current: n
       <path
         d={`M ${pts[0].x} ${pts[0].y} Q ${width / 2} ${-h * 0.35} ${pts[4].x} ${pts[4].y}`}
         fill="none"
-        stroke="rgba(143,160,204,.28)"
+        stroke="rgb(var(--line)/.28)"
         strokeDasharray="2 3"
       />
       {pts.map((p, i) => {
@@ -118,8 +117,8 @@ export function OrbitArc({ current, reverse = false, width = 132 }: { current: n
             cx={p.x}
             cy={p.y}
             r={active ? 4.2 : 2.6}
-            fill={active ? (reverse ? "#5FD29F" : "#F7B542") : done ? "#A6AEC7" : "transparent"}
-            stroke={active ? "none" : "#6E7793"}
+            fill={active ? (reverse ? C.verify : C.nox) : done ? "var(--ink-muted)" : "transparent"}
+            stroke={active ? "none" : "var(--ink-dim)"}
             strokeWidth={1}
           >
             {active && <title>{STAGES[i]}</title>}
@@ -150,9 +149,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <div
             key={t.id}
             className="pointer-events-auto flex items-center gap-2 rounded-md border bg-deck px-4 py-3 text-[13px] text-ink shadow-lg"
-            style={{ borderColor: t.tone === "error" ? "#E9713C66" : t.tone === "success" ? "#5FD29F66" : "rgba(143,160,204,.25)" }}
+            style={{ borderColor: t.tone === "error" ? tint(C.ember, 40) : t.tone === "success" ? tint(C.verify, 40) : "rgb(var(--line)/.25)" }}
           >
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: t.tone === "error" ? "#E9713C" : t.tone === "success" ? "#5FD29F" : "#F7B542" }} />
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: t.tone === "error" ? C.ember : t.tone === "success" ? C.verify : C.nox }} />
             {t.text}
           </div>
         ))}

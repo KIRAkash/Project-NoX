@@ -6,6 +6,7 @@ import { Canvas } from "@react-three/fiber";
 import { Planet } from "@/components/app/planet";
 import { Accent } from "@/components/landing/primitives";
 import { ROLE_BY_ID } from "@/lib/app/roles";
+import { useTheme } from "@/lib/app/theme";
 import { gsap } from "@/lib/motion";
 import { BOOK_PAGES } from "@/lib/spec-book";
 import BookScene, { type Pointer } from "./book-scene";
@@ -45,6 +46,7 @@ const SpecBook = forwardRef<SpecBookHandle, { onSeek?: (localTime: number) => vo
   }));
 
   // the landing fades this beat's wrapper in and out; draw only while it shows
+  const light = useTheme().theme === "light";
   const isVisible = useCallback(() => {
     const wrap = rootRef.current?.parentElement;
     return !!wrap && parseFloat(wrap.style.opacity || "0") > 0.01;
@@ -106,7 +108,7 @@ const SpecBook = forwardRef<SpecBookHandle, { onSeek?: (localTime: number) => vo
         }}
       >
         <Canvas frameloop="demand" dpr={[1, 2]} camera={{ fov: 30, position: [0, 0, 7] }} gl={{ antialias: true, alpha: true }} style={{ position: "absolute", inset: 0 }}>
-          <BookScene timeRef={timeRef} pointerRef={pointerRef} isVisible={isVisible} onStep={setStep} />
+          <BookScene timeRef={timeRef} pointerRef={pointerRef} isVisible={isVisible} onStep={setStep} light={light} />
         </Canvas>
       </div>
     </div>

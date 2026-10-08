@@ -10,6 +10,7 @@ import { STAGE_LABEL, type Mission } from "@/lib/app/types";
 import { useApi } from "@/lib/app/use-api";
 
 import { MissionPanel } from "./shared";
+import { legible } from "@/lib/app/palette";
 
 /**
  * The product board: the product owner triages what comes in, orders the backlog, and accepts what ships.
@@ -39,7 +40,7 @@ export function ProductHome({ role }: { role: RoleDef }) {
                   <Link href={`/app/missions/${m.key}`} className="min-w-0 hover:text-[color:var(--role)]">
                     <span className="flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.1em]">
                       <span className="text-ink-dim">{m.key}</span>
-                      <span style={{ color: stageHue(m.stage) }}>{m.stage === "business" ? "New request" : "Needs your spec"}</span>
+                      <span style={{ color: legible(stageHue(m.stage)) }}>{m.stage === "business" ? "New request" : "Needs your spec"}</span>
                     </span>
                     <span className="mt-0.5 block truncate text-[14px] text-ink">{m.title}</span>
                   </Link>
@@ -57,7 +58,7 @@ export function ProductHome({ role }: { role: RoleDef }) {
       <Panel
         title="Roadmap"
         action={
-          <Link href="/app/missions" className="text-[12px] hover:underline" style={{ color: role.hue }}>
+          <Link href="/app/missions" className="text-[12px] hover:underline" style={{ color: role.ink }}>
             Open backlog →
           </Link>
         }
@@ -66,12 +67,12 @@ export function ProductHome({ role }: { role: RoleDef }) {
           {HORIZON.map((h) => {
             const items = open.filter((m) => h.match(m.priority));
             return (
-              <section key={h.key} className="min-w-0 rounded-md border border-hairline bg-[rgba(5,6,11,.5)] p-3">
+              <section key={h.key} className="min-w-0 rounded-md border border-hairline bg-[rgb(var(--void-rgb)/.5)] p-3">
                 <div className="flex items-baseline justify-between gap-2">
                   <h3 className="text-[14px] font-semibold text-ink">{h.label}</h3>
                   <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-dim">{h.hint}</span>
                 </div>
-                <div className="mt-2 font-display text-[28px] leading-none" style={{ color: items.length && h.key !== "untriaged" ? role.hue : "#6E7793" }}>
+                <div className="mt-2 font-display text-[28px] leading-none" style={{ color: items.length && h.key !== "untriaged" ? role.ink : "var(--ink-dim)" }}>
                   {items.length}
                 </div>
                 {items.length > 0 && (
@@ -95,7 +96,7 @@ export function ProductHome({ role }: { role: RoleDef }) {
 
       <p className="text-[13px] text-ink-faint">
         {kbs.data ? `${inOrbit} of ${kbs.data.length} applications ${inOrbit === 1 ? "has" : "have"} a knowledge base in orbit. ` : ""}
-        <Link href="/app/atlas" className="hover:underline" style={{ color: role.hue }}>
+        <Link href="/app/atlas" className="hover:underline" style={{ color: role.ink }}>
           Open the atlas →
         </Link>
       </p>

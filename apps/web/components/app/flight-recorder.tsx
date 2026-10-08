@@ -12,7 +12,7 @@ export const STAGE_HUE: Record<string, string> = {
   engineering: ROLE_BY_ID.engineering.hue,
   developer: ROLE_BY_ID.developer.hue,
   build: ROLE_BY_ID.developer.hue,
-  verifying: "#5FD29F",
+  verifying: "var(--verify)",
 };
 
 const STAGE_ORDER = ["business", "product", "engineering", "developer", "build", "verifying"];
@@ -44,7 +44,7 @@ export function StageBars({ rows, caption }: { rows: { stage: string; seconds: n
         {sorted.map((r) => (
           <li key={r.stage} className="grid grid-cols-[88px_minmax(0,1fr)_64px] items-center gap-3 text-[12.5px]">
             <span className="truncate text-ink-muted">{STAGE_LABEL[r.stage as MissionStage] ?? r.stage}</span>
-            <span className="h-2.5 overflow-hidden rounded-full bg-[rgba(143,160,204,.1)]">
+            <span className="h-2.5 overflow-hidden rounded-full bg-[rgb(var(--line)/.1)]">
               <span className="block h-full rounded-full" style={{ width: `${Math.max(3, ((r.seconds ?? 0) / max) * 100)}%`, background: STAGE_HUE[r.stage] ?? "#8FA0CC" }} />
             </span>
             <span className="text-right font-mono text-[12px] text-ink">{fmtDuration(r.seconds)}</span>
@@ -66,7 +66,7 @@ export function FlightStrip({ missionKey, version }: { missionKey: string; versi
   if (!stages.length || !total) return null;
   return (
     <Panel title="Flight recorder">
-      <div className="flex h-2.5 overflow-hidden rounded-full bg-[rgba(143,160,204,.1)]" role="img" aria-label={stages.map((s) => `${STAGE_LABEL[s.stage as MissionStage] ?? s.stage} ${fmtDuration(s.seconds)}`).join(", ")}>
+      <div className="flex h-2.5 overflow-hidden rounded-full bg-[rgb(var(--line)/.1)]" role="img" aria-label={stages.map((s) => `${STAGE_LABEL[s.stage as MissionStage] ?? s.stage} ${fmtDuration(s.seconds)}`).join(", ")}>
         {stages.map((s) => (
           <span key={s.stage} className={s.current ? "animate-pulse motion-reduce:animate-none" : ""} style={{ width: `${(s.seconds / total) * 100}%`, background: STAGE_HUE[s.stage] ?? "#8FA0CC", minWidth: 3 }} />
         ))}

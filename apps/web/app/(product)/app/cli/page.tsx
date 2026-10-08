@@ -64,7 +64,7 @@ export default function CliPage() {
               <li key={s.cmd} className="flex gap-3">
                 <span className="mt-1 font-mono text-[11px] text-ink-dim">{String(i + 1).padStart(2, "0")}</span>
                 <div className="min-w-0">
-                  <code className="block overflow-x-auto rounded-sm border border-hairline bg-[#04050A] px-3 py-2 font-mono text-[13px] text-[#CFE3FA]">
+                  <code className="block overflow-x-auto rounded-sm console border px-3 py-2 font-mono text-[13px] text-[color:var(--sky-ink)]">
                     {i === STEPS.length - 1 ? "> " : "$ "}
                     {s.cmd}
                   </code>
@@ -72,7 +72,7 @@ export default function CliPage() {
                   {s.cmd.startsWith("nox init") && (
                     <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Supported coding agents">
                       {AGENTS.map((a) => (
-                        <li key={a} className="inline-flex items-center gap-1.5 rounded-sm border border-hairline bg-[rgba(143,160,204,.06)] px-2 py-1 text-[12px] text-ink-muted">
+                        <li key={a} className="inline-flex items-center gap-1.5 rounded-sm border border-hairline bg-[rgb(var(--line)/.06)] px-2 py-1 text-[12px] text-ink-muted">
                           <BrandLogo name={a} size={14} />
                           {BRANDS[a]}
                         </li>
@@ -96,7 +96,7 @@ export default function CliPage() {
                     <span className="block truncate font-mono text-ink">{t.name}</span>
                     <span className="block text-[11.5px] text-ink-faint">{t.lastUsedAt ? `Last used ${new Date(t.lastUsedAt).toLocaleString()}` : "Never used"}</span>
                   </span>
-                  <button type="button" onClick={() => void revoke(t)} className="shrink-0 text-[12px] text-ink-dim hover:text-[#E9713C]">
+                  <button type="button" onClick={() => void revoke(t)} className="shrink-0 text-[12px] text-ink-dim hover:text-[color:var(--ember-ink)]">
                     Revoke
                   </button>
                 </li>
@@ -114,7 +114,7 @@ export default function CliPage() {
         <ul className="grid gap-x-8 gap-y-2.5 sm:grid-cols-2">
           {COMMANDS.map(([cmd, what]) => (
             <li key={cmd} className="flex min-w-0 flex-col text-[13px]">
-              <code className="truncate font-mono text-[#CFE3FA]">$ {cmd}</code>
+              <code className="truncate font-mono text-[color:var(--sky-ink)]">$ {cmd}</code>
               <span className="text-[12px] text-ink-faint">{what}</span>
             </li>
           ))}
@@ -163,7 +163,7 @@ function ConnectAgent({ onCreated }: { onCreated: () => void }) {
     <Panel title="Connect an agent" className="mt-5">
       <p className="max-w-[680px] text-[13.5px] leading-relaxed text-ink-muted">
         Give your coding agent NoX&apos;s tools over MCP: knowledge-base search, the contract map, mission context and Ask. Read-only, and scoped to the orgs you belong to. Or run{" "}
-        <code className="font-mono text-[#CFE3FA]">nox mcp install {agent}</code> and the CLI writes it for you.
+        <code className="font-mono text-[color:var(--sky-ink)]">nox mcp install {agent}</code> and the CLI writes it for you.
       </p>
       <div className="mt-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Agent">
         {MCP_AGENTS.map((a) => (
@@ -175,7 +175,7 @@ function ConnectAgent({ onCreated }: { onCreated: () => void }) {
         ))}
       </div>
       <p className="mt-3 font-mono text-[11.5px] text-ink-dim">{chosen.path}</p>
-      <pre className="mt-1.5 overflow-x-auto rounded-sm border border-hairline bg-[#04050A] p-3 font-mono text-[12px] leading-relaxed text-[#CFE3FA]">{json}</pre>
+      <pre className="mt-1.5 overflow-x-auto rounded-sm console border p-3 font-mono text-[12px] leading-relaxed text-[color:var(--sky-ink)]">{json}</pre>
       <div className="mt-3 flex flex-wrap gap-2">
         {!token && (
           <button type="button" onClick={() => void create()} className="rounded-sm border border-[color:var(--role)] px-3 py-1.5 text-[13px] text-ink hover:bg-[color:color-mix(in_srgb,var(--role)_12%,transparent)]">

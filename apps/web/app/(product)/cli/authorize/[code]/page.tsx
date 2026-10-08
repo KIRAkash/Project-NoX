@@ -64,7 +64,7 @@ function Authorize() {
         )}
         {state === "done" && <p className="mt-4 text-[14px] text-ink-muted">Done — go back to your terminal. You can close this page.</p>}
         {state === "error" && (
-          <p className="mt-4 text-[14px] text-[#F3A27E]">
+          <p className="mt-4 text-[14px] text-[color:var(--coral-ink)]">
             {error}{" "}
             <Link href="/" className="underline">
               Back to NoX

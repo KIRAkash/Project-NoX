@@ -41,7 +41,7 @@ function Node({ node }: { node: GraphNode }) {
     <div
       className={`min-w-0 flex-1 rounded-sm border px-2.5 py-2 text-center transition-colors ${active ? "animate-pulse motion-reduce:animate-none" : ""}`}
       style={{
-        borderColor: active || done ? "color-mix(in srgb, var(--role) 55%, transparent)" : "rgba(143,160,204,.2)",
+        borderColor: active || done ? "color-mix(in srgb, var(--role) 55%, transparent)" : "rgb(var(--line)/.2)",
         background: active ? "color-mix(in srgb, var(--role) 22%, transparent)" : done ? "color-mix(in srgb, var(--role) 8%, transparent)" : "transparent",
         boxShadow: active ? "0 0 16px -6px var(--role)" : undefined,
       }}

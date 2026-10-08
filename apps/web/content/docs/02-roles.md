@@ -91,3 +91,5 @@ Each seat has a short navigation of its own. The missions entry takes the seat's
 **Atlas** holds organizations, teams, applications, knowledge bases, the contract map and connectors. **Specs** is the library of spec files across missions, and **Activity** the organization-wide feed (both pages are in place; the cross-mission views are on the [roadmap](/docs/roadmap)). **CLI** shows how to connect the `nox` CLI and the tokens it has signed in with.
 
 The command palette in the top bar (`⌘K`) jumps to any page or action from anywhere.
+
+The sun and moon button in the top bar switches between the dark theme and a light one. Each seat keeps its own colour in both, deepened in the light theme so it stays easy to read. NoX remembers your choice on this device, and the landing page and docs have the same button.

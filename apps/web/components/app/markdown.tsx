@@ -34,7 +34,7 @@ function OkfStrip({ meta }: { meta: OkfMeta }) {
   const when = meta.at ? new Date(meta.at) : null;
   return (
     <div
-      className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-sm border border-hairline bg-[rgba(143,160,204,.05)] px-3 py-2 font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-faint"
+      className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-sm border border-hairline bg-[rgb(var(--line)/.05)] px-3 py-2 font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-faint"
       title="This page is an Open Knowledge Format document: YAML frontmatter any OKF-aware agent can read"
     >
       <span className="text-[color:var(--role)]">OKF{meta.okf_version ? ` ${meta.okf_version}` : ""}</span>
