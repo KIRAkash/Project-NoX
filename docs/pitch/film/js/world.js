@@ -59,7 +59,7 @@ renderer.setPixelRatio(1);
 renderer.setSize(W, H);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
-renderer.setClearColor(0x020309, 1);
+renderer.setClearColor(0x000000, 1);
 
 export const scene = new THREE.Scene();
 export const camera = new THREE.PerspectiveCamera(FOV, W / H, 1, 40000);
@@ -103,17 +103,17 @@ scene.add(neb);
 /* ---------------- star field (3D shell around the scene) ---------------- */
 function rnd(seed) { return () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const R = rnd(1234);
-const NS = 9000;
+const NS = 12000;
 const sp = new Float32Array(NS * 3), ss = new Float32Array(NS), sph = new Float32Array(NS), sc = new Float32Array(NS * 3);
 for (let i = 0; i < NS; i++) {
   const u = R() * 2 - 1, th = R() * Math.PI * 2, rr = 5000 + R() * 9000;
   const s = Math.sqrt(1 - u * u);
   sp[i * 3] = rr * s * Math.cos(th); sp[i * 3 + 1] = rr * u * 0.8; sp[i * 3 + 2] = rr * s * Math.sin(th) - 2000;
-  const big = R() < 0.04;
-  ss[i] = (big ? 30 : 11) * (0.55 + R());
+  const big = R() < 0.015;
+  ss[i] = (big ? 16 : 7) * (0.5 + R());
   sph[i] = R();
   const k = R();
-  const c = k < 0.12 ? col("#FFE2A8") : k < 0.26 ? col("#BBD3FF") : k < 0.3 ? col("#FFB3A0") : col("#EEF1FA");
+  const c = k < 0.10 ? col("#FFE2A8") : k < 0.26 ? col("#BBD3FF") : k < 0.3 ? col("#FFB3A0") : col("#EEF1FA");
   sc[i * 3] = c.r; sc[i * 3 + 1] = c.g; sc[i * 3 + 2] = c.b;
 }
 const starGeo = new THREE.BufferGeometry();
@@ -126,11 +126,11 @@ const starMat = new THREE.ShaderMaterial({
   uniforms: { t: { value: 0 }, a: { value: 0 }, k: { value: 1 } },
   vertexShader: `attribute float size; attribute float phase; attribute vec3 color; uniform float t, k; varying vec3 vC; varying float vT;
     void main(){ vec4 mv = modelViewMatrix*vec4(position,1.); gl_Position = projectionMatrix*mv;
-      vT = .55 + .45*sin(t*(.8+phase*2.4) + phase*31.);
-      gl_PointSize = clamp(size*k*1500./-mv.z, 1.6, 48.); vC = color; }`,
+      vT = .7 + .3*sin(t*(.6+phase*1.8) + phase*31.);
+      gl_PointSize = clamp(size*k*1500./-mv.z, 1.5, 11.); vC = color; }`,
   fragmentShader: `varying vec3 vC; varying float vT; uniform float a;
     void main(){ vec2 c = gl_PointCoord*2.-1.; float d = dot(c,c); if(d>1.) discard;
-      float core = exp(-d*9.); float halo = exp(-d*2.5)*.18;
+      float core = exp(-d*7.); float halo = exp(-d*2.5)*.08;
       gl_FragColor = vec4(vC*(core*2.6+halo)*vT*a, 1.); }`,
 });
 const stars = new THREE.Points(starGeo, starMat);
@@ -336,11 +336,12 @@ export function renderGL(t) {
   nebMat.uniforms.c3.value.setRGB(S.neb.c3.r, S.neb.c3.g, S.neb.c3.b);
   // the nebula drifts with the camera's aim, a little, for parallax
   nebMat.uniforms.off.value.set(S.neb.ox + (C.tx - C.x) * 0.00012 + C.x * 0.00008, S.neb.oy + C.y * 0.00008);
-  neb.visible = S.neb.a > 0.001;
+  neb.visible = false; // the backdrop is a quiet star field only
   starMat.uniforms.t.value = t; starMat.uniforms.a.value = S.stars.a; starMat.uniforms.k.value = S.stars.size;
   stars.visible = S.stars.a > 0.001;
+  stars.rotation.set(t * 0.0012, t * 0.0045, 0); // a slow, steady drift
   dustMat.uniforms.t.value = t; dustMat.uniforms.a.value = S.dust.a;
-  dust.visible = S.dust.a > 0.001;
+  dust.visible = false;
   // sun
   const U = S.sun;
   sunGroup.visible = U.on > 0.001;

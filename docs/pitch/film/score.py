@@ -344,8 +344,8 @@ for b in np.arange(24.0, 86.0, BEAT):
         sub(b, 0.23, root, 0.55); sub(b + 0.25, 0.23, root, 0.45)
     elif beat_in_bar == 0:
         sub(b, 1.95, root, 0.55)
-# snare fills into each seat and section change
-for t_end in (30.0, 42.0, 46.0, 52.0, 58.0, 64.0, 70.0, 76.25, 78.0):
+# snare fills into each page turn and section change
+for t_end in (30.0, 42.0, 46.0, 51.0, 56.0, 61.0, 65.0, 70.0, 76.25, 78.0):
     for k in range(8):
         tt = t_end - 0.5 + k * 0.0625
         snare(tt, 0.08 + k * 0.025)

@@ -10,15 +10,16 @@ A 90-second film for the AI Builder Cup submission, made as code. The finished f
 | Time | Scene | What it shows |
 | --- | --- | --- |
 | 0:00 | One sentence | A business user types *"Customers keep emailing support for invoices. Can they just download them?"* The sentence becomes a capsule of light. |
-| 0:06 | Lost in translation | The capsule passes through four seats (*"INV-88: add PDF export."*, *"New PDF service?"*, *"Email every invoice as a PDF, nightly."*) and the sentence scrambles into *"Ticket closed."* The intent meter drains and the nebula turns red. *What shipped ≠ what was meant.* |
+| 0:06 | Lost in translation | The capsule passes from person to person (*"INV-88: add PDF export."*, *"New PDF service?"*, *"Email every invoice as a PDF, nightly."*) and the sentence scrambles into *"Ticket closed."* The intent meter drains. *What shipped ≠ what was meant.* |
 | 0:16 | AI everywhere | Four private AI chats; the links between them snap. Everything collapses into one point of light. |
 | 0:23 | Meet NoX | The point ignites into the NoX sun, with a shockwave, god rays and a lens flare. N and X slide out. Atlas and Missions. |
 | 0:30 | Atlas | Apex Holdings as a 3D orbital system with glowing contract arcs. The camera dives into billing-service, where sources stream in and NoX Shield blocks a planted runbook. Then the ADK agent team, an OKF page for the invoices API, and the 8.7× faster build. |
-| 0:42 | Missions | Four seats on one 3D trajectory; a comet carries the change along it. |
-| 0:46 | The four seats | Business user, product owner, engineering lead and developer each write their file with NoX as co-author, and a person approves it. The product owner adds the tax breakdown and prorated invoices; the engineering lead learns the receipts PDF renderer already exists and that reporting reads invoice totals. `/nox NOX-1` in Google Antigravity. |
+| 0:42 | Missions | Every role on one 3D trajectory; a comet carries the change along it. |
+| 0:46 | The spec book | One mission is one book. Each role writes its own page while NoX writes beside them: two live cursors, the person's and NoX's. The business user states the problem; the product owner adds the prorated-invoice edge case; the engineering lead's page carries a map from the Atlas (reuse the receipts PDF renderer, keep reporting's invoice-totals contract); the developer writes the build spec. A person signs each page, it locks and turns. The path lists the roles, with more roles coming soon. |
+| 1:05 | Build | The book closes, signed by every role. The book and the Atlas become the coding agent's context: `/nox NOX-1` in Google Antigravity, or any coding agent. |
 | 1:10 | Verify in reverse | The comet returns through the same people; one send-back (*"Prorated invoices missing."*); then *"My sentence is now true."* Jira moves to Done. |
 | 1:18 | Platform and trust | Shield, Show NoX, MCP + A2A, NoX Local, hybrid search, Impact; the trust principles. |
-| 1:26 | Close | *Four people. Four files. One sentence, all the way to code and back.* The sun returns with the wordmark. |
+| 1:26 | Close | *Every role. One book. One sentence, all the way to code and back.* The sun returns with the wordmark. |
 
 The example is the worked one in [`docs/00-product-narrative-and-landing-journey.md`](../../00-product-narrative-and-landing-journey.md):
 self-serve invoice PDFs, mission NOX-1 on billing-service. The numbers are the ones in the product docs.
@@ -26,7 +27,7 @@ self-serve invoice PDFs, mission NOX-1 on billing-service. The numbers are the o
 ## How it is made
 
 - **Picture.** [`index.html`](index.html) holds the UI layer and [`js/`](js/) the scenes. A WebGL layer
-  ([`js/world.js`](js/world.js), three.js) draws a domain-warped nebula, a 3D star field, bokeh dust, the plasma
+  ([`js/world.js`](js/world.js), three.js) draws a quiet, slowly drifting star field, the plasma
   sun with corona, shockwave, god rays and lens flare, and a screen-space particle layer for comets, streams and
   sparks, all through bloom. [`js/gl3d.js`](js/gl3d.js) makes the shaded planets with atmospheres and the glowing
   tubes used for orbits and contract arcs. Type is animated with GSAP's SplitText, ScrambleText and DrawSVG on one

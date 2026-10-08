@@ -141,7 +141,78 @@ em{font-style:italic}
 .jira .s.on{color:#fff;border-color:var(--ice);background:rgba(134,185,238,.14)}
 .jira .s.done{color:#06140D;background:var(--verify);border-color:var(--verify);font-weight:700;box-shadow:0 0 30px rgba(95,210,159,.6)}
 
-/* S7 seats */
+
+/* S7 the spec book */
+#bkL{left:110px;top:92px;width:760px}
+#bkts{position:relative;height:200px;margin-top:24px}
+#bkts .title{position:absolute;left:0;top:0;width:780px;white-space:normal;font-size:86px}
+#bkts .title em{color:var(--nox)}
+#bkss{position:relative;height:100px;margin-top:8px}
+#bkss .sub{position:absolute;left:0;top:0;width:720px;font-size:31px;line-height:1.36;color:var(--muted)}
+#bkpath{margin-top:34px;width:640px}
+.bkr{display:flex;align-items:center;gap:20px;height:72px;font-size:32px;font-weight:600;color:var(--faint)}
+.bkr .pl{position:relative;width:50px;height:50px;flex:none}
+.bkr .st{margin-left:auto;font-family:JB;font-size:22px;font-weight:600;padding:4px 12px;border-radius:8px;border:1.5px solid rgba(143,160,204,.35);min-width:130px;text-align:center;color:var(--faint);position:relative}
+.bkr .st span{display:block}
+.bkr.more{color:var(--muted);font-weight:500;height:84px}
+.bkr.more .ring{width:50px;height:50px;border-radius:50%;border:2px dashed rgba(143,160,204,.5);flex:none;display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--faint)}
+.bkr.more small{display:block;font-family:JB;font-size:20px;color:var(--faint);font-weight:500;margin-top:4px;letter-spacing:.02em}
+.bkr.more .soon{margin-left:auto;font-family:JB;font-size:20px;font-weight:600;padding:4px 12px;border-radius:8px;border:1.5px dashed var(--nox);color:var(--nox)}
+.bk-stage{position:absolute;left:880px;top:150px;width:1000px;height:780px;perspective:2400px}
+.bk-tilt{position:absolute;left:0;top:40px;width:1000px;height:707px;transform:rotateY(-14deg) rotateX(6deg);transform-origin:40% 50%}
+.bk-board{position:absolute;left:-14px;top:-12px;right:-14px;bottom:-12px;border-radius:16px;background:linear-gradient(135deg,#232a4c,#11152a);border:1.5px solid rgba(247,181,66,.45);box-shadow:0 60px 140px rgba(0,0,0,.75),0 0 80px -30px rgba(247,181,66,.4)}
+.bk-edge{position:absolute;top:4px;bottom:-6px;width:500px;border-radius:4px;background:repeating-linear-gradient(180deg,#c7c9d0 0 2px,#b3b6bf 2px 3px)}
+.bk-edge.l{left:-6px}.bk-edge.r{left:506px}
+.bk-spine{position:absolute;left:499px;top:-6px;bottom:-6px;width:2px;background:linear-gradient(180deg,transparent,rgba(120,90,30,.6),transparent);z-index:200;pointer-events:none}
+.bk-leaf{position:absolute;left:500px;top:0;width:500px;height:707px;transform-origin:0 50%;transform-style:preserve-3d}
+.bk-face{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:3px 12px 12px 3px;
+  background:linear-gradient(90deg,#c9ccd4 0,#dfe1e6 26px,#e7e8ec 60%,#e2e3e8 100%);color:#1c2030;padding:30px 34px 30px 40px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.bk-face.back{transform:rotateY(180deg);border-radius:12px 3px 3px 12px;background:linear-gradient(270deg,#c9ccd4 0,#dfe1e6 26px,#e7e8ec 60%,#e2e3e8 100%);padding:30px 40px 30px 34px}
+.bk-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.35),rgba(0,0,0,0) 70%);opacity:0;pointer-events:none;z-index:5}
+.bk-face .hd{display:flex;align-items:center;gap:10px;font-family:JB;font-weight:600;font-size:15px;letter-spacing:.14em;text-transform:uppercase;padding-bottom:11px;border-bottom:1.5px solid rgba(28,32,48,.16)}
+.bk-face .hd .pl{position:relative;width:30px;height:30px;flex:none}
+.bk-face .hd .file{margin-left:auto;letter-spacing:0;text-transform:none;color:#6b7288;font-weight:500}
+.bk-face .meta{font-family:JB;font-size:11.5px;color:#6b7288;margin:10px 0 3px}
+.bk-face .h1{font-family:'Instrument Serif';font-size:34px;line-height:1.05;margin:4px 0 2px;color:#10131f}
+.bk-face .h2{font-family:'Instrument Serif';font-size:23px;line-height:1.1;margin:11px 0 3px;color:#10131f}
+.bk-face .b{font-size:14.5px;line-height:1.45;color:#2b3042;font-weight:500}
+.bk-face .li{padding-left:16px;position:relative}.bk-face .li:before{content:"";position:absolute;left:3px;top:.62em;width:5px;height:5px;border-radius:50%;background:#7c8398}
+.bk-face .ck{padding-left:22px;position:relative}.bk-face .ck:before{content:"";position:absolute;left:0;top:.3em;width:11px;height:11px;border-radius:3px;border:1.5px solid #7c8398}
+.bk-face .ck.on:before{background:#3fa877;border-color:#3fa877}
+.bk-face code{font-family:JB;font-size:12.5px;color:#7a4f06;background:rgba(247,181,66,.18);padding:0 4px;border-radius:4px}
+.bk-face .kb{font-family:JB;font-size:12px;color:#a2670a;font-weight:600}
+.bk-face .ac{font-family:JB;font-size:12.5px;font-weight:700;color:#a2670a}
+.bk-face .pre{font-family:JB;font-size:12px;line-height:1.5;color:#2b3042;background:rgba(28,32,48,.06);border:1px solid rgba(28,32,48,.12);border-radius:8px;padding:7px 10px;white-space:pre;margin:4px 0}
+.bk-face .nx{border-left:2.5px solid #d99a1e;padding-left:10px;margin-left:-12.5px;background:linear-gradient(90deg,rgba(247,181,66,.16),rgba(247,181,66,0));border-radius:0 4px 4px 0}
+.bk-face .by{border-left:2.5px solid var(--rc);padding-left:10px;margin-left:-12.5px}
+.bk-face .fade{position:absolute;left:0;right:0;bottom:0;height:110px;background:linear-gradient(rgba(226,227,232,0),#e2e3e8 70%)}
+.bk-face .cover{position:absolute;inset:0;padding:46px 44px;background:linear-gradient(140deg,#232a4c,#0c0f1f 75%);color:#ECEFF8}
+.bk-stamp{position:absolute;right:28px;bottom:26px;z-index:6;font-family:JB;font-weight:700;font-size:17px;color:#1f8a5a;border:2.5px solid #2a9d68;border-radius:8px;padding:5px 12px;transform:rotate(-7deg);background:rgba(232,246,239,.92);box-shadow:0 4px 14px rgba(31,138,90,.25)}
+.bk-lock{position:absolute;left:30px;bottom:30px;z-index:6;display:flex;align-items:center;gap:6px;font-family:JB;font-size:13px;color:#4a5168;border:1px solid rgba(28,32,48,.2);border-radius:6px;padding:3px 9px;background:#e4e5ea}
+.bk-lock svg{width:13px;height:13px}
+.bkc{display:inline-block;width:2px;height:1.12em;vertical-align:-.22em;margin-left:1px;visibility:hidden;opacity:0}
+.bkc.nox{background:#e09a1a;box-shadow:0 0 8px rgba(247,181,66,.9)}
+.bkc .flag{position:absolute;margin:.05em 0 0 5px;font-family:JB;font-weight:700;font-size:11.5px;line-height:1;padding:4px 7px;border-radius:5px;background:#F7B542;color:#1a1204;white-space:nowrap;box-shadow:0 2px 10px rgba(247,181,66,.5)}
+.bkc.me{background:var(--rc)}
+.bkc .arrow{position:absolute;margin:13px 0 0 3px;width:21px;height:25px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))}
+.bkc .who{position:absolute;margin:35px 0 0 18px;font-family:Manrope;font-weight:800;font-size:13.5px;padding:4px 9px;border-radius:0 7px 7px 7px;background:var(--rc);color:#fff;white-space:nowrap}
+.bkc{position:relative}
+.bk-cover-t{font-family:'Instrument Serif';font-size:62px;line-height:1.02;margin-top:30px}
+.bk-band{position:absolute;left:0;right:0;top:420px;height:58px;background:linear-gradient(90deg,rgba(95,210,159,.16),rgba(95,210,159,.32),rgba(95,210,159,.16));border-top:1.5px solid var(--verify);border-bottom:1.5px solid var(--verify);display:flex;align-items:center;justify-content:center;font-family:JB;font-weight:600;font-size:22px;color:var(--verify)}
+.bk-ribbons{position:absolute;right:44px;top:-6px;display:flex;gap:8px}
+.bk-ribbons i{display:block;width:18px;height:104px;clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%)}
+.bk-term{position:absolute;left:110px;top:420px;width:900px;height:470px;border-radius:24px;background:linear-gradient(180deg,rgba(24,29,52,.96),rgba(8,10,20,.98));border:1.5px solid var(--hair2);box-shadow:0 40px 120px rgba(0,0,0,.6);overflow:hidden;visibility:hidden;opacity:0}
+.bk-term .top{display:flex;align-items:center;gap:14px;padding:18px 28px;border-bottom:1.5px solid var(--hair);font-size:27px;font-weight:600}
+.bk-term .top img{height:32px}
+.bk-term .body{padding:22px 30px;font-family:JB;font-size:27px;line-height:1.6;color:#C9D0E4;white-space:pre}
+.bk-term .ok{color:var(--verify)}.bk-term .g{color:var(--nox)}.bk-term .f{color:var(--faint)}
+.bk-term .row{visibility:hidden;opacity:0}
+.bk-agents{position:absolute;left:110px;top:922px;display:flex;align-items:center;gap:24px;font-size:26px;color:var(--muted);visibility:hidden;opacity:0}
+.bk-agents img{height:38px}
+.bk-atlas{position:absolute;left:1190px;top:950px;display:flex;align-items:center;gap:14px;font-family:JB;font-size:24px;color:var(--nox);visibility:hidden;opacity:0}
+.bk-atlas .pl{position:relative;width:54px;height:54px}
+
+/* S7 seats (old) */
 #hud{position:absolute;left:50%;transform:translateX(-50%);top:34px;padding:12px 30px;border-radius:999px;background:rgba(6,8,16,.82);border:1.5px solid var(--hair);display:flex;justify-content:center;align-items:center;gap:20px;font-family:JB;font-size:29px;z-index:20;visibility:hidden;opacity:0}
 #hud .step{display:flex;align-items:center;gap:14px;color:var(--dim);font-weight:600}
 #hud .step i{width:20px;height:20px;border-radius:50%;background:currentColor}
@@ -274,7 +345,7 @@ em{font-style:italic}
       <svg class="ic" width="190" height="150" viewBox="0 0 190 150"><ellipse cx="95" cy="80" rx="84" ry="44" fill="none" stroke="rgba(143,160,204,.35)" stroke-width="2.5"/><path d="M11 80 A84 44 0 0 1 179 80" fill="none" stroke="#F7B542" stroke-width="4"/><path d="M179 80 A84 44 0 0 1 11 80" fill="none" stroke="#5FD29F" stroke-width="4" stroke-dasharray="6 8"/><circle cx="11" cy="80" r="11" fill="#E8C97A"/><circle cx="60" cy="40" r="10" fill="#A897F0"/><circle cx="130" cy="40" r="10" fill="#5FCBD8"/><circle cx="179" cy="80" r="11" fill="#86B9EE"/></svg>
       <div class="k">MISSIONS</div><div class="t">The journey</div>
       <div class="b">One change, carried from a business sentence to merged code, then verified back by the same people.</div>
-      <div style="display:flex;gap:14px;margin-top:30px"><span class="chip gold">4 seats</span><span class="chip vio">/nox</span><span class="chip grn">verified in reverse</span></div>
+      <div style="display:flex;gap:14px;margin-top:30px"><span class="chip gold">every role</span><span class="chip vio">/nox</span><span class="chip grn">verified in reverse</span></div>
     </div>
   </div></section>
 
@@ -307,7 +378,7 @@ em{font-style:italic}
   <!-- S6 + S8 orbit -->
   <section class="scene" id="s6">
     <div class="kicker abs" id="s6k" style="left:110px;top:70px"><span class="num">04</span><span class="bar"></span>Missions · the journey</div>
-    <div class="title abs" id="s6t" style="left:110px;top:122px;font-size:80px">One change. Four seats. <em>One trajectory.</em></div>
+    <div class="title abs" id="s6t" style="left:110px;top:122px;font-size:80px">One change. Every role. <em>One trajectory.</em></div>
     <div class="kicker abs" id="s8k" style="left:110px;top:70px;color:var(--verify)"><span class="num">05</span><span class="bar"></span>Verify · in reverse</div>
     <div class="title abs" id="s8t" style="left:110px;top:122px;font-size:80px">Then it comes back, <em>to the same people</em>.</div>
     <div id="oplanets"></div>
@@ -315,76 +386,24 @@ em{font-style:italic}
     <div class="jira" id="jira"><img src="vendor/logos/jira.svg"><span>INV-89</span><span class="s" id="j1">To Do</span>›<span class="s" id="j2">In Progress</span>›<span class="s" id="j3">In Review</span>›<span class="s" id="j4">Done</span></div>
   </section>
 
-  <!-- S7 seats -->
-  <div id="hud"></div>
-  <section class="scene" id="sb" style="--seat:var(--biz)"><div class="cam" id="sbcam">
-    <div class="seatL"><div class="pl" data-role="business" data-size="270" style="left:290px;top:180px"></div>
-      <div class="nm" style="color:var(--biz)">Business user</div><div class="home">Request desk</div><div class="file">writes 01-business.md</div>
-      <div class="call" style="color:var(--biz)">Plain words.<br>No endpoints. No jargon.</div></div>
-    <div class="win" id="sbwin">
-      <div class="top"><span class="dots"><i></i><i></i><i></i></span>NOX-1 · Self-serve invoice PDFs<span class="pill" style="background:rgba(232,201,122,.16);color:var(--biz)">Business</span></div>
-      <div class="tabs" data-on="0"></div>
-      <div class="doc"><div class="doc-in">
-        <div class="h">What changes for customers</div>
-        <div class="p"><span id="sb1"></span><span class="cur" id="sb1c"><b>NoX</b></span></div>
-        <div class="p"><span id="sb2"></span><span class="cur" id="sb2c"><b>NoX</b></span></div>
-        <div class="h" style="margin-top:26px">Why it matters</div>
-        <div class="p"><span id="sb3"></span><span class="cur" id="sb3c"><b>NoX</b></span></div>
-        <div style="display:flex;gap:16px;margin-top:22px" id="sbchips"><span class="chip gold">▶ 0:42 · your screen capture</span><span class="chip grn">✓ checklist: 4 items</span></div>
-      </div></div>
-      <div class="wfoot"><span id="sbstat">✦ Drafted with NoX</span><div class="approve"><span class="ok">✓</span><span class="lbl">Approve</span></div></div>
+  <!-- S7 the spec book -->
+  <section class="scene" id="sbk">
+    <div class="abs" id="bkL">
+      <div class="kicker" id="bkk"><span class="num">04</span><span class="bar"></span><span id="bkkt">Missions · the spec book</span></div>
+      <div id="bkts"></div>
+      <div id="bkss"></div>
+      <div id="bkpath"></div>
     </div>
-  </div></section>
-
-  <section class="scene" id="sp" style="--seat:var(--po)"><div class="cam" id="spcam">
-    <div class="seatL"><div class="pl" data-role="product" data-size="270" style="left:290px;top:180px"></div>
-      <div class="nm" style="color:var(--po)">Product owner</div><div class="home">Product board</div><div class="file">writes 02-product.md</div>
-      <div class="call" style="color:var(--po)">NoX co-writes.<br>You decide.</div></div>
-    <div class="win" id="spwin">
-      <div class="top"><span class="dots"><i></i><i></i><i></i></span>NOX-1 · Self-serve invoice PDFs<span class="pill" style="background:rgba(168,151,240,.16);color:var(--po)">Product</span></div>
-      <div class="tabs" data-on="1"></div>
-      <div class="doc"><div class="doc-in">
-        <div class="h">Acceptance criteria</div>
-        <div class="ac"><span class="k">AC-1</span><span><span id="sp1"></span><span class="cur" id="sp1c"><b>NoX</b></span></span></div>
-        <div class="ac"><span class="k">AC-2</span><span><span id="sp2"></span><span class="cur" id="sp2c"><b>NoX</b></span></span></div>
-        <div class="h" style="margin-top:26px">Edge case <span class="tag" style="background:rgba(168,151,240,.18);color:var(--po)">added by you</span></div>
-        <div class="p"><span id="sp3" class="hl"></span><span class="cur me" id="sp3c"><b>Product owner</b></span></div>
-        <div class="h" style="margin-top:26px">Success metric</div>
-        <div class="p"><span id="sp4"></span><span class="cur" id="sp4c"><b>NoX</b></span></div>
-        <div style="margin-top:14px" id="spcite"><span class="chip">kb:billing-service/invoices</span></div>
-      </div></div>
-      <div class="wfoot"><span>✦ Drafted with NoX · grounded in the Atlas</span><div class="approve"><span class="ok">✓</span><span class="lbl">Approve</span></div></div>
-    </div>
-    <div class="toast" id="spjira" style="left:84px;top:900px"><img src="vendor/logos/jira.svg"><span>INV-89</span><span class="s" style="background:rgba(255,93,108,.18);color:#FF8A95">P1</span><span class="s" style="background:rgba(134,185,238,.16);color:var(--ice)">created</span></div>
-  </div></section>
-
-  <section class="scene" id="se" style="--seat:var(--eng)"><div class="cam" id="secam">
-    <div class="seatL"><div class="pl" data-role="engineering" data-size="270" style="left:290px;top:180px"></div>
-      <div class="nm" style="color:var(--eng)">Engineering lead</div><div class="home">Flight director</div><div class="file">writes 03-engineering.md</div>
-      <div class="call" style="color:var(--eng)">See every caller<br>before you change it.</div></div>
-    <div class="win" id="sewin" style="height:520px">
-      <div class="top"><span class="dots"><i></i><i></i><i></i></span>Blast radius · contract map<div class="approve" id="seapp" style="padding:8px 24px;font-size:28px;margin-left:auto"><span class="ok">✓</span><span class="lbl">Approve design</span></div></div>
-      <svg id="semap" width="1140" height="442" style="position:absolute;left:0;top:78px"></svg>
-    </div>
-    <div class="ask" id="seask">
-      <div class="q"><span class="chip" style="padding:4px 12px">Ask</span><span id="se1"></span><span class="cur me" id="se1c"><b>Engineering lead</b></span></div>
-      <div class="steps" id="sesteps"><span class="chip gold">search_kb</span><span class="chip gold">find_interfaces</span><span class="chip gold">read_kb_page</span></div>
-      <div class="a"><span id="se2"></span><span class="cur" id="se2c"><b>NoX</b></span></div>
-    </div>
-    <div class="toast" id="sejira" style="left:84px;top:900px"><img src="vendor/logos/jira.svg"><span>INV-89</span><span class="s" style="background:rgba(134,185,238,.16);color:var(--ice)">In Progress</span></div>
-  </div></section>
-
-  <section class="scene" id="sd" style="--seat:var(--dev)"><div class="cam" id="sdcam">
-    <div class="seatL"><div class="pl" data-role="developer" data-size="270" style="left:290px;top:180px"></div>
-      <div class="nm" style="color:var(--dev)">Developer</div><div class="home">Build bay</div><div class="file">writes 04-developer.md</div>
-      <div class="call" style="color:var(--dev)">One command loads<br>the whole mission.</div></div>
-    <div class="win" id="sdwin" style="height:660px">
-      <div class="top"><span class="dots"><i></i><i></i><i></i></span><img src="vendor/logos/antigravity.svg" style="width:36px;height:36px">Google Antigravity · billing-service<span class="pill" style="background:rgba(134,185,238,.16);color:var(--dev)">Developer</span></div>
-      <div class="term" id="sdterm"></div>
-    </div>
-    <div class="agents" id="sdagents"><span class="lb">WORKS IN ANY CODING AGENT</span>
-      <span class="a"><img src="vendor/logos/antigravity.svg">Antigravity</span><span class="a"><img src="vendor/logos/cursor.svg">Cursor</span><span class="a"><img src="vendor/logos/codex.svg">Codex</span><span class="a"><img src="vendor/logos/copilot.svg">Copilot</span><span class="a"><img src="vendor/logos/claude.svg">Claude Code</span></div>
-  </div></section>
+    <div class="bk-term" id="bkterm"><div class="top"><img src="vendor/logos/antigravity.svg">Google Antigravity · billing-service</div><div class="body" id="bktb"></div></div>
+    <div class="bk-agents" id="bkag">or any coding agent <img src="vendor/logos/claude.svg"><img src="vendor/logos/cursor.svg"><img src="vendor/logos/codex.svg"><img src="vendor/logos/copilot.svg"><img src="vendor/logos/gemini.svg"></div>
+    <div class="bk-atlas" id="bkatlas"><span class="pl" id="bkatp"></span><span>Atlas · billing-service, receipts, reporting</span></div>
+    <div class="bk-stage" id="bkstage"><div class="bk-tilt" id="bktilt">
+      <div class="bk-board"></div>
+      <div class="bk-edge l"></div><div class="bk-edge r"></div>
+      <div id="bkleaves"></div>
+      <div class="bk-spine"></div>
+    </div></div>
+  </section>
 
   <div class="ptr" id="ptr"><svg width="54" height="64" viewBox="0 0 27 32"><path d="M2 2 L2 26 L8.5 20 L13 30 L17 28.2 L12.6 18.6 L21 18.4 Z" fill="var(--pc,#fff)" stroke="#0B0D16" stroke-width="2" stroke-linejoin="round"/></svg><span class="lab" id="ptrlab">You</span></div>
   <div class="ripple" id="ripple"></div>
@@ -408,7 +427,7 @@ em{font-style:italic}
 
   <!-- S10 -->
   <section class="scene" id="s10"><div class="cam" id="s10cam">
-    <div class="abs" id="s10a"><div class="l1" id="s10l1a">Four people. Four files.</div><div class="l2" id="s10l2a">One sentence, all the way to code and back.</div></div>
+    <div class="abs" id="s10a"><div class="l1" id="s10l1a">Every role. One book.</div><div class="l2" id="s10l2a">One sentence, all the way to code and back.</div></div>
     <div class="wm" id="s10N" style="font-size:264px">N</div><div class="wm" id="s10X" style="font-size:264px">X</div>
     <div class="abs center-x" id="s10l1" style="top:680px;font-family:'Instrument Serif';font-size:62px;display:flex;white-space:nowrap">From a business sentence to&nbsp;<em class="gold">verified, shipped code.</em></div>
     <div class="abs center-x kicker" id="s10l2" style="top:800px;color:var(--muted);font-size:30px"><span class="bar"></span>AI Builder Cup 2026 · Built with Google Antigravity<span class="bar"></span></div>

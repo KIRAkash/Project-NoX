@@ -7,7 +7,7 @@ import { mountPlanet } from "./planets.js";
 document.getElementById("gl").appendChild(renderer.domElement);
 $$(".pl[data-role]").forEach((el) => mountPlanet(el, el.dataset.role, +el.dataset.size));
 
-const SCENES = ["./s_intro.js", "./s_atlas.js", "./s_orbit.js", "./s_seats.js", "./s_outro.js"];
+const SCENES = ["./s_intro.js", "./s_atlas.js", "./s_orbit.js", "./s_book.js", "./s_outro.js"];
 
 async function boot() {
   await document.fonts.ready;
