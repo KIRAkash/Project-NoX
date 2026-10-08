@@ -7,12 +7,12 @@ The guard checks the PR's added lines against the rules in each mission app's kn
 import asyncio
 import logging
 import re
-from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..agents.guard import evaluate_diff_against_constraints, extract_constraints_from_kb
+from ..core.time_utils import now_utc
 from ..db.models import ExternalLink, KnowledgeBase, Mission, MissionApp
 from ..services.local_storage import load_checkpoint_json
 from .events import record
@@ -46,7 +46,7 @@ def pr_state(pr: dict) -> dict:
         "state": "merged" if pr.get("merged") else pr.get("state"),
         "branch": (pr.get("head") or {}).get("ref"),
         "author": (pr.get("user") or {}).get("login"),
-        "syncedAt": datetime.utcnow().isoformat(timespec="seconds"),
+        "syncedAt": now_utc().isoformat(timespec="seconds"),
     }
 
 

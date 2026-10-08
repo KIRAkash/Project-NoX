@@ -3,12 +3,12 @@
 import logging
 import re
 import uuid
-from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from ..ai import telemetry
+from ..core.time_utils import now_utc_naive
 from ..db.database import AsyncSessionLocal
 from ..db.models import Mission, MissionApp, Role, SpecFileVersion, SpecStatus
 from .context import jira_context, kb_context, mission_apps
@@ -165,7 +165,7 @@ async def draft_mission_files(mission_id: str) -> None:
                 f.markdown = md
                 f.version += 1
                 f.status = SpecStatus.draft if role == mission.created_as_role else SpecStatus.ai_drafted
-                f.updated_at = datetime.utcnow()
+                f.updated_at = now_utc_naive()
                 db.add(SpecFileVersion(spec_file_id=f.id, version=f.version, markdown=md, source="nox"))
                 if role == Role.business and mission.title == mission.prompt[:120]:
                     mission.title = title_from(md, mission.title)

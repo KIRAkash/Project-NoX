@@ -39,7 +39,7 @@ IMAGE_BASE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}"
 TAG="$(git rev-parse --short HEAD 2>/dev/null || date +%s)"
 DEV_AUTH="${NOX_DEMO_DEV_AUTH:-false}"
 
-run() { if [[ "${DRY_RUN:-}" == 1 ]]; then printf '+'; printf ' %q' "$@"; echo; else "$@"; fi; }
+run() { if [[ "${DRY_RUN:-}" == 1 ]]; then cat >/dev/null 2>&1 || true; printf '+'; printf ' %q' "$@"; echo; else "$@"; fi; }
 say() { printf '\n\033[1m▸ %s\033[0m\n' "$*"; }
 
 # Secret Manager names ↔ settings. Values never go on a command line or into plain env vars.
@@ -78,7 +78,7 @@ secret_flags() {
 enable_apis() {
   say "APIs, bucket, image repository"
   run gcloud services enable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com aiplatform.googleapis.com \
-    storage.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com redis.googleapis.com \
+    storage.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com redis.googleapis.com billingbudgets.googleapis.com \
     cloudtrace.googleapis.com telemetry.googleapis.com --project "$PROJECT"
   gcloud storage buckets describe "gs://${BUCKET}" --project "$PROJECT" >/dev/null 2>&1 || \
     run gcloud storage buckets create "gs://${BUCKET}" --project "$PROJECT" --location "$REGION" --uniform-bucket-level-access
@@ -86,8 +86,34 @@ enable_apis() {
     run gcloud artifacts repositories create "$REPO" --repository-format docker --location "$REGION" --project "$PROJECT"
 }
 
+ensure_billing_budget() {
+  say "Cloud Billing budget guardrail"
+  local billing_account="${GCP_BILLING_ACCOUNT:-}"
+  if [[ -z "$billing_account" && "${DRY_RUN:-}" != 1 ]]; then
+    billing_account="$(gcloud beta billing projects describe "$PROJECT" --format='value(billingAccountName)' 2>/dev/null | sed 's#billingAccounts/##' || true)"
+  fi
+  billing_account="${billing_account:-000000-000000-000000}"
+  local display_name="nox-budget-${PROJECT}"
+  local amount="${NOX_BUDGET_AMOUNT:-100USD}"
+
+  if [[ "${DRY_RUN:-}" != 1 ]]; then
+    local existing_budget
+    existing_budget="$(gcloud billing budgets list --billing-account="$billing_account" --format='value(name)' --filter="displayName='${display_name}'" 2>/dev/null || true)"
+    if [[ -n "$existing_budget" ]]; then
+      echo "  Budget ${display_name} already exists (${existing_budget}), updating..."
+      run gcloud billing budgets update "$existing_budget" --billing-account="$billing_account" \
+        --budget-amount="$amount" --threshold-rule=percent=0.5 --threshold-rule=percent=0.8 --threshold-rule=percent=0.9 --threshold-rule=percent=1.0
+      return
+    fi
+  fi
+
+  run gcloud billing budgets create --billing-account="$billing_account" \
+    --display-name="$display_name" --budget-amount="$amount" --filter-projects="projects/${PROJECT}" \
+    --threshold-rule=percent=0.5 --threshold-rule=percent=0.8 --threshold-rule=percent=0.9 --threshold-rule=percent=1.0
+}
+
 runtime_sa() {
-  echo "${NOX_RUNTIME_SA:-$(gcloud projects describe "$PROJECT" --format 'value(projectNumber)')-compute@developer.gserviceaccount.com}"
+  echo "${NOX_RUNTIME_SA:-$(gcloud projects describe "$PROJECT" --format 'value(projectNumber)' 2>/dev/null || true)-compute@developer.gserviceaccount.com}"
 }
 
 grant_ai_access() {
@@ -131,6 +157,11 @@ grant_shield() {
     run gcloud projects add-iam-policy-binding "$PROJECT" --member "serviceAccount:$(runtime_sa)" \
       --role "$role" --condition None --quiet --format none
   done
+  say "API Quota Ceilings: Model Armor and Vertex AI"
+  run gcloud services consumer-quota overrides create --service=aiplatform.googleapis.com \
+    --metric=aiplatform.googleapis.com/online_prediction_requests --unit=1/min/{project} --override-value=60 --project="$PROJECT" --force
+  run gcloud services consumer-quota overrides create --service=modelarmor.googleapis.com \
+    --metric=modelarmor.googleapis.com/sanitize_user_prompt_requests --unit=1/min/{project} --override-value=60 --project="$PROJECT" --force
 }
 
 grant_analytics() {
@@ -164,7 +195,13 @@ NOX_MEMORY=${NOX_MEMORY:-$([[ -n "${NOX_MEMORY_BANK:-}" ]] && echo memory_bank |
 NOX_MODEL_TRANSCRIBE=${NOX_MODEL_TRANSCRIBE:-},NOX_MODEL_TTS=${NOX_MODEL_TTS:-gemini-3.8-flash-lite-tts},NOX_TTS_VOICE=${NOX_TTS_VOICE:-Kore}"
 }
 
-service_url() { gcloud run services describe "$1" --project "$PROJECT" --region "$REGION" --format 'value(status.url)' 2>/dev/null || true; }
+service_url() {
+  if [[ "${DRY_RUN:-}" == 1 ]]; then
+    echo "https://${1}-dryrun.${REGION}.a.run.app"
+    return
+  fi
+  gcloud run services describe "$1" --project "$PROJECT" --region "$REGION" --format 'value(status.url)' 2>/dev/null || true
+}
 
 build_api() {
   say "Build API image"
@@ -184,7 +221,7 @@ deploy_api() {
   say "Deploy nox-api"
   # shellcheck disable=SC2046
   run gcloud run deploy nox-api "${common_flags[@]}" --image "${IMAGE_BASE}/nox-api:${TAG}" --allow-unauthenticated \
-    --min-instances 0 --max-instances 3 --memory 1Gi --cpu 1 --timeout 900 $(net_flags) \
+    --min-instances 0 --max-instances=5 --concurrency=80 --memory 1Gi --cpu 1 --timeout 900 $(net_flags) \
     --set-env-vars "$(api_env "$web_url")" --set-secrets "$(secret_flags)"
   local api_url; api_url="$(service_url nox-api)"
   run gcloud run services update nox-api "${common_flags[@]}" --update-env-vars "WEBHOOK_BASE_URL=${api_url},NOX_PUBLIC_API_URL=${NOX_PUBLIC_API_URL:-${api_url}}"
@@ -195,7 +232,7 @@ deploy_worker() {
   say "Deploy nox-worker (Celery worker + beat; a tiny health server keeps Cloud Run happy)"
   # shellcheck disable=SC2046
   run gcloud run deploy nox-worker "${common_flags[@]}" --image "${IMAGE_BASE}/nox-api:${TAG}" --no-allow-unauthenticated \
-    --min-instances 1 --max-instances 1 --no-cpu-throttling --memory 2Gi --cpu 2 $(net_flags) \
+    --min-instances 1 --max-instances=1 --concurrency=1 --no-cpu-throttling --memory 2Gi --cpu 2 $(net_flags) \
     --command sh --args="-c,python -m http.server \$PORT & exec celery -A nox_api.workers.tasks worker -B -l info --concurrency 2" \
     --set-env-vars "$(api_env "${web_url:-http://localhost:3000}")" --set-secrets "$(secret_flags)"
 }
@@ -230,16 +267,17 @@ YAML
 
 case "$TARGET" in
   secrets) push_secrets ;;
+  budget) ensure_billing_budget ;;
   api) build_api; deploy_api ;;
   worker) build_api; deploy_worker ;;
   web) deploy_web ;;
   ai-access) grant_ai_access ;;
-  all) enable_apis; grant_ai_access; build_api; deploy_api; deploy_worker; deploy_web
+  all) enable_apis; ensure_billing_budget; grant_ai_access; build_api; deploy_api; deploy_worker; deploy_web
        api_url="$(service_url nox-api)"
        say "Done"
        echo "  Web:  $(service_url nox-web)"
        echo "  API:  ${api_url}"
        echo "  Webhooks: GitHub → ${api_url}/api/v1/webhooks/github/{push,pr}   Jira → ${api_url}/api/v1/webhooks/jira?secret=<JIRA_WEBHOOK_SECRET>"
        ;;
-  *) echo "Usage: $0 [secrets|ai-access|all|api|worker|web]" >&2; exit 2 ;;
+  *) echo "Usage: $0 [secrets|ai-access|budget|all|api|worker|web]" >&2; exit 2 ;;
 esac

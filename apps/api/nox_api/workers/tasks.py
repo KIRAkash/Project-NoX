@@ -5,6 +5,7 @@ from celery import Celery
 from celery.signals import worker_init, worker_process_init
 
 from ..core.config import settings
+from ..core.time_utils import now_utc_naive
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +114,6 @@ def rollup_pipeline_task(self, org_id: str):
 @celery_app.task
 def poll_sources():
     """Universal polling worker for Flow B — checks all active sources (GitHub, Confluence, Notion, Slack, Jira)."""
-    from datetime import datetime
 
     from sqlalchemy import select
 
@@ -153,7 +153,7 @@ def poll_sources():
                         monitor.last_sync_state = delta.new_state
                         if "last_commit_sha" in delta.new_state:
                             monitor.last_commit_sha = delta.new_state["last_commit_sha"]
-                        monitor.last_synced_at = datetime.utcnow()
+                        monitor.last_synced_at = now_utc_naive()
                         await db.commit()
 
                         # Trigger Gatekeeper Pipeline
@@ -171,7 +171,7 @@ def poll_sources():
                             summary=delta.summary,
                         )
                     else:
-                        monitor.last_synced_at = datetime.utcnow()
+                        monitor.last_synced_at = now_utc_naive()
                         await db.commit()
 
                 except Exception as e:

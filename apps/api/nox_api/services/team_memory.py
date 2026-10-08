@@ -19,12 +19,12 @@ import logging
 import re
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.config import settings
+from ..core.time_utils import now_utc_naive
 from ..db.models import Role, TeamMemory
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ class Source:
 
     def as_dict(self) -> dict:
         return {"missionKey": self.mission_key, "eventId": self.event_id, "quote": self.quote[:500], "by": self.by,
-                "role": self.role, "at": datetime.utcnow().isoformat(timespec="seconds")}
+                "role": self.role, "at": now_utc_naive().isoformat(timespec="seconds")}
 
 
 def scope(app: str, seat: Role | None) -> dict[str, str]:
@@ -97,7 +97,7 @@ async def _pg_add(db: AsyncSession, *, org_id, kb_id, seat: Role | None, fact: s
     for row in await _active(db, kb_id, seat):
         if _same(fact, row.fact, vec, row.embedding):
             row.sources = [*(row.sources or []), source.as_dict()][-20:]
-            row.updated_at = datetime.utcnow()
+            row.updated_at = now_utc_naive()
             return [Change(row, "merged")]
     row = TeamMemory(org_id=org_id, kb_id=kb_id, seat=seat, fact=fact, kind=kind, sources=[source.as_dict()],
                      embedding=vec, created_by=user_id)
@@ -262,4 +262,4 @@ async def forget(db: AsyncSession, memory: TeamMemory, user_id) -> None:
             logger.warning(f"Memory Bank couldn't delete {memory.bank_name}: {e}")
     memory.status = "forgotten"
     memory.forgotten_by = user_id
-    memory.forgotten_at = datetime.utcnow()
+    memory.forgotten_at = now_utc_naive()
