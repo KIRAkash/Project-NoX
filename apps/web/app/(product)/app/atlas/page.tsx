@@ -259,8 +259,8 @@ function TeamBody({ node, depth, canManageOrgs, onChanged, filtering }: { node: 
   const { me } = useAuth();
   const canOnboard = me!.capabilities.includes("onboard_app");
   const [adding, setAdding] = useState(false);
-  // An empty team gets a dashed tile; a team with applications offers onboarding in its header instead.
-  const offerOnboard = !filtering && canOnboard && node.apps.length === 0 && (depth > 0 || node.children.length === 0);
+  // Only a team with no applications anywhere beneath it gets a dashed tile; any other team offers onboarding in its header.
+  const offerOnboard = !filtering && canOnboard && tally(node).apps === 0 && (depth > 0 || node.children.length === 0);
   const showGrid = node.apps.length > 0 || offerOnboard || (!filtering && node.children.length === 0);
 
   return (
@@ -335,7 +335,7 @@ function TeamBox({ node, depth, canManageOrgs, onChanged, filtering }: { node: O
             {t.apps} app{t.apps === 1 ? "" : "s"}
             {t.teams > 0 && ` · ${t.teams} team${t.teams === 1 ? "" : "s"}`}
           </span>
-          {canOnboard && !filtering && node.apps.length > 0 && (
+          {canOnboard && !filtering && t.apps > 0 && (
             <Link
               href={`/app/atlas/new?org=${node.id}`}
               className="inline-flex h-7 items-center gap-1 rounded-sm border border-hairline px-2 text-[12px] text-ink-muted hover:border-[color:var(--role)] hover:text-[color:var(--role)]"
