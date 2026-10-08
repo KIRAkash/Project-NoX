@@ -241,7 +241,7 @@ export function build() {
       tl.to(leaf, { rotationY: -180, duration: 0.75, ease: "power2.inOut" }, p.turn);
       tl.fromTo(`${leaf} .bk-shade`, { opacity: 0 }, { opacity: 0.55, duration: 0.375, yoyo: true, repeat: 1, ease: "sine.inOut", immediateRender: false }, p.turn);
       tl.set(leaf, { zIndex: 50 + i }, p.turn + 0.76);
-      cue("whoosh", p.turn, { d: 0.5, soft: true });
+      cue("page", p.turn);
     }
   });
 
@@ -272,7 +272,7 @@ export function build() {
   });
   tl.set("#bkcov", { zIndex: 90 }, CL + 0.32);
   tl.to("#bkcov", { rotationY: 0, duration: 0.45, ease: "power2.inOut" }, CL + 0.32);
-  cue("whoosh", CL, { d: 0.7 });
+  cue("page", CL); cue("page", CL + 0.12); cue("page", CL + 0.24); cue("whoosh", CL + 0.3, { d: 0.5, soft: true });
   tl.to("#sbk .bk-board", { left: 486, duration: 0.4, ease: "power2.inOut" }, CL + 0.36);
   tl.to(["#sbk .bk-edge.l", "#sbk .bk-spine"], { autoAlpha: 0, duration: 0.3 }, CL + 0.36);
   // the closed book settles, smaller, at the centre of the frame

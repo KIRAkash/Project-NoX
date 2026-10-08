@@ -36,12 +36,14 @@ self-serve invoice PDFs, mission NOX-1 on billing-service. The numbers are the o
   renders, so any frame can be rendered alone and in any order. [`render.mjs`](render.mjs) drives headless
   Chromium with Playwright across several pages in parallel. Frames inside a motion-blur zone (fast camera moves,
   whip pans, the ignition) are the average of up to 8 subframes across a 180° shutter.
-- **Sound.** [`score.py`](score.py) writes the orchestral parts as MIDI and plays them through FluidSynth on the
-  MuseScore General soundfont (piano, strings, cello, choir, brass, horn, pizzicato, celesta, timpani), synthesizes
-  drums, sub bass, supersaws, a braam, risers and every sound effect, processes them with Spotify's pedalboard, and
-  masters to -14 LUFS. Act I is in D minor (the piano motif detunes a little at each telephone hop); Act II drops
-  into D major at 120 BPM; Act III lifts to E major and closes on the opening motif in major. Effects are placed
-  from the cue list the timeline exports (`cues.json`).
+- **Sound.** [`score.py`](score.py) is a cinematic hybrid. A felt piano carries the motif, a spiccato cello and
+  contrabass drive the groove, low strings hold the harmony, and low brass and horn land the reveals; these parts are
+  written as MIDI and played through FluidSynth on the MuseScore General soundfont. Taiko, shime, frame drum, shakers,
+  the sub and every sound effect (mechanical keys for people, a graphite scratch for NoX, page turns, a rubber stamp
+  for each signature) are synthesized, processed with Spotify's pedalboard, and mastered to -14 LUFS. Act I is in
+  D minor (the piano motif detunes a little at each telephone hop); Act II drops into D major at 120 BPM; Act III
+  lifts to E major and closes on the opening motif in major. Effects are placed from the cue list the timeline
+  exports (`cues.json`).
 - **Voice.** [`narrate.py`](narrate.py) speaks the script with Kokoro, an open neural TTS model, fitting each line
   into its slot; [`mix_narrated.py`](mix_narrated.py) ducks the score under the voice.
 - **Finish.** `build.sh` grades the frames (a soft glow on highlights and fine luma grain) and encodes H.264.
