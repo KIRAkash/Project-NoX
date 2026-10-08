@@ -35,6 +35,7 @@ Most commands accept `--json` for scripts and agents.
 | Agent | `nox init …` | What it installs |
 | --- | --- | --- |
 | Google Antigravity | `antigravity` | A NoX skill in `~/.gemini/config/skills/nox/` |
+| Gemini CLI | `gemini` | A Gemini CLI extension: NoX's MCP tools, the NoX workflow as context, and the `/nox` command. It lives in `~/.nox/gemini/nox` and is linked into Gemini CLI, so running `nox init gemini` again updates it in place |
 | Cursor | `cursor` | A rule at `.cursor/rules/nox.mdc` |
 | OpenAI Codex | `codex` | A NoX section appended to the repository's `AGENTS.md` |
 | GitHub Copilot | `copilot` | A NoX section in `.github/copilot-instructions.md` |
@@ -48,7 +49,7 @@ Most commands accept `--json` for scripts and agents.
 
 The agent then works through the mission:
 
-1. **Loads the mission** with `nox context NOX-12`: the business requirement, product spec, engineering design and build spec, then the knowledge-base pages after them. The build spec is the plan. The other files explain why, and set the limits.
+1. **Loads the mission** with `nox context NOX-12`: the business requirement, product spec, engineering design and build spec, then the knowledge-base pages after them. The build spec is the plan. The other files explain why, and set the limits. **Team lessons**, when there are any, are rules people taught NoX on earlier missions for this application; the agent follows them too.
 2. **Checks the stage.** If the mission isn't at the developer or build stage yet, it says so and asks before writing code, because the specs above may still change.
 3. **Plans.** It lists the build spec's tasks, maps each to files in the repository, and names what it will reuse. Contracts the engineering design marks *unchanged* stay unchanged. It shows the plan before editing.
 4. **Looks things up instead of guessing,** with `nox search` and `nox read`, including pages in other applications' knowledge bases.
@@ -56,6 +57,17 @@ The agent then works through the mission:
 6. **Tests** with the build spec's test plan and the repository's own tests.
 7. **Opens a pull request** with the mission key in the title, for example `NOX-12: lock accounts after failed logins`.
 8. **Hands back** a summary per task. It never ticks verification checklists; people do that.
+
+## Hand off to Jules
+
+The developer can also give the build to **Jules**, Google's coding agent, without opening an editor. On your build spec, once the mission is in **Build**, choose **Hand off to Jules**:
+
+1. **Pick the repository** (when the mission touches more than one application) and confirm. NoX sends Jules the four spec files, the relevant knowledge-base pages, the team lessons and NoX's rules: the mission key in the PR title, unchanged contracts stay unchanged, and no ticked checklists. NoX Shield checks it for secrets first.
+2. **Approve Jules's plan.** By default Jules plans first and waits. Its steps appear in the **Jira & pull requests** panel with **Approve plan**. You can also **Message Jules**, or answer it when it asks a question.
+3. **Jules builds and opens a pull request.** NoX links it to the mission and runs the guard on it, the same as any other PR.
+4. **You review it and mark the mission completed.** Verification runs as usual. Jules never verifies anything.
+
+The button is always on your build spec. When Jules can't be used it is greyed out, and a line under it says why and where to fix it: Jules isn't connected yet (see [Integrations](/docs/integrations#jules)), Jules can't see the repository, or the application has no GitHub repository in NoX. While Jules is working, the button shows what Jules is doing instead, for example *Plan ready for you*.
 
 ## The guard on every pull request
 
@@ -121,6 +133,7 @@ Choose **Send back** on your checklist, then:
    - **Developer** (the default): the requirement stands, and the build needs another pass. The mission returns to **Build**.
    - **An earlier seat**: the requirement itself was wrong. The mission returns to that seat, and its file reopens as a draft to be fixed and re-approved.
 3. The note is recorded on the timeline and posted to the Jira ticket.
+4. **Remember this for next time** (ticked by default) lets NoX keep a lesson from your note and the failing items for later missions on this application. See [Missions](/docs/missions#sending-a-mission-back).
 
 The seat it goes back to sees a short update at the top of the mission: who sent it, the round, and only the items that failed, with their notes and evidence. There is no comment thread. An update is one of four kinds, worked out from the items: **verified**, **partly works** (some passed, some didn't), **needs rework** or **blocked**.
 

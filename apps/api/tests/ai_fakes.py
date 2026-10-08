@@ -139,3 +139,10 @@ def use_fake(monkeypatch, fake: FakeLlm) -> FakeLlm:
     monkeypatch.setattr(config, "model", lambda tier=None: fake)
     monkeypatch.setattr(config, "local_model", lambda: fake)
     return fake
+
+
+# ── Team memory: what the lesson finder returns for a send-back ──
+
+def lessons(*items: tuple[str, str] | tuple[str, str, list]) -> LlmResponse:
+    """(fact, quote[, seats]) per lesson."""
+    return data({"items": [{"fact": i[0], "quote": i[1], "seats": i[2] if len(i) > 2 else [], "kind": "team_rule"} for i in items]})

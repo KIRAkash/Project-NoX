@@ -264,3 +264,22 @@ class SightingViews(BaseModel):
     product: SeatSighting | None = None
     engineering: SeatSighting | None = None
     developer: SeatSighting | None = None
+
+
+# ── Team memory (CP20) ───────────────────────────────────────────────────────
+
+
+class Lesson(BaseModel):
+    fact: str = Field(description="One sentence, a rule for future changes to this application, in plain words. No people's names.")
+    seats: list[Literal["business", "product", "engineering", "developer"]] = Field(
+        default_factory=list, description="The seats whose files should apply it; empty means every seat")
+    quote: str = Field(description="The exact words from the feedback this lesson rests on, copied verbatim")
+    kind: Literal["team_rule", "quality_bar", "domain_fact"] = Field(
+        "team_rule", description="team_rule: how this team builds; quality_bar: what it checks before accepting work; "
+                                 "domain_fact: a fact about the business it corrected")
+
+
+class Lessons(BaseModel):
+    """What a person's feedback teaches for future missions on this application. Often nothing."""
+
+    items: list[Lesson] = Field(default_factory=list, max_length=3)

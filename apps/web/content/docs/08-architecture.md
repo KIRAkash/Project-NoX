@@ -61,12 +61,13 @@ scripts/                  deploy, naming check, KB benchmark, Ask eval
 
 ```text
 orgs ──(parent_org_id)──▶ orgs                    teams nest to any depth
-orgs ──▶ knowledge_bases (= applications) ──▶ source_monitors, kb_events, kb_pins, org_interface_contracts
+orgs ──▶ knowledge_bases (= applications) ──▶ source_monitors, kb_events, kb_pins, org_interface_contracts,
+                                                team_memories (lessons per application and seat)
 users ──▶ memberships ──▶ orgs                    who can see what
 users ──▶ api_tokens                              CLI sign-in (hashed)
 orgs ──▶ missions ──▶ mission_apps ──▶ knowledge_bases
                  ├──▶ spec_files (one per seat) ──▶ spec_file_versions, spec_chat_messages
-                 ├──▶ external_links (Jira issues, pull requests)
+                 ├──▶ external_links (Jira issues, pull requests, Jules sessions)
                  └──▶ mission_events (the timeline and audit trail)
 ```
 
@@ -92,7 +93,7 @@ Business ─▶ Product ─▶ Engineering ─▶ Developer ─▶ Build ─▶ 
 
 ## Work in the background
 
-Everything slow runs as a job: builds, syncs, rollups, drafts, co-writer turns, Git mirroring, Jira calls and the PR guard. The API validates the request, writes the state, queues the job and returns straight away. Jobs run on **Celery** workers over Redis in production. `WORKER_MODE=in_process` runs them inside the API instead, which is handy for small deployments and development.
+Everything slow runs as a job: builds, syncs, rollups, drafts, co-writer turns, learning a lesson from a send-back, Git mirroring, Jira calls, the PR guard and following a Jules session (a watcher per hand-off, and a `jules_tick` on Celery beat every minute as the safety net). The API validates the request, writes the state, queues the job and returns straight away. Two model calls do run in a request, because a person is waiting for them and both stream: an Ask answer, and the transcription of a voice recording. Jobs run on **Celery** workers over Redis in production. `WORKER_MODE=in_process` runs them inside the API instead, which is handy for small deployments and development.
 
 Each job writes events as it goes, and each event is published to Redis, so every browser watching that application or mission gets it over **server-sent events** immediately: flight-log lines, trajectory changes, the co-writer's section edits, timeline entries.
 
@@ -103,6 +104,8 @@ A knowledge-base build is an ADK workflow graph (cartographer, parallel page wri
 - **Identity**: Firebase ID tokens on every web request, verified server-side; hashed personal tokens for the CLI, issued through a browser-approved device flow.
 - **Authorization**: the access matrix is checked on every route; membership decides which organizations and applications are visible; spec files are writable only by their own seat.
 - **Agent scope**: tools read the caller's permissions from session state set by NoX, so model output can't widen what an agent can see. MCP and A2A callers get their scope from their token the same way.
+- **Outbound to Jules**: the prompt a hand-off sends passes the same secret gate and Sensitive Data Protection check as a knowledge-base commit. Only the developer seat can start a hand-off, approve Jules's plan or message Jules.
+- **Voice**: a recording stays in memory and is dropped after it is written down; its words are screened like typed text when the person sends them. Transcription is rate-limited per person.
 - **Untrusted text**: NoX Shield screens sources, questions and chat with Model Armor, and knowledge-base pages with Sensitive Data Protection.
 - **Webhooks**: GitHub requests are verified by HMAC signature and Jira requests by a shared secret. `WEBHOOK_SECRET` must be a strong random value of at least 16 characters, or the API won't start. (Signature checks for the Slack and Confluence webhooks are on the [roadmap](/docs/roadmap).)
 - **Network**: CORS allows only the web origin, and in production the web app proxies API calls on the same origin.

@@ -115,7 +115,31 @@ export type SpecFile = {
   };
 };
 
-export type MissionLink = { system: "jira" | "github_pr"; externalId: string; url: string | null; primary: boolean; state: Record<string, unknown> };
+export type MissionLink = { system: "jira" | "github_pr" | "jules"; externalId: string; url: string | null; primary: boolean; state: Record<string, unknown> };
+
+/** Hand off to Jules (CP20): why the button is or isn't available, and the mission's Jules sessions. */
+export type JulesReadinessState = "not_configured" | "failing" | "no_repo" | "repo_not_connected" | "ready";
+export type JulesRepo = { app: string; repo: string; source: string; connected: boolean; branch: string };
+export type JulesSession = {
+  id: string;
+  url: string | null;
+  repo: string | null;
+  branch: string | null;
+  state: string;
+  label: string;
+  active: boolean;
+  plan: { title: string; description: string }[];
+  planApproved: boolean;
+  requirePlanApproval: boolean;
+  question: string | null;
+  message: string | null;
+  progress: string | null;
+  prUrl: string | null;
+  reason: string | null;
+  startedBy: string | null;
+  startedAt: string | null;
+};
+export type JulesStatus = { readiness: { state: JulesReadinessState; detail: string; repos: JulesRepo[] }; sessions: JulesSession[]; canAct: boolean };
 
 export type Mission = {
   id: string;

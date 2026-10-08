@@ -14,7 +14,8 @@ NoX connects to the systems an enterprise already runs. It reads them to build k
 | **File uploads** | OpenAPI, AsyncAPI, PDFs, diagrams, documents | — | — |
 | **Google Gemini** | — | — | Model calls through the Gemini Enterprise Agent Platform |
 | **Firebase Authentication** | Who you are (Google sign-in) | — | — |
-| **Coding agents** | — | — | `/nox` in Google Antigravity, Cursor, Codex, Copilot and Claude Code |
+| **Jules** | Its sessions, plans and pull requests | Hand-offs: a session per mission repository, plan approvals, replies | Polling while a session is active |
+| **Coding agents** | — | — | `/nox` in Google Antigravity, Gemini CLI, Cursor, Codex, Copilot and Claude Code |
 | **Any MCP client** | — | — | NoX's tools over the Model Context Protocol at `/mcp` |
 | **Any A2A agent** | — | — | NoX's Ask agent over Agent2Agent at `/a2a/ask` |
 
@@ -81,6 +82,20 @@ Webhooks need a URL the outside world can reach. In production that is the `nox-
 
 If you'd rather not expose anything, set `SOURCE_MONITOR_MODE=polling`: NoX checks every source for changes on a schedule instead. **Check sources for updates** on an application's page checks immediately. (Two-way Jira sync still needs the webhook.)
 
+## Jules
+
+**Jules** is Google's asynchronous coding agent. With it connected, the developer can choose **Hand off to Jules** on a mission in Build: NoX starts a Jules session on the application's repository with the mission's spec files, Jules plans and (once the developer approves the plan) builds, and its pull request comes back to the mission with the guard on it. See [Build and verify](/docs/build-and-verify#hand-off-to-jules).
+
+To connect it:
+
+1. Create an API key in the Jules web app: **Settings → API** (an account can have three).
+2. In the Jules web app, install the Jules GitHub app on your applications' repositories. Jules can only work on repositories it can see.
+3. Set `JULES_API_KEY` (Secret Manager in the cloud), then **Check again** on **Atlas → Connectors**. The Jules card shows how many repositories it can see.
+
+Until then the **Hand off to Jules** button stays on the developer's build spec, greyed out, with a line saying what's missing. NoX polls an active session every 20 seconds while the mission page is open and every minute from the worker, so a hand-off keeps going after the page is closed.
+
+`JULES_API_KEY` · `JULES_API_URL` (default `https://jules.googleapis.com/v1alpha`)
+
 ## Signing in: Firebase
 
 People sign in with Google through **Firebase Authentication**. The web app sends the Firebase ID token with every request, and the API verifies it with `firebase-admin`. There are no passwords to manage and no session secrets to rotate. For local development only, `NOX_DEV_AUTH` enables a one-field sign-in.
@@ -89,7 +104,7 @@ People sign in with Google through **Firebase Authentication**. The web app send
 
 ## Coding agents
 
-The `nox` CLI installs `/nox` into Google Antigravity, Cursor, OpenAI Codex, GitHub Copilot and Claude Code (`nox init <agent>`). The agent can then load a mission, search and read knowledge bases, link its pull request and mark the mission complete. See [Build and verify](/docs/build-and-verify).
+The `nox` CLI installs `/nox` into Google Antigravity, Gemini CLI, Cursor, OpenAI Codex, GitHub Copilot and Claude Code (`nox init <agent>`). For Gemini CLI it installs an extension that carries NoX's MCP tools along with the command. The agent can then load a mission, search and read knowledge bases, link its pull request and mark the mission complete. See [Build and verify](/docs/build-and-verify).
 
 ## MCP: NoX's tools inside any agent
 

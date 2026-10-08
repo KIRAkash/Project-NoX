@@ -2,7 +2,8 @@
 # Deploy NoX to Google Cloud Run: nox-api, nox-worker, nox-web.
 #
 #   scripts/deploy_gcp.sh secrets        copy secret values from .env into Secret Manager
-#   scripts/deploy_gcp.sh ai-access      let the runtime service account call Gemini, Model Armor, DLP and BigQuery
+#   scripts/deploy_gcp.sh ai-access      let the runtime service account call Gemini, Model Armor, DLP, BigQuery,
+#                                        Memory Bank and Cloud Trace
 #   scripts/deploy_gcp.sh [all|api|worker|web]
 #   DRY_RUN=1 scripts/deploy_gcp.sh all  print the gcloud commands instead of running them
 #
@@ -43,7 +44,7 @@ say() { printf '\n\033[1m▸ %s\033[0m\n' "$*"; }
 
 # Secret Manager names ↔ settings. Values never go on a command line or into plain env vars.
 SECRETS=(GITHUB_APP_PRIVATE_KEY GITHUB_APP_TOKEN WEBHOOK_SECRET JIRA_API_TOKEN JIRA_WEBHOOK_SECRET
-         CONFLUENCE_API_TOKEN NOTION_API_TOKEN SLACK_BOT_TOKEN SLACK_SIGNING_SECRET CLOUD_DATABASE_URL)
+         CONFLUENCE_API_TOKEN NOTION_API_TOKEN SLACK_BOT_TOKEN SLACK_SIGNING_SECRET JULES_API_KEY CLOUD_DATABASE_URL)
 secret_name() { echo "nox-$(echo "$1" | tr '[:upper:]_' '[:lower:]-')"; }
 
 push_secrets() {
@@ -77,7 +78,8 @@ secret_flags() {
 enable_apis() {
   say "APIs, bucket, image repository"
   run gcloud services enable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com aiplatform.googleapis.com \
-    storage.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com redis.googleapis.com --project "$PROJECT"
+    storage.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com redis.googleapis.com \
+    cloudtrace.googleapis.com telemetry.googleapis.com --project "$PROJECT"
   gcloud storage buckets describe "gs://${BUCKET}" --project "$PROJECT" >/dev/null 2>&1 || \
     run gcloud storage buckets create "gs://${BUCKET}" --project "$PROJECT" --location "$REGION" --uniform-bucket-level-access
   gcloud artifacts repositories describe "$REPO" --location "$REGION" --project "$PROJECT" >/dev/null 2>&1 || \
@@ -102,6 +104,13 @@ grant_ai_access() {
     --role roles/datastore.user --condition None --quiet --format none
   grant_shield
   grant_analytics
+  # Team memory (Agent Platform Memory Bank) and agent traces (Cloud Trace through the Telemetry API).
+  say "Memory Bank and Cloud Trace"
+  run gcloud services enable cloudtrace.googleapis.com telemetry.googleapis.com --project "$PROJECT"
+  for role in roles/aiplatform.memoryUser roles/cloudtrace.agent; do
+    run gcloud projects add-iam-policy-binding "$PROJECT" --member "serviceAccount:$(runtime_sa)" \
+      --role "$role" --condition None --quiet --format none
+  done
 }
 
 SHIELD_TEMPLATE="${NOX_SHIELD_TEMPLATE:-nox-shield}"
@@ -150,7 +159,9 @@ ATLASSIAN_BASE_URL=${ATLASSIAN_BASE_URL:-},ATLASSIAN_EMAIL=${ATLASSIAN_EMAIL:-},
 JIRA_ALLOWED_PROJECTS=${JIRA_ALLOWED_PROJECTS:-TWPOL,TWCLM},GITHUB_APP_ID=${GITHUB_APP_ID:-},GITHUB_APP_INSTALLATION_ID=${GITHUB_APP_INSTALLATION_ID:-},\
 GITHUB_DEFAULT_ORG=${GITHUB_DEFAULT_ORG:-},GITHUB_APP_SLUG=${GITHUB_APP_SLUG:-nox-gitops},NOX_COMMIT_SPECS=${NOX_COMMIT_SPECS:-true},\
 NOX_SHIELD=${NOX_SHIELD:-enforce},NOX_SHIELD_TEMPLATE=${SHIELD_TEMPLATE},NOX_SHIELD_LOCATION=${SHIELD_LOCATION},\
-NOX_ANALYTICS=${NOX_ANALYTICS:-bigquery},NOX_BQ_DATASET=${BQ_DATASET}"
+NOX_ANALYTICS=${NOX_ANALYTICS:-bigquery},NOX_BQ_DATASET=${BQ_DATASET},NOX_TRACE=${NOX_TRACE:-cloud},\
+NOX_MEMORY=${NOX_MEMORY:-$([[ -n "${NOX_MEMORY_BANK:-}" ]] && echo memory_bank || echo postgres)},NOX_MEMORY_BANK=${NOX_MEMORY_BANK:-},\
+NOX_MODEL_TRANSCRIBE=${NOX_MODEL_TRANSCRIBE:-},NOX_MODEL_TTS=${NOX_MODEL_TTS:-gemini-3.8-flash-lite-tts},NOX_TTS_VOICE=${NOX_TTS_VOICE:-Kore}"
 }
 
 service_url() { gcloud run services describe "$1" --project "$PROJECT" --region "$REGION" --format 'value(status.url)' 2>/dev/null || true; }

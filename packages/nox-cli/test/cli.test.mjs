@@ -49,3 +49,29 @@ test("nox mcp prints settings and install merges without touching other servers"
   assert.equal(file.mcpServers.nox.headers["X-Nox-Role"], "engineering");
   assert.equal(run("mcp", "install", "nope").status, 2);
 });
+
+test("nox init gemini writes a Gemini CLI extension with NoX's MCP server and /nox", async () => {
+  const { readFileSync, statSync } = await import("node:fs");
+  const home = mkdtempSync(join(tmpdir(), "noxhome-"));
+  const cfgDir = mkdtempSync(join(tmpdir(), "noxcfg-"));
+  const e = { ...env, HOME: home, NOX_CONFIG_DIR: cfgDir, NOX_TOKEN: "nox_secret", NOX_API: "https://nox.example.com" };
+  const r = spawnSync(process.execPath, [bin, "init", "gemini", "--no-link", "--role", "engineering"], { env: e, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.doesNotMatch(r.stdout, /nox_secret/);
+  const dir = join(cfgDir, "gemini", "nox");
+  const manifest = JSON.parse(readFileSync(join(dir, "gemini-extension.json"), "utf8"));
+  assert.equal(manifest.name, "nox");
+  assert.equal(manifest.contextFileName, "GEMINI.md");
+  assert.equal(manifest.mcpServers.nox.httpUrl, "https://nox.example.com/mcp");
+  assert.equal(manifest.mcpServers.nox.headers.Authorization, "Bearer nox_secret");
+  assert.equal(manifest.mcpServers.nox.headers["X-Nox-Role"], "engineering");
+  assert.equal(statSync(join(dir, "gemini-extension.json")).mode & 0o077, 0); // the token stays private
+  const command = readFileSync(join(dir, "commands", "nox.toml"), "utf8");
+  assert.match(command, /!\{nox context \{\{args\}\}\}/);
+  assert.match(readFileSync(join(dir, "GEMINI.md"), "utf8"), /\/nox NOX-<n>/);
+
+  // Signed out: the command and context still install, without the MCP server.
+  const out = spawnSync(process.execPath, [bin, "init", "gemini", "--no-link"], { env: { ...e, NOX_TOKEN: "", NOX_CONFIG_DIR: mkdtempSync(join(tmpdir(), "noxcfg-")) }, encoding: "utf8" });
+  assert.equal(out.status, 0);
+  assert.match(out.stdout, /nox login/);
+});

@@ -10,6 +10,7 @@ import { CaptureBar } from "@/components/app/media/capture-bar";
 import { CaptureCard } from "@/components/app/media/capture-card";
 import { visibleCaptures } from "@/components/app/media/evidence-tab";
 import { PageHeader, Panel, useToast } from "@/components/app/ui";
+import { VoiceInput } from "@/components/app/voice-input";
 import { LiquidMetalButton } from "@/components/liquid-metal/liquid-metal";
 import { api, ApiError } from "@/lib/app/api";
 import { useAuth } from "@/lib/app/auth";
@@ -167,6 +168,7 @@ export default function NewMissionPage() {
             aria-label="The request"
             className="w-full resize-y rounded-sm border border-hairline bg-deck p-3 text-[15px] leading-relaxed text-ink outline-none focus:border-[color:var(--role)]"
           />
+          <VoiceInput value={prompt} onChange={setPrompt} label="Or say it out loud" className="mt-2 w-full justify-end" />
           <div className="mt-4 border-t border-hairline pt-4">
             <CaptureBar global onMedia={onCapture} />
             {captures.length > 0 && (

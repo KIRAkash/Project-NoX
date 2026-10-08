@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 from celery import Celery
+from celery.signals import worker_init, worker_process_init
 
 from ..core.config import settings
 
@@ -21,6 +22,15 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
 )
+
+
+@worker_init.connect
+@worker_process_init.connect
+def _start_tracing(**_):
+    """Spans from jobs go to Cloud Trace too: once per worker (threads pool) or per child process (prefork)."""
+    from ..ai import tracing
+
+    tracing.setup("nox-worker")
 
 
 def _run_async(coro):
@@ -223,7 +233,16 @@ def sightings_tick():
     _run_async(tick())
 
 
+@celery_app.task
+def jules_tick():
+    """Poll active Jules sessions: the safety net behind the watcher each hand-off starts in the API."""
+    from ..missions.jules import tick
+
+    return _run_async(tick())
+
+
 celery_app.conf.beat_schedule = {
     **(celery_app.conf.beat_schedule or {}),
     "sightings-tick-every-15-min": {"task": sightings_tick.name, "schedule": 900.0},
+    "jules-tick-every-minute": {"task": jules_tick.name, "schedule": 60.0},
 }

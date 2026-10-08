@@ -56,9 +56,10 @@ def change_signals(mission: Mission, role: Role) -> str:
 
 def build_prompt(mission: Mission, role: Role, upstream: dict[Role, str], context: str, current: str | None = None,
                  instruction: str | None = None, editing: bool = False, evidence: list | None = None,
-                 origin: str | None = None) -> str:
+                 origin: str | None = None, lessons: str | None = None) -> str:
     """The writer's request. `evidence` is the mission's analysed captures (missions/media.py `MediaEvidence`);
-    `origin` is the NoX sighting the mission was started from (missions/sightings.py `origin_brief`)."""
+    `origin` is the NoX sighting the mission was started from (missions/sightings.py `origin_brief`); `lessons` is
+    what people taught NoX on earlier missions (missions/memory.py `render`)."""
     parts = [
         f"Mission {mission.key}: {mission.title}",
         f'Original request (verbatim): "{mission.prompt}"',
@@ -78,6 +79,8 @@ def build_prompt(mission: Mission, role: Role, upstream: dict[Role, str], contex
         from .media import render_evidence
 
         parts.append("\n" + render_evidence(evidence, role))
+    if lessons:
+        parts.append("\n" + lessons)
     parts.append(f"\n===== Knowledge base context =====\n{context}")
     if current:
         parts.append(
@@ -105,12 +108,12 @@ def title_from(markdown: str, fallback: str) -> str:
 
 async def generate_file(mission: Mission, role: Role, upstream: dict[Role, str], context: str,
                         current: str | None = None, instruction: str | None = None, apps: dict[str, str] | None = None,
-                        evidence: list | None = None, origin: str | None = None) -> str:
+                        evidence: list | None = None, origin: str | None = None, lessons: str | None = None) -> str:
     """NoX's drafter agent writes the file; it may look facts up in the mission's applications first."""
     from ..ai.agents import cowriter
 
     return await cowriter.draft(mission, role, upstream=upstream, context=context, apps=apps or {},
-                                current=current, instruction=instruction, evidence=evidence, origin=origin)
+                                current=current, instruction=instruction, evidence=evidence, origin=origin, lessons=lessons)
 
 
 async def draft_mission_files(mission_id: str) -> None:
@@ -134,6 +137,9 @@ async def draft_mission_files(mission_id: str) -> None:
 
             sighting = await db.get(Sighting, mission.sighting_id)
         files = {f.role: f for f in mission.files}
+        from . import memory
+
+        names = await memory.app_names(db, mission)
         upstream: dict[Role, str] = {}
         for role in ROLE_ORDER:
             f = files.get(role)
@@ -141,6 +147,7 @@ async def draft_mission_files(mission_id: str) -> None:
                 continue
             if f.status == SpecStatus.drafting:
                 await record(db, mission, "file.drafting", {"role": role.value})
+                lessons = await memory.lessons_for(db, mission, role)  # what people taught NoX on earlier missions
                 try:
                     with telemetry.usage_scope(f"draft-file:{role.value}", org_id=mission.org_id, mission_id=mission.id) as usage:
                         origin = None
@@ -148,7 +155,8 @@ async def draft_mission_files(mission_id: str) -> None:
                             from .sightings import origin_brief
 
                             origin = origin_brief(sighting, role)
-                        md = await generate_file(mission, role, upstream, context, apps=apps, evidence=evidence, origin=origin)
+                        md = await generate_file(mission, role, upstream, context, apps=apps, evidence=evidence, origin=origin,
+                                                 lessons=memory.render(lessons, role, names))
                 except Exception as e:
                     logger.exception(f"drafting {mission.key}/{role.value} failed")
                     f.status = SpecStatus.empty if role != mission.created_as_role else SpecStatus.draft
@@ -164,6 +172,7 @@ async def draft_mission_files(mission_id: str) -> None:
                 await db.commit()
                 await record(db, mission, "file.drafted", {"role": role.value, "version": f.version,
                                                            "citations": len(_CITATION.findall(md)), "tokens": usage.tokens()})
+                await memory.record_applied(db, mission, role, lessons, md)
                 from .gitsync import schedule_sync
 
                 schedule_sync(mission.id, role, f"{mission.key}: NoX drafts the {TITLE[role].lower()}")

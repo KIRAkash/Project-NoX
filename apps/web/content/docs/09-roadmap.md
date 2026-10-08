@@ -4,6 +4,10 @@ NoX connects the entire delivery trajectory from a business user's first sentenc
 
 ## Recently shipped
 
+- **Team memory.** Send-backs teach NoX lessons per application and seat, kept in the Agent Platform Memory Bank and cited in later drafts. See [Missions](/docs/missions#sending-a-mission-back).
+- **Voice.** A microphone on every NoX text box, and Listen on NoX's replies. See [Missions](/docs/missions#speaking-instead-of-typing).
+- **Hand off to Jules.** Google's coding agent builds a mission while people approve its plan and verify the result. See [Build and verify](/docs/build-and-verify#hand-off-to-jules).
+- **`/nox` in Gemini CLI**, as an extension with NoX's MCP tools, and **Cloud Trace** for every agent run.
 - **Agents that call each other.** NoX's knowledge tools over the Model Context Protocol, and its Ask agent over Agent2Agent. See [Integrations](/docs/integrations#mcp-nox-s-tools-inside-any-agent).
 - **NoX Shield.** Model Armor and Sensitive Data Protection on everything NoX reads and writes. See [Agentic AI on Google](/docs/google-ai#nox-shield-model-armor-and-sensitive-data-protection).
 - **The flight recorder.** Mission events and AI usage in BigQuery, and the Impact page.
@@ -31,11 +35,11 @@ Pieces that are designed and partly built:
 
 **NoX inside the tools people already use.** An agent that joins the Jira ticket, the Slack thread and the Google Chat space where a request first appears, and offers to turn it into a mission there. A Google Docs add-on so a business user can ask for a change from the document they're already writing.
 
-**Voice for the first sentence.** A business user describes the change out loud, on a call or in the car, using Gemini's live audio, and NoX drafts the business requirement back for them to confirm.
+**A conversation, not just a microphone.** Today a person speaks into a text box and NoX writes it down. Next, with Gemini's live audio, NoX asks its clarifying questions back out loud, on a call or in the car, and drafts the business requirement for them to confirm.
 
 **One knowledge format for code and data.** Google's OKF reference agent already writes OKF bundles for BigQuery datasets: tables, metrics and join paths. Because NoX's knowledge bases are OKF too, the two can be linked: an application's page for the `orders` service can point at the BigQuery table it writes, and a question like "which services feed this metric?" can be answered across both. Every bundle can also be published to a shared catalog, so the company's code and data knowledge is discoverable in one place.
 
-**Managed agent hosting.** Moving the long-running agent teams onto **Vertex AI Agent Engine** gives them managed sessions, memory and scaling, so NoX's own services stay small and the knowledge-base builders scale with demand.
+**Managed agent hosting.** Team memory already lives in the Agent Platform Memory Bank. Moving the long-running agent teams onto **Agent Engine** too gives them managed sessions and scaling, so NoX's own services stay small and the knowledge-base builders scale with demand.
 
 ## The autonomous enterprise: a self-governing software network
 

@@ -11,6 +11,7 @@ from ..core.auth import Cap, require
 from ..core.config import settings
 from ..integrations import atlassian
 from ..integrations.jira import JiraClient, JiraError
+from ..integrations.jules import JulesError
 
 logger = logging.getLogger(__name__)
 router = APIRouter(
@@ -76,6 +77,15 @@ async def _check_gemini(client: httpx.AsyncClient) -> str:
     return f"model {settings.GEMINI_MODEL} available"
 
 
+async def _check_jules(client: httpx.AsyncClient) -> str:
+    from ..integrations.jules import JulesClient
+    from ..missions.jules import forget_sources
+
+    forget_sources()  # a check from Connectors should see repositories connected a moment ago
+    sources = await JulesClient(client).list_sources()
+    return f"{len(sources)} repositor{'y' if len(sources) == 1 else 'ies'} connected"
+
+
 async def _check_ollama(client: httpx.AsyncClient) -> str:
     res = await client.get(f"{settings.GEMMA_OLLAMA_URL.rstrip('/')}/api/tags")
     res.raise_for_status()
@@ -98,6 +108,7 @@ def _integrations() -> list[tuple[str, bool, bool, Callable[[httpx.AsyncClient],
         ("confluence", True, atlassian_base and _set(settings.CONFLUENCE_API_TOKEN or settings.JIRA_API_TOKEN), _check_confluence),
         ("notion", True, _set(settings.NOTION_API_TOKEN), _check_notion),
         ("slack", False, _set(settings.SLACK_BOT_TOKEN), _check_slack),
+        ("jules", False, _set(settings.JULES_API_KEY), _check_jules),
         ("gemini", True, _set(settings.GEMINI_API_KEY), _check_gemini),
         ("ollama", local_ai, local_ai, _check_ollama),
     ]
@@ -110,7 +121,7 @@ async def _run(name: str, required: bool, configured: bool, check, client: httpx
     try:
         detail = await asyncio.wait_for(check(client), timeout=CHECK_TIMEOUT_SECONDS)
         return {**result, "ok": True, "detail": detail}
-    except (httpx.HTTPStatusError, JiraError) as e:
+    except (httpx.HTTPStatusError, JiraError, JulesError) as e:
         code = e.response.status_code if isinstance(e, httpx.HTTPStatusError) else e.status
         rejected = code in (401, 403) or (name == "confluence" and code == 404)  # Confluence answers bad auth with 404
         hint = " (credentials rejected — token expired or wrong account?)" if rejected else ""

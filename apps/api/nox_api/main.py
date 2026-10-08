@@ -8,16 +8,33 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from starlette.routing import Route
 
+from .ai import tracing
 from .connectors.base import IngestionAuthError, IngestionError, IngestionRateLimitError
 from .core.config import cors_origins, settings, validate_required_settings
 from .core.logging import RequestIdMiddleware, configure_logging
 from .db.database import engine, init_db
 from .interop import a2a, mcp_server
-from .routers import cli, integrations, jira, kb, me, media, missions, orgs, sightings, sources, webhooks
+from .routers import (
+    cli,
+    integrations,
+    jira,
+    jules,
+    kb,
+    me,
+    media,
+    memory,
+    missions,
+    orgs,
+    sightings,
+    sources,
+    voice,
+    webhooks,
+)
 from .services.sse import get_sse_manager
 
 configure_logging()
 logger = logging.getLogger("nox")
+tracing.setup("nox-api")  # before any ADK Runner exists
 
 
 @asynccontextmanager
@@ -78,6 +95,9 @@ app.include_router(missions.router)
 app.include_router(media.router)
 app.include_router(media.mission_router)
 app.include_router(jira.router)
+app.include_router(jules.router)
+app.include_router(memory.router)
+app.include_router(voice.router)
 app.include_router(cli.router)
 app.include_router(sightings.router)
 app.include_router(sightings.org_router)

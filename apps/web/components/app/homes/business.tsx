@@ -10,6 +10,7 @@ import { CaptureCard } from "@/components/app/media/capture-card";
 import { visibleCaptures } from "@/components/app/media/evidence-tab";
 import { SightingCard } from "@/components/app/sighting-card";
 import { EmptyState, useToast } from "@/components/app/ui";
+import { VoiceInput } from "@/components/app/voice-input";
 import { LiquidMetalButton } from "@/components/liquid-metal/liquid-metal";
 import { api, ApiError } from "@/lib/app/api";
 import type { RoleDef } from "@/lib/app/roles";
@@ -173,6 +174,7 @@ function RequestComposer({ role }: { role: RoleDef }) {
         placeholder={EXAMPLES[0]}
         className="mt-4 w-full resize-y rounded-lg border border-hairline bg-[rgba(5,6,11,.6)] p-4 text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-dim focus:border-[color:var(--role)]"
       />
+      <VoiceInput value={prompt} onChange={setPrompt} label="Or just say it" className="mt-2 w-full justify-end" />
       <div className="mt-3">
         <CaptureBar
           global
