@@ -265,6 +265,10 @@ class Mission(Base):
     proceeded_without_approval = Column(Boolean, nullable=False, default=False)
     completed_at = Column(DateTime, nullable=True)
     sighting_id = Column(UUID(as_uuid=True), ForeignKey("sightings.id", ondelete="SET NULL", use_alter=True), nullable=True)  # started from a NoX sighting (CP18)
+    # Cancelled by its creator: kept, read-only, out of every lane, and can be restored. Stage is left as it was.
+    cancelled_at = Column(DateTime, nullable=True)
+    cancelled_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    cancel_reason = Column(String, nullable=True)
     created_at = Column(DateTime, default=now_utc_naive)
     updated_at = Column(DateTime, default=now_utc_naive, onupdate=now_utc_naive)
 

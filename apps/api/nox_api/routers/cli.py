@@ -25,7 +25,7 @@ from ..missions.gitsync import slug
 from ..missions.jira_sync import mission_url
 from ..missions.prs import guard_pr, parse_pr_url, upsert_pr_link
 from ..missions.templates import TITLE
-from .missions import load_mission, mission_apps, mission_json
+from .missions import load_live_mission, load_mission, mission_apps, mission_json
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["CLI"])
@@ -227,7 +227,7 @@ class PrLink(BaseModel):
 @router.post("/api/v1/cli/missions/{key}/prs")
 async def link_pr(key: str, body: PrLink, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
     """Link a PR to the mission (the webhook does this on its own when the PR names NOX-n) and run the guard."""
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     try:
         full_name, number = parse_pr_url(body.url)
     except ValueError as e:

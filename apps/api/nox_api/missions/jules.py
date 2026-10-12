@@ -300,8 +300,8 @@ async def poll_one(mission_id, sid: str) -> str | None:
     async with AsyncSessionLocal() as db:
         mission = await _load(db, mission_id)
         link = next((link for link in (mission.links if mission else []) if link.system == "jules" and link.external_id == sid), None)
-        if not link or not api.configured() or (link.state or {}).get("state") in api.DONE or _expired(link):
-            return None
+        if not link or not api.configured() or (link.state or {}).get("state") in api.DONE or _expired(link) or mission.cancelled_at:
+            return None  # a cancelled mission stops following Jules; its session is left as it is
         try:
             async with api.JulesClient() as client:
                 await poll(db, mission, link, client)

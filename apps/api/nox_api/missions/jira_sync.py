@@ -35,6 +35,7 @@ DEFAULT_STATUS_MAP = {
     "build": "In Progress",
     "verifying": "In Review",
     "done": "Done",
+    "cancelled": "Won't Do",  # tried on cancel; if the workflow has no such status, NoX only comments
 }
 
 
@@ -168,6 +169,30 @@ async def on_stage_change(db: AsyncSession, mission: Mission, actor, note: str) 
         await record(db, mission, "jira.synced", {"key": link.external_id, "status": target})
     except JiraError as e:
         logger.warning(f"jira sync for {mission.key} failed: {e}")
+        await record(db, mission, "jira.sync_failed", {"key": link.external_id, "error": str(e)[:200]})
+
+
+async def on_cancel(db: AsyncSession, mission: Mission, actor, note: str) -> None:
+    """Comment on the primary ticket and try to move it to the cancelled status. Restore uses on_stage_change."""
+    link = primary_link(mission)
+    if not link or not settings.JIRA_API_TOKEN:
+        return
+    target = status_map().get("cancelled")
+    moved = None
+    try:
+        async with JiraClient() as jira:
+            await jira.add_comment(link.external_id, f"{NOX_TAG} {note}. {mission_url(mission)}")
+            if target:
+                try:
+                    moved = await jira.transition_to(link.external_id, target)
+                except JiraError as e:
+                    logger.info(f"jira: {link.external_id} has no '{target}' status, comment only: {e}")
+            if moved:
+                link.state = {**(link.state or {}), "status": target, "expect": {"status": target, "at": time.time()}}
+        await db.commit()
+        await record(db, mission, "jira.synced", {"key": link.external_id, "status": target if moved else None})
+    except JiraError as e:
+        logger.warning(f"jira cancel for {mission.key} failed: {e}")
         await record(db, mission, "jira.sync_failed", {"key": link.external_id, "error": str(e)[:200]})
 
 

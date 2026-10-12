@@ -66,10 +66,10 @@ def limits(kind: MediaKind) -> tuple[int, int | None]:
 # ── Loading and permissions ─────────────────────────────────────────────────
 
 
-async def _mission_by_key(db: AsyncSession, actor: Actor, key: str) -> Mission:
-    from .missions import load_mission
+async def _mission_by_key(db: AsyncSession, actor: Actor, key: str, live: bool = False) -> Mission:
+    from .missions import load_live_mission, load_mission
 
-    return await load_mission(db, actor, key)
+    return await (load_live_mission if live else load_mission)(db, actor, key)
 
 
 async def load_media(db: AsyncSession, user: User, media_id: uuid.UUID) -> tuple[MediaAsset, Mission | None]:
@@ -175,7 +175,7 @@ async def create_media(body: MediaCreate, db: AsyncSession = Depends(get_db), ac
 
     mission = None
     if body.mission_key:
-        mission = await _mission_by_key(db, actor, body.mission_key)
+        mission = await _mission_by_key(db, actor, body.mission_key, live=True)
         count = (await db.execute(select(func.count()).select_from(MediaAsset).where(
             MediaAsset.mission_id == mission.id, MediaAsset.status != MediaStatus.deleted))).scalar()
         if count >= settings.NOX_MEDIA_PER_MISSION:
@@ -395,7 +395,7 @@ async def verify_evidence(key: str, role: str, body: EvidenceBody, db: AsyncSess
     from .missions import _verifying_own_file, role_param
 
     r = role_param(role)
-    mission = await _mission_by_key(db, actor, key)
+    mission = await _mission_by_key(db, actor, key, live=True)
     _verifying_own_file(mission, actor, r)
     for mid in body.media_ids:
         m = await db.get(MediaAsset, mid)

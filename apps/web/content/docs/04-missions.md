@@ -147,6 +147,15 @@ Any seat can send a mission back to an earlier seat when something upstream isn'
 
 During verification, **Not met** does the same from inside a checklist. See [Build and verify](/docs/build-and-verify).
 
+## Cancelling or deleting a mission
+
+The person who started a mission can call it off. Open the **⋯** menu next to the mission's progress arc.
+
+- **Cancel mission** keeps the mission on record but stops all work on it. It drops out of every lane and from Mission control. Every seat sees a *Cancelled* banner, and nobody can change its files, checklists or links. Add a reason if you like; it goes on the timeline. A linked Jira issue gets a comment and moves to *Won't Do* if your workflow has that status. If Jules was working on it, NoX stops following the session. Open pull requests stay open for people to close. If the mission came from a NoX sighting, the sighting opens again. Cancelled missions are listed under the **Cancelled** filter (business users: **Cancelled requests**). Choose **Restore mission** on the banner to bring it back exactly where it was.
+- **Delete mission** removes it for good, with its spec files, chat, captures and timeline. You can only delete a mission while nothing about it has left NoX: it is still with the business seat, no file is approved, and it isn't linked to Jira, a pull request or Jules. After that, cancel it instead, so Jira, pull requests and the flight log keep their history.
+
+Only the person who started the mission can cancel, restore or delete it.
+
 ## Priority and title
 
 The product owner sets the mission's priority (**P1** to **P4**) from the header. The title starts as the request and can be edited by the product owner or the mission's creator.

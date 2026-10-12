@@ -13,7 +13,7 @@ import { useApi } from "@/lib/app/use-api";
  * The mission's ticket, read from its Firestore document: who it's assigned to and the pipeline it walks.
  * Anyone who can see the mission can assign it to anyone else who can see it.
  */
-export function TicketPanel({ missionKey, state, onChanged }: { missionKey: string; state: TicketState | null; onChanged: () => void }) {
+export function TicketPanel({ missionKey, state, onChanged, readOnly = false }: { missionKey: string; state: TicketState | null; onChanged: () => void; readOnly?: boolean }) {
   const toast = useToast();
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -37,9 +37,11 @@ export function TicketPanel({ missionKey, state, onChanged }: { missionKey: stri
     <Panel
       title="Ticket"
       action={
-        <button type="button" onClick={() => setPicking((p) => !p)} aria-expanded={picking} className="text-[12.5px] text-ink-dim hover:text-ink">
-          {picking ? "Cancel" : a ? "Reassign" : "Assign"}
-        </button>
+        !readOnly && (
+          <button type="button" onClick={() => setPicking((p) => !p)} aria-expanded={picking} className="text-[12.5px] text-ink-dim hover:text-ink">
+            {picking ? "Cancel" : a ? "Reassign" : "Assign"}
+          </button>
+        )
       }
     >
       <div className="flex items-center gap-2.5 text-[13px]">

@@ -159,6 +159,10 @@ export type Mission = {
   completedAt: string | null;
   /** The NoX sighting this mission was started from, if any. */
   sightingId?: string | null;
+  /** The user who started it: only they can cancel, restore or delete it. */
+  createdBy?: string | null;
+  /** Set while the mission is cancelled: read-only, out of every lane, restorable by its creator. */
+  cancelled?: { at: string; by: string | null; reason: string | null } | null;
   files: SpecFile[];
   apps: { id: string; name: string; status?: string }[];
   links: MissionLink[];

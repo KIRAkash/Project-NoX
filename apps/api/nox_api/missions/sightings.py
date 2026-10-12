@@ -444,7 +444,8 @@ async def _known(db: AsyncSession, root) -> tuple[list[Sighting], list[Mission]]
                  or (s.updated_at or s.created_at) >= cutoff]
     parents = await _parents(db)
     missions = (await db.execute(select(Mission).where(Mission.org_id.in_(_subtree(parents, root)),
-                                                       Mission.stage != MissionStage.done))).scalars().all()
+                                                       Mission.stage != MissionStage.done,
+                                                       Mission.cancelled_at.is_(None)))).scalars().all()
     return sightings, missions
 
 
@@ -926,6 +927,24 @@ async def mark_shipped(db: AsyncSession, mission: Mission) -> None:
         s.status, s.updated_at = SightingStatus.shipped, utcnow()
         await db.commit()
         await _emit(s.org_id, "sighting.shipped", {"id": str(s.id), "mission": mission.key})
+
+
+async def release(db: AsyncSession, mission: Mission) -> None:
+    """The mission started from this sighting was cancelled or deleted: the sighting is open to start again."""
+    s = await db.get(Sighting, mission.sighting_id) if mission.sighting_id else None
+    if s and s.status == SightingStatus.launched and s.mission_id in (mission.id, None):
+        s.status, s.mission_id, s.updated_at = SightingStatus.open, None, utcnow()
+        await db.commit()
+        await _emit(s.org_id, "sighting.released", {"id": str(s.id), "mission": mission.key})
+
+
+async def reclaim(db: AsyncSession, mission: Mission) -> None:
+    """A cancelled mission was restored: take its sighting back, unless someone has acted on it since."""
+    s = await db.get(Sighting, mission.sighting_id) if mission.sighting_id else None
+    if s and s.status == SightingStatus.open and s.mission_id is None:
+        s.status, s.mission_id, s.updated_at = SightingStatus.launched, mission.id, utcnow()
+        await db.commit()
+        await _emit(s.org_id, "sighting.launched", {"id": str(s.id), "mission": mission.key})
 
 
 async def give_feedback(db: AsyncSession, actor: Actor, sighting_id, action: str, reason: str | None) -> dict:

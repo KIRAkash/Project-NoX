@@ -14,15 +14,17 @@ const STATUS: Record<string, { color: string; label: string }> = {
 };
 
 /** The rail's list of everything shown to NoX on this mission: who added it, and one click to open it. */
-export function EvidencePanel({ onOpenTab }: { onOpenTab: () => void }) {
+export function EvidencePanel({ onOpenTab, readOnly = false }: { onOpenTab: () => void; readOnly?: boolean }) {
   const media = useMissionMedia();
   return (
     <Panel
       title={media.length ? `Evidence · ${media.length}` : "Evidence"}
       action={
-        <button type="button" onClick={onOpenTab} className="text-[12px] text-ink-dim hover:text-ink">
-          {media.length ? "Open tab" : "Add"}
-        </button>
+        (media.length > 0 || !readOnly) && (
+          <button type="button" onClick={onOpenTab} className="text-[12px] text-ink-dim hover:text-ink">
+            {media.length ? "Open tab" : "Add"}
+          </button>
+        )
       }
     >
       {media.length ? (

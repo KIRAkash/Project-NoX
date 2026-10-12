@@ -1,8 +1,8 @@
 "use client";
 
-import { CornerUpLeft, ExternalLink, Film, Lock, Paperclip, Pencil, X } from "lucide-react";
+import { Ban, CornerUpLeft, ExternalLink, Film, Lock, MoreHorizontal, Paperclip, Pencil, RotateCcw, Trash2, X } from "lucide-react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BrandLogo } from "@/components/app/brand-logo";
@@ -18,7 +18,7 @@ import { MissionMediaProvider, useMissionMedia } from "@/components/app/media/mi
 import { MissionBlastRadius, SeatBanner } from "@/components/app/seat-rail";
 import { SpecEditor } from "@/components/app/spec-editor";
 import { TicketPanel } from "@/components/app/ticket-panel";
-import { FEED_LIST, OrbitArc, Panel, useToast } from "@/components/app/ui";
+import { FEED_LIST, OrbitArc, Panel, usePopover, useToast } from "@/components/app/ui";
 import { UpdateBanner } from "@/components/app/update-banner";
 import { VerifyPanel, VerifyStrip } from "@/components/app/verify-panel";
 import { VoiceInput } from "@/components/app/voice-input";
@@ -105,6 +105,7 @@ export default function MissionPage() {
         ← {ROLE_BY_ID[myRole].missionsLabel}
       </Link>
       <Header m={m} onChanged={() => void mission.reload()} />
+      <CancelledBanner m={m} onChanged={() => void mission.reload()} />
       <ProceedBanner m={m} onChanged={() => void mission.reload()} onReview={() => setTab("business")} />
       <SeatBanner m={m} seat={myRole} />
       <UpdateBanner m={m} updates={updates.data ?? []} myRole={myRole} />
@@ -177,8 +178,8 @@ export default function MissionPage() {
               </ul>
             </Panel>
           )}
-          <EvidencePanel onOpenTab={() => setTab("evidence")} />
-          <TicketPanel missionKey={m.key} state={ticket.data} onChanged={() => void ticket.reload()} />
+          <EvidencePanel onOpenTab={() => setTab("evidence")} readOnly={Boolean(m.cancelled)} />
+          <TicketPanel missionKey={m.key} state={ticket.data} onChanged={() => void ticket.reload()} readOnly={Boolean(m.cancelled)} />
           {myRole !== "business" && <LinksPanel m={m} jules={jules} onChanged={() => void mission.reload()} />}
           <FlightStrip missionKey={m.key} version={events.data?.length} />
           <Timeline events={events.data ?? []} />
@@ -216,7 +217,7 @@ function Header({ m, onChanged }: { m: Mission; onChanged: () => void }) {
         <p className="mt-2 max-w-[760px] text-[15px] italic leading-relaxed text-ink-muted">&ldquo;{m.prompt}&rdquo;</p>
       </div>
       <div className="flex shrink-0 items-center gap-4">
-        {me!.role === "product" ? (
+        {me!.role === "product" && !m.cancelled ? (
           <select value={m.priority ?? ""} onChange={(e) => void setPriority(e.target.value)} aria-label="Priority" className="h-9 rounded-sm border border-hairline bg-deck px-2 text-[13px] text-ink">
             <option value="" disabled>
               Priority
@@ -230,10 +231,178 @@ function Header({ m, onChanged }: { m: Mission; onChanged: () => void }) {
         )}
         <div className="text-right">
           <OrbitArc current={STAGE_INDEX[m.stage]} reverse={m.stage === "verifying"} width={140} />
-          <div className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-dim">{STAGE_LABEL[m.stage]}</div>
+          <div className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-dim">{m.cancelled ? "Cancelled" : STAGE_LABEL[m.stage]}</div>
         </div>
+        {me!.id === m.createdBy && !m.cancelled && <MissionMenu m={m} onChanged={onChanged} />}
       </div>
     </header>
+  );
+}
+
+/** Same rule as the API: delete only while nothing has left NoX. Anything further along is cancelled instead. */
+function deletable(m: Mission) {
+  return m.stage === "business" && !m.files.some((f) => f.status === "approved") && m.links.length === 0;
+}
+
+/** The creator's menu: cancel the mission (kept, restorable) or, early on, delete it for good. */
+function MissionMenu({ m, onChanged }: { m: Mission; onChanged: () => void }) {
+  const toast = useToast();
+  const router = useRouter();
+  const menu = usePopover();
+  const [step, setStep] = useState<"menu" | "cancel" | "delete">("menu");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const canDelete = deletable(m);
+  const close = () => {
+    menu.setOpen(false);
+    setStep("menu");
+  };
+  const cancel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await api(`/api/v1/missions/${m.key}/cancel`, { method: "POST", json: { reason: reason.trim() || null } });
+      toast(`${m.key} cancelled. You can restore it any time`, "success");
+      close();
+      onChanged();
+    } catch (err) {
+      toast(err instanceof ApiError ? err.detail : "Couldn't cancel the mission", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async () => {
+    setBusy(true);
+    try {
+      await api(`/api/v1/missions/${m.key}`, { method: "DELETE" });
+      toast(`${m.key} deleted`, "success");
+      router.push("/app/missions");
+    } catch (err) {
+      toast(err instanceof ApiError ? err.detail : "Couldn't delete the mission", "error");
+      setBusy(false);
+    }
+  };
+  const item = "flex w-full items-start gap-2.5 rounded-sm px-2.5 py-2 text-left text-[13px] hover:bg-[rgb(var(--line)/.08)]";
+  return (
+    <div className="relative" data-popover>
+      <button
+        type="button"
+        onClick={() => (menu.open ? close() : menu.setOpen(true))}
+        aria-label="Mission actions"
+        aria-expanded={menu.open}
+        className="flex h-9 w-9 items-center justify-center rounded-sm border border-hairline text-ink-muted hover:border-ink-faint hover:text-ink"
+      >
+        <MoreHorizontal size={16} />
+      </button>
+      {menu.open && (
+        <div className="fixed inset-x-4 bottom-24 z-50 rounded-md border border-hairline bg-deck p-2 shadow-xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-11 sm:z-20 sm:w-[300px]">
+          {step === "menu" && (
+            <ul>
+              <li>
+                <button type="button" onClick={() => setStep("cancel")} className={item}>
+                  <Ban size={14} className="mt-0.5 shrink-0 text-ink-muted" />
+                  <span>
+                    <span className="block text-ink">Cancel mission</span>
+                    <span className="block text-[12px] text-ink-faint">Stops work and takes it off every lane. You can restore it later.</span>
+                  </span>
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  disabled={!canDelete}
+                  onClick={() => setStep("delete")}
+                  className={`${item} disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent`}
+                >
+                  <Trash2 size={14} className="mt-0.5 shrink-0 text-[color:var(--coral-ink)]" />
+                  <span>
+                    <span className="block text-ink">Delete mission</span>
+                    <span className="block text-[12px] text-ink-faint">
+                      {canDelete ? "Removes it for good. Only while it's still with the business seat." : "Not anymore: it has moved on, or is linked to Jira, a PR or Jules. Cancel it instead."}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            </ul>
+          )}
+          {step === "cancel" && (
+            <form onSubmit={cancel} className="space-y-2 p-1">
+              <p className="text-[13px] text-ink">Cancel {m.key}?</p>
+              <p className="text-[12px] text-ink-faint">Every seat sees it as cancelled and nobody can change it. A linked Jira issue gets a comment. Open pull requests stay open.</p>
+              <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={1000} placeholder="Why? (optional)" aria-label="Reason" className="w-full rounded-sm border border-hairline bg-void p-2 text-[13px] text-ink" />
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setStep("menu")} className="h-9 flex-1 rounded-sm border border-hairline text-[13px] text-ink-muted hover:text-ink">
+                  Back
+                </button>
+                <button type="submit" disabled={busy} className="h-9 flex-1 rounded-sm border border-hairline text-[13px] text-ink hover:border-ink-faint disabled:opacity-50">
+                  {busy ? "Cancelling…" : "Cancel mission"}
+                </button>
+              </div>
+            </form>
+          )}
+          {step === "delete" && (
+            <div className="space-y-2 p-1">
+              <p className="text-[13px] text-ink">Delete {m.key} for good?</p>
+              <p className="text-[12px] text-ink-faint">Its spec files, chat, captures and timeline are removed. This can&rsquo;t be undone.</p>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setStep("menu")} className="h-9 flex-1 rounded-sm border border-hairline text-[13px] text-ink-muted hover:text-ink">
+                  Back
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void remove()}
+                  className="h-9 flex-1 rounded-sm border border-[rgba(233,113,60,.45)] text-[13px] text-[color:var(--coral-ink)] hover:bg-[rgba(233,113,60,.08)] disabled:opacity-50"
+                >
+                  {busy ? "Deleting…" : "Delete"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CancelledBanner({ m, onChanged }: { m: Mission; onChanged: () => void }) {
+  const { me } = useAuth();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  if (!m.cancelled) return null;
+  const restore = async () => {
+    setBusy(true);
+    try {
+      await api(`/api/v1/missions/${m.key}/restore`, { method: "POST" });
+      toast(`${m.key} restored`, "success");
+      onChanged();
+    } catch (e) {
+      toast(e instanceof ApiError ? e.detail : "Couldn't restore the mission", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const when = new Date(m.cancelled.at).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+  return (
+    <div className="mt-4 flex flex-col gap-3 rounded-md border border-hairline bg-deck px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-start gap-2.5 text-[13.5px]">
+        <Ban size={15} className="mt-0.5 shrink-0 text-ink-muted" />
+        <div className="min-w-0">
+          <p className="text-ink">Cancelled on {when}. Nothing on it can change until it&rsquo;s restored.</p>
+          {m.cancelled.reason && <p className="mt-0.5 break-words text-ink-muted">&ldquo;{m.cancelled.reason}&rdquo;</p>}
+        </div>
+      </div>
+      {me!.id === m.createdBy && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void restore()}
+          className="flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-sm border border-hairline px-3 text-[13px] text-ink hover:border-ink-faint disabled:opacity-50"
+        >
+          <RotateCcw size={13} /> {busy ? "Restoring…" : "Restore mission"}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -288,7 +457,7 @@ function FilePane({ m, file, jules, onChanged }: { m: Mission; file: SpecFile; j
   const { me } = useAuth();
   const toast = useToast();
   const role = ROLE_BY_ID[file.role];
-  const mine = me!.role === file.role;
+  const mine = me!.role === file.role && !m.cancelled; // a cancelled mission is read-only for every seat
   const added = useMissionMedia().filter((c) => c.uploadedAs === file.role); // what this seat showed NoX
   const [approving, setApproving] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -419,7 +588,7 @@ function FilePane({ m, file, jules, onChanged }: { m: Mission; file: SpecFile; j
       ) : (
         <article className="rounded-md border border-hairline bg-[rgb(var(--deck-rgb)/.66)] p-6 sm:p-8">
           <div className="mb-4 flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-dim">
-            <Lock size={11} /> Locked: only the {role.name} edits this file
+            <Lock size={11} /> {m.cancelled ? "Locked: this mission is cancelled" : `Locked: only the ${role.name} edits this file`}
           </div>
           <KbMarkdown content={file.markdown ?? ""} />
         </article>
@@ -535,9 +704,9 @@ function LinksPanel({ m, jules, onChanged }: { m: Mission; jules: ReturnType<typ
                 </a>
                 <span className="flex items-center gap-2">
                   {typeof l.state?.status === "string" && <span className="rounded-full border border-hairline px-2 py-0.5 font-mono text-[10.5px] text-ink-muted">{l.state.status}</span>}
-                  <button type="button" aria-label={`Unlink ${l.externalId}`} disabled={busy} onClick={() => void run(() => api(`/api/v1/missions/${m.key}/jira/${l.externalId}`, { method: "DELETE" }), "Unlinked")} className="text-ink-dim hover:text-ink">
+                  {!m.cancelled && <button type="button" aria-label={`Unlink ${l.externalId}`} disabled={busy} onClick={() => void run(() => api(`/api/v1/missions/${m.key}/jira/${l.externalId}`, { method: "DELETE" }), "Unlinked")} className="text-ink-dim hover:text-ink">
                     <X size={13} />
-                  </button>
+                  </button>}
                 </span>
               </div>
               {typeof l.state?.summary === "string" && <div className="mt-0.5 truncate text-[12px] text-ink-faint">{l.state.summary}</div>}
@@ -572,7 +741,7 @@ function LinksPanel({ m, jules, onChanged }: { m: Mission; jules: ReturnType<typ
       <JulesSessions m={m} jules={jules} onChanged={onChanged} />
       {!jira.length && !prs.length && !jules.data?.sessions.length && mode === "idle" && <p className="text-[13px] text-ink-faint">No Jira ticket or pull request linked yet.</p>}
 
-      {mode === "idle" && (
+      {mode === "idle" && !m.cancelled && (
         <div className="mt-3 flex flex-wrap gap-2">
           <button type="button" onClick={() => setMode("link")} className="h-8 rounded-sm border border-hairline px-3 text-[12.5px] text-ink-muted hover:text-ink">
             <span className="inline-flex items-center gap-1.5"><BrandLogo name="jira" size={12} />Link existing</span>
@@ -642,6 +811,8 @@ const EVENT_TEXT: Record<string, (e: MissionEvent) => string> = {
   "file.approved": (e) => `approved the ${e.payload.role} file`,
   "mission.sent_back": (e) => `sent it back to ${e.payload.toRole}: “${e.payload.reason}”`,
   "mission.updated": () => "updated the mission",
+  "mission.cancelled": (e) => (e.payload.reason ? `cancelled the mission: “${e.payload.reason}”` : "cancelled the mission"),
+  "mission.restored": () => "restored the mission",
   "mission.assigned": (e) => (e.payload.assignee ? `assigned it to ${e.payload.assignee}` : "cleared the assignee"),
   "pr.linked": (e) => `linked pull request ${e.payload.pr}`,
   "pr.updated": (e) => `${e.payload.pr} is now ${e.payload.state}`,

@@ -21,6 +21,7 @@ const VIEWS = [
   { key: "all", label: "All" },
   { key: "waiting", label: "Waiting on you" },
   { key: "mine", label: "Mine" },
+  { key: "cancelled", label: "Cancelled" },
 ] as const;
 
 type Layout = "lanes" | "priority" | "table";
@@ -65,10 +66,16 @@ export default function MissionsPage() {
           )
         }
       />
-      {!business && (
+      {!business ? (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
           <Pills label="Filter missions" items={VIEWS} value={view} onChange={setView} role={role} />
-          <Pills label="Layout" items={LAYOUTS} value={layout} onChange={setLayout} role={role} />
+          {view !== "cancelled" && <Pills label="Layout" items={LAYOUTS} value={layout} onChange={setLayout} role={role} />}
+        </div>
+      ) : (
+        <div className="mx-auto mt-6 flex max-w-[860px] justify-end">
+          <button type="button" onClick={() => setView(view === "cancelled" ? "all" : "cancelled")} className="text-[13px] text-ink-faint underline decoration-dotted hover:text-ink">
+            {view === "cancelled" ? "Back to your requests" : "Cancelled requests"}
+          </button>
         </div>
       )}
 
@@ -76,8 +83,13 @@ export default function MissionsPage() {
         <p className="mt-8 text-[13px] text-ink-faint">Loading missions…</p>
       ) : !missions.data?.length ? (
         <div className="mt-8 rounded-md border border-hairline">
-          <EmptyState role={role} line={view === "waiting" ? "Nothing is waiting on your seat." : "No missions yet. They start from one sentence, from any seat."} />
+          <EmptyState
+            role={role}
+            line={view === "waiting" ? "Nothing is waiting on your seat." : view === "cancelled" ? "Nothing has been cancelled." : "No missions yet. They start from one sentence, from any seat."}
+          />
         </div>
+      ) : view === "cancelled" ? (
+        <CancelledList missions={missions.data} />
       ) : business ? (
         <div className="mx-auto mt-8 grid max-w-[860px] gap-4 sm:grid-cols-2">
           {missions.data.map((m) => (
@@ -225,5 +237,27 @@ function BuildTable({ missions }: { missions: Mission[] }) {
         })}
       </ul>
     </div>
+  );
+}
+
+/** Cancelled missions: kept for the record, out of every lane. Their creator can restore them from the mission page. */
+function CancelledList({ missions }: { missions: Mission[] }) {
+  return (
+    <ul className="mx-auto mt-6 max-w-[860px] divide-y divide-hairline rounded-md border border-hairline">
+      {missions.map((m) => (
+        <li key={m.key} className="px-4 py-3">
+          <Link href={`/app/missions/${m.key}`} className="group block min-w-0">
+            <div className="flex items-baseline gap-3">
+              <span className="shrink-0 font-mono text-[12px] text-ink-dim">{m.key}</span>
+              <span className="truncate text-[14px] text-ink group-hover:text-[color:var(--role)]">{m.title}</span>
+            </div>
+            <p className="mt-0.5 truncate text-[12.5px] text-ink-faint">
+              Cancelled {m.cancelled ? new Date(m.cancelled.at).toLocaleDateString([], { month: "short", day: "numeric" }) : ""}
+              {m.cancelled?.reason ? ` · ${m.cancelled.reason}` : ""}
+            </p>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }

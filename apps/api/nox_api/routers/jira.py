@@ -13,7 +13,7 @@ from ..db.models import Role
 from ..integrations.atlassian import AtlassianConfigError
 from ..integrations.jira import JiraAuthError, JiraClient, JiraError, JiraNotFoundError, adf_to_text
 from ..missions import jira_sync
-from .missions import file_for, load_mission, mission_apps, mission_json
+from .missions import file_for, load_live_mission, load_mission, mission_apps, mission_json
 
 router = APIRouter(tags=["Jira"])
 
@@ -74,7 +74,7 @@ class LinkBody(BaseModel):
 
 @router.post("/api/v1/missions/{key}/jira/link")
 async def link(key: str, body: LinkBody, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     try:
         await jira_sync.link_issue(db, mission, body.issue_key.upper(), actor)
     except (JiraError, AtlassianConfigError) as e:
@@ -90,7 +90,7 @@ class CreateBody(BaseModel):
 
 @router.post("/api/v1/missions/{key}/jira/create")
 async def create(key: str, body: CreateBody, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     project = (body.project or settings.JIRA_DEFAULT_PROJECT).upper()
     if allowed_projects() and project not in allowed_projects():
         raise HTTPException(400, f"NoX may create tickets in {', '.join(allowed_projects())} only")
@@ -106,7 +106,7 @@ async def create(key: str, body: CreateBody, db: AsyncSession = Depends(get_db),
 async def unlink(key: str, issue_key: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
     from ..missions.events import record
 
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     link = next((x for x in mission.links if x.system == "jira" and x.external_id == issue_key.upper()), None)
     if not link:
         raise HTTPException(404, "Not linked")
@@ -127,7 +127,7 @@ async def unlink(key: str, issue_key: str, db: AsyncSession = Depends(get_db), a
 async def subtasks(key: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
     if actor.role != Role.developer:
         raise HTTPException(403, "Sub-tasks come from the build spec — the developer seat creates them")
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     dev = file_for(mission, Role.developer)
     if not jira_sync.tasks_from(dev.markdown):
         raise HTTPException(409, "The build spec has no 'Tasks' list yet")

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..core.auth import Actor, current_actor
 from ..db.database import get_db
 from ..missions import jules
-from .missions import load_mission
+from .missions import load_live_mission, load_mission
 
 router = APIRouter(prefix="/api/v1/missions", tags=["Jules"])
 
@@ -29,13 +29,13 @@ class HandOff(BaseModel):
 
 @router.post("/{key}/jules", status_code=201)
 async def hand_off(key: str, body: HandOff, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     return await jules.start(db, actor, mission, body.repo, body.require_plan_approval)
 
 
 @router.post("/{key}/jules/{session_id}/approve-plan")
 async def approve_plan(key: str, session_id: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     return await jules.approve_plan(db, actor, mission, session_id)
 
 
@@ -45,5 +45,5 @@ class Reply(BaseModel):
 
 @router.post("/{key}/jules/{session_id}/message")
 async def message(key: str, session_id: str, body: Reply, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     return await jules.reply(db, actor, mission, session_id, body.text.strip())

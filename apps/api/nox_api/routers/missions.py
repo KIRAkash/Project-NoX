@@ -1,4 +1,9 @@
-"""Missions: create from any seat, co-write one spec file per role, approve forward, send back."""
+"""Missions: create from any seat, co-write one spec file per role, approve forward, send back.
+
+The creator can cancel a mission (kept, read-only, out of every lane, restorable) or, while nothing has left
+NoX yet, delete it. Every route that changes a mission loads it with `load_live_mission`, which refuses
+cancelled ones.
+"""
 
 import asyncio
 import re
@@ -91,6 +96,9 @@ def mission_json(m: Mission, apps: list[KnowledgeBase] | None = None, with_bodie
         "updatedAt": m.updated_at.isoformat() if m.updated_at else None,
         "completedAt": m.completed_at.isoformat() if m.completed_at else None,
         "sightingId": str(m.sighting_id) if m.sighting_id else None,
+        "createdBy": str(m.created_by) if m.created_by else None,
+        "cancelled": {"at": m.cancelled_at.isoformat(), "by": str(m.cancelled_by) if m.cancelled_by else None, "reason": m.cancel_reason}
+        if m.cancelled_at else None,
         "files": [file_json(f, with_bodies) for f in files],
         "apps": [{"id": str(k.id), "name": k.app_name, "status": k.status.value} for k in (apps or [])],
         "links": [
@@ -119,6 +127,14 @@ async def load_mission(db: AsyncSession, actor: Actor, key: str) -> Mission:
     ).scalars().first()
     if not mission or mission.org_id not in await visible_org_ids(db, actor.user):
         raise HTTPException(404, "Not found")
+    return mission
+
+
+async def load_live_mission(db: AsyncSession, actor: Actor, key: str) -> Mission:
+    """Load a mission to change it: a cancelled mission is read-only until its creator restores it."""
+    mission = await load_mission(db, actor, key)
+    if mission.cancelled_at:
+        raise HTTPException(409, f"{mission.key} is cancelled. Its creator can restore it to make changes.")
     return mission
 
 
@@ -240,7 +256,7 @@ ACTIVITY_EVENTS = (
 
 @router.get("")
 async def list_missions(
-    view: str = Query(default="all", pattern="^(all|waiting|flight|back|mine)$"),
+    view: str = Query(default="all", pattern="^(all|waiting|flight|back|mine|cancelled)$"),
     db: AsyncSession = Depends(get_db),
     actor: Actor = Depends(current_actor),
 ):
@@ -270,9 +286,10 @@ async def list_missions(
         f = file_for(m, actor.role)
         return f.status == SpecStatus.approved and m.stage not in (MissionStage.done,) and not waiting(m) and not back(m)
 
-    pick = {"all": lambda m: True, "waiting": waiting, "flight": flight, "back": back, "mine": mine}[view]
+    pick = {"all": lambda m: True, "waiting": waiting, "flight": flight, "back": back, "mine": mine, "cancelled": lambda m: True}[view]
     kb_names = dict((await db.execute(select(KnowledgeBase.id, KnowledgeBase.app_name))).all())
-    picked = [m for m in rows if pick(m)]
+    # Cancelled missions show only in their own view; every other view is work that's still alive.
+    picked = [m for m in rows if (m.cancelled_at is not None) == (view == "cancelled") and pick(m)]
     # Who asked, and the latest thing anyone did: one query each for the whole list.
     creators: dict = {}
     latest: dict = {}
@@ -360,7 +377,7 @@ async def mission_stream(key: str, db: AsyncSession = Depends(get_db), actor: Ac
 @router.post("/{key}/proceed")
 async def proceed(key: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
     """The creator goes ahead although upstream files are AI drafts nobody in those seats has approved."""
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     if not mission.awaiting_proceed:
         return mission_json(mission, await mission_apps(db, mission), with_bodies=True)
     if actor.role != mission.created_as_role:
@@ -384,7 +401,7 @@ class FileSave(BaseModel):
 async def save_file(key: str, role: str, body: FileSave, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
     r = role_param(role)
     own_file(actor, r)
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     f = file_for(mission, r)
     if f.status == SpecStatus.drafting:
         raise HTTPException(409, "NoX is still writing the first draft of this file")
@@ -419,7 +436,7 @@ async def save_file(key: str, role: str, body: FileSave, db: AsyncSession = Depe
 async def approve_file(key: str, role: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
     r = role_param(role)
     own_file(actor, r)
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     f = file_for(mission, r)
     if f.status in (SpecStatus.empty, SpecStatus.drafting) or not f.markdown.strip():
         raise HTTPException(409, "There's nothing to approve yet")
@@ -469,7 +486,7 @@ def _remember(mission: Mission, event, feedback: str, actor: Actor, to_role: Rol
 
 @router.post("/{key}/send-back")
 async def send_back(key: str, body: SendBack, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     if ROLE_ORDER.index(body.to_role) >= ROLE_ORDER.index(actor.role) and mission.stage != MissionStage.verifying:
         raise HTTPException(400, "Missions can only be sent back to an earlier seat")
     mission.stage = stage_for(body.to_role)
@@ -495,7 +512,7 @@ class MissionPatch(BaseModel):
 
 @router.patch("/{key}")
 async def patch_mission(key: str, body: MissionPatch, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     if body.priority is not None:
         if actor.role != Role.product:
             raise HTTPException(403, "Priority is set by the product owner")
@@ -510,6 +527,76 @@ async def patch_mission(key: str, body: MissionPatch, db: AsyncSession = Depends
 
 
 _ = ExternalLink  # re-exported via mission_json
+
+
+# ── Cancel, restore, delete (the creator only) ───────────────────────────────
+
+
+def _creator_only(mission: Mission, actor: Actor, what: str) -> None:
+    if mission.created_by != actor.user.id:
+        raise HTTPException(403, f"Only the person who started {mission.key} can {what} it")
+
+
+def deletable(mission: Mission) -> str | None:
+    """Why this mission can't be deleted, or None if it can: nothing about it has left NoX yet."""
+    if mission.stage != MissionStage.business:
+        return "it has moved past the business seat"
+    if any(f.status == SpecStatus.approved for f in mission.files):
+        return "a spec file is approved"
+    if mission.links:
+        return "it is linked to Jira, a pull request or Jules"
+    return None
+
+
+class CancelBody(BaseModel):
+    reason: str | None = Field(default=None, max_length=1000)
+
+
+@router.post("/{key}/cancel")
+async def cancel_mission(key: str, body: CancelBody, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
+    """The creator calls the mission off. It stays on record, read-only and out of every lane, and can be restored."""
+    mission = await load_live_mission(db, actor, key)
+    _creator_only(mission, actor, "cancel")
+    reason = (body.reason or "").strip() or None
+    mission.cancelled_at, mission.cancelled_by, mission.cancel_reason = now_utc_naive(), actor.user.id, reason
+    await db.commit()
+    await record(db, mission, "mission.cancelled", {"reason": reason}, actor.user, actor.role.value)
+    from ..missions.lifecycle import after_cancel
+
+    await after_cancel(db, mission, actor, reason)
+    return mission_json(mission, await mission_apps(db, mission), with_bodies=True)
+
+
+@router.post("/{key}/restore")
+async def restore_mission(key: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
+    """Bring a cancelled mission back where it was."""
+    mission = await load_mission(db, actor, key)
+    _creator_only(mission, actor, "restore")
+    if not mission.cancelled_at:
+        return mission_json(mission, await mission_apps(db, mission), with_bodies=True)
+    mission.cancelled_at = mission.cancelled_by = mission.cancel_reason = None
+    await db.commit()
+    await record(db, mission, "mission.restored", {}, actor.user, actor.role.value)
+    from ..missions.lifecycle import after_restore
+
+    await after_restore(db, mission, actor)
+    return mission_json(mission, await mission_apps(db, mission), with_bodies=True)
+
+
+@router.delete("/{key}", status_code=204)
+async def delete_mission(key: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
+    """Delete for good, only while nothing has left NoX: still with the business seat, nothing approved, no links.
+    Anything further along is cancelled instead, so Jira, pull requests and the flight log keep their history."""
+    mission = await load_mission(db, actor, key)
+    _creator_only(mission, actor, "delete")
+    why = deletable(mission)
+    if why:
+        raise HTTPException(409, f"{mission.key} can't be deleted because {why}. Cancel it instead.")
+    from ..missions.lifecycle import before_delete
+
+    await before_delete(db, mission)
+    await db.delete(mission)
+    await db.commit()
 
 
 # ── Ticket state (Firestore): assignee and pipeline ──────────────────────────
@@ -553,7 +640,7 @@ async def assign(key: str, body: AssigneeBody, db: AsyncSession = Depends(get_db
     """Anyone who can see the mission assigns it to anyone else who can see it, or clears the assignee."""
     from ..services.tickets import set_assignee
 
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     assignee = None
     if body.user_id:
         user = next((u for u in await _people_who_see(db, mission) if u.id == body.user_id), None)
@@ -580,7 +667,7 @@ async def mark_completed(key: str, db: AsyncSession = Depends(get_db), actor: Ac
     """The developer says the build is done: every seat now checks its own file, in reverse order."""
     if actor.role != Role.developer:
         raise HTTPException(403, "The developer marks a mission as completed")
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     if mission.stage != MissionStage.build:
         raise HTTPException(409, "Only a mission in Build can be marked as completed")
     for f in mission.files:
@@ -638,7 +725,7 @@ async def _write_back(db: AsyncSession, mission: Mission, f: SpecFile, items: li
 @router.put("/{key}/files/{role}/verification")
 async def save_checklist(key: str, role: str, body: ChecklistSave, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
     r = role_param(role)
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     f = _verifying_own_file(mission, actor, r)
     current = [norm_item(i) for i in ((f.verification or {}).get("items") or parse_checklist(f.markdown))]
     if len(body.items) != len(current):
@@ -690,7 +777,7 @@ async def _send_update(db: AsyncSession, mission: Mission, actor: Actor, kind: s
 @router.post("/{key}/files/{role}/verify")
 async def verify_file(key: str, role: str, body: Verdict, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
     r = role_param(role)
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     f = _verifying_own_file(mission, actor, r)
     items = [norm_item(i) for i in ((f.verification or {}).get("items") or parse_checklist(f.markdown))]
     who = actor.user.name or actor.user.email
@@ -778,7 +865,7 @@ async def evidence_check(key: str, role: str, db: AsyncSession = Depends(get_db)
     from ..missions.evidence_check import check_evidence
 
     r = role_param(role)
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     f = _verifying_own_file(mission, actor, r)
     if not any(norm_item(i)["evidence"] for i in (f.verification or {}).get("items") or []):
         raise HTTPException(409, "Attach evidence to an item first")
@@ -800,7 +887,7 @@ async def refine(key: str, role: str, body: RefineBody, db: AsyncSession = Depen
 
     r = role_param(role)
     own_file(actor, r)
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     if file_for(mission, r).status in (SpecStatus.empty, SpecStatus.drafting):
         raise HTTPException(409, "Nothing to refine yet")
     spawn(f"refine {key}/{role}", refine_file, str(mission.id), r, body.instruction)
@@ -830,7 +917,7 @@ async def chat_post(key: str, role: str, body: ChatBody, db: AsyncSession = Depe
 
     r = role_param(role)
     own_file(actor, r)
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     f = file_for(mission, r)
     media_ids = [str(i) for i in dict.fromkeys(body.media_ids)]
     if media_ids:  # captures attached to the message must already be on this mission
@@ -861,7 +948,7 @@ async def revert_file(key: str, role: str, body: RevertBody, db: AsyncSession = 
 
     r = role_param(role)
     own_file(actor, r)
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     f = file_for(mission, r)
     if not await revert(db, mission, f, body.to_version, actor.user):
         raise HTTPException(404, "No such version")
@@ -908,7 +995,7 @@ def _load_asset(name: str) -> bytes | None:
 async def upload_asset(key: str, file: UploadFile = File(...), db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
     """Store an image for a spec file. Returns a Markdown snippet to insert."""
 
-    mission = await load_mission(db, actor, key)
+    mission = await load_live_mission(db, actor, key)
     ext = ALLOWED_IMAGES.get(file.content_type or "")
     if not ext:
         raise HTTPException(415, "Images only (PNG, JPEG, GIF, WebP, SVG)")

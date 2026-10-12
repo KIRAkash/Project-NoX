@@ -7,6 +7,7 @@ One document per mission, `missions/NOX-n`:
     pipeline      [{id, kind, role, label, status: done|current|pending}] — the path this ticket was given
     transitions   [{from, to, event, by, at}] — every time the current step moved, forward or back
     assignee      {userId, name, email, photoUrl, assignedBy, assignedAt} or null
+    cancelled     {at, by, reason} while the mission is cancelled, else null
     updatedAt
 
 Postgres stays the record for spec files and the stage machine; this document is the ticket's
@@ -36,6 +37,7 @@ COLLECTION = "missions"
 class TicketStore(Protocol):
     async def get(self, key: str) -> dict | None: ...
     async def merge(self, key: str, fields: dict, transition: dict | None = None) -> None: ...
+    async def delete(self, key: str) -> None: ...
 
 
 class MemoryTicketStore:
@@ -51,6 +53,9 @@ class MemoryTicketStore:
         doc.update(fields)
         if transition:
             doc.setdefault("transitions", []).append(transition)
+
+    async def delete(self, key: str) -> None:
+        self.docs.pop(key, None)
 
 
 class FirestoreTicketStore:
@@ -78,6 +83,9 @@ class FirestoreTicketStore:
             data["transitions"] = self._fs.ArrayUnion([transition])
         # Replace each named field whole (a new assignee must not inherit the old one's keys).
         await self.client.collection(COLLECTION).document(key).set(data, merge=list(data))
+
+    async def delete(self, key: str) -> None:
+        await self.client.collection(COLLECTION).document(key).delete()
 
 
 _store: TicketStore | None = None
@@ -144,6 +152,22 @@ async def ticket_state(mission: Mission) -> dict:
     """The ticket document, created on first read for missions that predate it."""
     doc = await store().get(mission.key)
     return doc if doc and doc.get("pipeline") else await sync_pipeline(mission, "state.backfilled", force=True)
+
+
+async def set_cancelled(mission: Mission, cancelled: dict | None) -> None:
+    """Mark the ticket cancelled (or not), best-effort like the pipeline sync."""
+    try:
+        await asyncio.wait_for(store().merge(mission.key, {"cancelled": cancelled, "updatedAt": datetime.now(UTC)}), timeout=5)
+    except Exception as e:
+        logger.warning("ticket state for %s not written: %s", mission.key, e)
+
+
+async def forget_ticket(mission: Mission) -> None:
+    """The mission was deleted: its ticket document goes too."""
+    try:
+        await asyncio.wait_for(store().delete(mission.key), timeout=5)
+    except Exception as e:
+        logger.warning("ticket for %s not deleted: %s", mission.key, e)
 
 
 async def set_assignee(mission: Mission, assignee: dict | None) -> dict:
