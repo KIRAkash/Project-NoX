@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -174,10 +174,11 @@ function RequestComposer({ role }: { role: RoleDef }) {
         placeholder={EXAMPLES[0]}
         className="mt-4 w-full resize-y rounded-lg border border-hairline bg-[rgb(var(--void-rgb)/.6)] p-4 text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-dim focus:border-[color:var(--role)]"
       />
-      <VoiceInput value={prompt} onChange={setPrompt} label="Or just say it" className="mt-2 w-full justify-end" />
+      <VoiceInput value={prompt} onChange={setPrompt} label="Or just say it" accent className="mt-2 w-full justify-end" />
       <div className="mt-3">
         <CaptureBar
           global
+          accent
           onMedia={(c, extra = []) => {
             setCaptures((xs) => [...xs, c]);
             setHidden((h) => [...h, ...extra]);
@@ -206,29 +207,37 @@ function RequestComposer({ role }: { role: RoleDef }) {
         ))}
       </div>
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <span className="text-[13px] text-ink-faint">
-          {apps.length > 0 && (
-            <>
-              This sounds like{" "}
-              <select
-                value={appId}
-                onChange={(e) => {
-                  picked.current = true;
-                  setAppId(e.target.value);
-                }}
-                aria-label="Which application"
-                className="rounded-sm border border-hairline bg-deck px-1.5 py-0.5 text-[13px] text-ink"
-              >
-                {apps.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
-              {app && app.id === seen?.id ? " — seen in your capture" : app && app.score > 0 && prompt.trim().length >= 12 ? " — NoX's guess" : ""}
-            </>
-          )}
-        </span>
+        {apps.length > 0 ? (
+          <span
+            className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 self-start rounded-full border py-1 pl-3 pr-1.5 text-[13px] text-ink-muted"
+            style={{ borderColor: "color-mix(in srgb, var(--role) 45%, transparent)", background: "color-mix(in srgb, var(--role) 10%, transparent)" }}
+          >
+            <Sparkles size={14} className="text-[color:var(--role)]" aria-hidden />
+            This sounds like
+            <select
+              value={appId}
+              onChange={(e) => {
+                picked.current = true;
+                setAppId(e.target.value);
+              }}
+              aria-label="Which application"
+              className="rounded-full border border-[color:var(--role)] bg-[rgb(var(--void-rgb)/.7)] px-2.5 py-1 text-[13px] font-semibold text-ink outline-none focus:ring-2 focus:ring-[color:var(--role)]"
+            >
+              {apps.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+            {app && (app.id === seen?.id || (app.score > 0 && prompt.trim().length >= 12)) && (
+              <span className="pr-1.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-[color:var(--role)]">
+                {app.id === seen?.id ? "seen in your capture" : "NoX's guess"}
+              </span>
+            )}
+          </span>
+        ) : (
+          <span />
+        )}
         <LiquidMetalButton
           type="submit"
           hue={role.hue}

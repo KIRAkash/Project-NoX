@@ -39,8 +39,20 @@ const join = (before: string, spoken: string) => (before && spoken ? `${before.r
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const EXT: Record<string, string> = { "audio/webm": "webm", "audio/mp4": "m4a", "audio/ogg": "ogg", "audio/wav": "wav" };
 
-/** A mic button that writes what the person says into `value` (appended to what's there). */
-export function VoiceInput({ value, onChange, label, className = "" }: { value: string; onChange: (v: string) => void; label?: string; className?: string }) {
+/** A mic button that writes what the person says into `value` (appended to what's there). `accent` paints it in the seat's colour. */
+export function VoiceInput({
+  value,
+  onChange,
+  label,
+  accent = false,
+  className = "",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  label?: string;
+  accent?: boolean;
+  className?: string;
+}) {
   const status = useVoiceStatus();
   const toast = useToast();
   const rec = useVoiceRecorder(status?.maxSeconds ?? 120);
@@ -135,13 +147,17 @@ export function VoiceInput({ value, onChange, label, className = "" }: { value: 
         </span>
       ) : (
         <>
-        {label && <span className="text-[12.5px] text-ink-faint">{label}</span>}
+        {label && <span className={accent ? "text-[13px] font-medium text-[color:var(--role)]" : "text-[12.5px] text-ink-faint"}>{label}</span>}
         <button
           type="button"
           onClick={start}
           aria-label="Speak instead of typing"
           title="Speak instead of typing"
-          className="flex h-8 w-8 items-center justify-center rounded-full border border-hairline text-ink-dim hover:border-[color:var(--role)] hover:text-[color:var(--role)]"
+          className={
+            accent
+              ? "flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--role)] text-void shadow-[0_4px_14px_-4px_var(--role)] transition hover:brightness-110"
+              : "flex h-8 w-8 items-center justify-center rounded-full border border-hairline text-ink-dim hover:border-[color:var(--role)] hover:text-[color:var(--role)]"
+          }
         >
           <Mic size={14} aria-hidden />
         </button>

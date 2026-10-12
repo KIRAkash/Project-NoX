@@ -168,9 +168,9 @@ export default function NewMissionPage() {
             aria-label="The request"
             className="w-full resize-y rounded-sm border border-hairline bg-deck p-3 text-[15px] leading-relaxed text-ink outline-none focus:border-[color:var(--role)]"
           />
-          <VoiceInput value={prompt} onChange={setPrompt} label="Or say it out loud" className="mt-2 w-full justify-end" />
+          <VoiceInput value={prompt} onChange={setPrompt} label="Or say it out loud" accent className="mt-2 w-full justify-end" />
           <div className="mt-4 border-t border-hairline pt-4">
-            <CaptureBar global onMedia={onCapture} />
+            <CaptureBar global accent onMedia={onCapture} />
             {captures.length > 0 && (
               <ul className="mt-4 space-y-3" aria-label="What you showed NoX">
                 {visibleCaptures(captures).map((c) => (

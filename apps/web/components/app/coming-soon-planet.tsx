@@ -32,9 +32,9 @@ export function ComingSoonPlanet({ size, active, className = "" }: { size: numbe
       <svg viewBox="0 0 100 100" width={size} height={size} overflow="visible" className="absolute inset-0">
         <defs>
           <radialGradient id="coming-soon-body" cx="32%" cy="28%" r="80%">
-            <stop offset="0%" stopColor="#2A3150" />
-            <stop offset="60%" stopColor="#141A2C" />
-            <stop offset="100%" stopColor="#0A0D17" />
+            <stop offset="0%" stopColor="var(--ghost-hi)" />
+            <stop offset="60%" stopColor="var(--ghost-mid)" />
+            <stop offset="100%" stopColor="var(--ghost-lo)" />
           </radialGradient>
           <clipPath id="coming-soon-front" clipPathUnits="userSpaceOnUse">
             <rect x="-40" y="50" width="180" height="40" />
@@ -59,7 +59,7 @@ export function ComingSoonPlanet({ size, active, className = "" }: { size: numbe
           style={{ transformOrigin: "50px 50px", transform: active ? "rotate(40deg)" : "rotate(0deg)" }}
         />
         <g
-          stroke={active ? "#F7B542" : "var(--ink-faint)"}
+          stroke={active ? "var(--nox)" : "var(--ink-faint)"}
           strokeWidth="3"
           strokeLinecap="round"
           className="transition-[stroke] duration-500 motion-reduce:transition-none"

@@ -502,7 +502,7 @@ export function SpecEditor({
         ))}
         {/* Show NoX right in the toolbar; a sheet it opens (share setup, markup, preview) takes the full row */}
         <div className="ml-1 has-[>div>:nth-child(2)]:order-last has-[>div>:nth-child(2)]:basis-full has-[>div>:nth-child(2)]:py-1">
-          <CaptureBar compact missionKey={missionKey} role={role} onMedia={(c) => insertBlock(mediaRef(c))} />
+          <CaptureBar compact accent missionKey={missionKey} role={role} onMedia={(c) => insertBlock(mediaRef(c))} />
         </div>
         <span className="ml-auto flex items-center gap-3 pr-1">
           <label className="flex cursor-pointer items-center gap-1.5 text-[12px] text-ink-muted">

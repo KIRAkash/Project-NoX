@@ -26,6 +26,10 @@
   --panel: #0f1322;
   --panel-lo: #0b0e19;
   --panel-rgb: 15 19 34;
+  /* the role picker's not-yet-playable planet */
+  --ghost-hi: #2a3150;
+  --ghost-mid: #141a2c;
+  --ghost-lo: #0a0d17;
   --glint: 236 239 248;
   --shadow: 0 0 0;
 
@@ -88,6 +92,9 @@ html[data-theme="light"] {
   --panel: #ffffff;
   --panel-lo: #fffdfb;
   --panel-rgb: 255 255 255;
+  --ghost-hi: #ffffff;
+  --ghost-mid: #f1ebe3;
+  --ghost-lo: #ddd3c7;
   --glint: 255 255 255;
   --shadow: 60 44 30;
 

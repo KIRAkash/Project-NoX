@@ -1,7 +1,7 @@
 "use client";
 
 import { Camera, Mic, MonitorPlay, Upload, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 
 import { useToast } from "@/components/app/ui";
 import { ApiError } from "@/lib/app/api";
@@ -32,6 +32,7 @@ const AUDIO_TYPES = "audio/mp4,audio/x-m4a,audio/mpeg,audio/webm,audio/wav,audio
  * anywhere on the page when `global` is set. Screen capture is hidden where the browser can't do it (phones), and
  * video and voice are hidden on NoX Local, which reads images only. Every capture is uploaded, then handed to
  * `onMedia`; an annotated screenshot hands over the marked-up copy, whose `annotatedOf` is the original.
+ * `accent` paints the buttons in the seat's colour, for composers where showing NoX is a headline feature.
  */
 export function CaptureBar({
   missionKey,
@@ -39,12 +40,14 @@ export function CaptureBar({
   onMedia,
   global = false,
   compact = false,
+  accent = false,
 }: {
   missionKey?: string;
   role?: string;
   onMedia: (capture: MediaCapture, extraIds?: string[]) => void;
   global?: boolean;
   compact?: boolean;
+  accent?: boolean;
 }) {
   const { me } = useAuth();
   const toast = useToast();
@@ -165,14 +168,25 @@ export function CaptureBar({
     };
   }, [global, takeFile]);
 
-  const btn = `flex items-center gap-1.5 rounded-sm border border-hairline text-ink-muted hover:border-ink-faint hover:text-ink disabled:opacity-40 ${compact ? "h-8 px-2.5 text-[12px]" : "h-9 px-3 text-[13px]"}`;
+  const btn = `flex items-center gap-1.5 rounded-sm border disabled:opacity-40 ${compact ? "h-8 px-2.5 text-[12px]" : "h-9 px-3 text-[13px]"} ${
+    accent
+      ? "border-[color:var(--accent-line)] bg-[color:var(--accent-fill)] font-medium text-ink transition hover:border-[color:var(--role)] hover:bg-[color:var(--accent-hover)] [&>svg]:text-[color:var(--role)]"
+      : "border-hairline text-ink-muted hover:border-ink-faint hover:text-ink"
+  }`;
+  const accentVars = accent
+    ? ({
+        "--accent-line": "color-mix(in srgb, var(--role) 45%, transparent)",
+        "--accent-fill": "color-mix(in srgb, var(--role) 12%, transparent)",
+        "--accent-hover": "color-mix(in srgb, var(--role) 20%, transparent)",
+      } as CSSProperties)
+    : undefined;
   const cloudOnly = local ? "Video needs NoX in the cloud" : undefined;
   const busy = !!sheet || rec.state !== "idle" && rec.state !== "stopped" || voice.recording;
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Show NoX">
-        {!compact && <span className="mr-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-[color:var(--role)]">Show NoX</span>}
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Show NoX" style={accentVars}>
+        {!compact && <span className={`mr-1 font-mono uppercase text-[color:var(--role)] ${accent ? "text-[11.5px] font-semibold tracking-[0.16em]" : "text-[10.5px] tracking-[0.14em]"}`}>Show NoX</span>}
         {screenOk && !local && (
           <button type="button" disabled={busy} onClick={() => setSheet({ mode: "setup" })} className={btn}>
             <MonitorPlay size={14} /> Record screen
