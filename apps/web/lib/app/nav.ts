@@ -21,12 +21,12 @@ const ITEM: Record<string, NavItem> = {
   sightings: { key: "sightings", label: "Sightings", path: "/sightings", icon: Telescope },
 };
 
-/** Each seat gets its own short nav: the business user reads the atlas but cannot change it; the developer gets the CLI. Every seat sees Sightings and Impact. */
+/** Each seat gets its own short nav: the business user reads the atlas but cannot change it; the developer gets the CLI. Every seat sees Sightings, Specs, and Impact. */
 const SEAT_NAV: Record<RoleId, string[]> = {
-  business: ["home", "missions", "sightings", "atlas", "impact"],
+  business: ["home", "missions", "sightings", "atlas", "specs", "impact"],
   product: ["home", "missions", "sightings", "atlas", "specs", "impact"],
-  engineering: ["home", "missions", "sightings", "atlas", "activity", "impact"],
-  developer: ["home", "missions", "sightings", "atlas", "cli", "impact"],
+  engineering: ["home", "missions", "sightings", "atlas", "specs", "activity", "impact"],
+  developer: ["home", "missions", "sightings", "atlas", "specs", "cli", "impact"],
 };
 
 export function navFor(role: RoleId): NavItem[] {
