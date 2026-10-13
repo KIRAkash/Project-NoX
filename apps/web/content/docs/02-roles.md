@@ -6,7 +6,7 @@ Everyone in NoX works from one of four seats. A seat decides which file you writ
 
 1. Open NoX and choose **Enter NoX**. Sign in with Google through **Firebase Authentication**. In local development there is also a one-field dev sign-in.
 2. Every request the web app sends carries the Firebase ID token. The API verifies it with `firebase-admin` and creates your user record the first time it sees you.
-3. The first time you sign in, NoX greets you with **Welcome to NoX** and a short animated tour of the demo estate: Tidewell Mutual, a mock insurance company, drawn as a map of its teams, with a dot for each application and the work in flight. Beside it, a checklist shows the real GitHub repositories, Confluence spaces, Jira projects, Slack channels and Notion pages it is built from, with links. Choose one:
+3. The first time you sign in, NoX greets you with **Welcome to NoX** and a short animated tour of the demo estate: Tidewell Mutual, a mock insurance company, drawn as a map: a line from the company to each team, and each team's applications listed with a status dot that lights up when its code wiki is ready and pulses while a change is in flight. Below it, a row of logos ticks off the real GitHub repositories, Confluence spaces, Jira projects, Slack channels and Notion pages it is built from; open any of them for the links. Choose one:
    - **Proceed with Tidewell** joins you to the demo company, so you can follow real missions from any seat.
    - **Start empty and onboard my own applications** joins you to nothing. You chart your own organization and onboard your own applications.
 

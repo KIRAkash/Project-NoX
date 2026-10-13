@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, BookOpen, Check, ChevronDown, ExternalLink, RotateCcw } from "lucide-react";
+import { ArrowRight, BookOpen, Check, ExternalLink, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -66,9 +66,9 @@ function Welcome() {
   const loading = estate.loading && !estate.data;
 
   return (
-    <main className="mx-auto flex min-h-[100svh] w-full max-w-[1320px] flex-col px-4 pb-8 pt-6 sm:px-8">
-      {/* The headline carries the wordmark on this page, so the header keeps only the controls. */}
-      <header className="flex items-center justify-end">
+    <main className="relative mx-auto flex min-h-[100svh] w-full max-w-[1320px] flex-col px-4 pb-5 pt-5 sm:px-8">
+      {/* The headline carries the wordmark on this page, so the header keeps only the controls, floating in the corner. */}
+      <header className="absolute right-4 top-4 z-20 flex items-center sm:right-8">
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <button type="button" onClick={() => void signOut()} className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint hover:text-ink">
@@ -77,18 +77,18 @@ function Welcome() {
         </div>
       </header>
 
-      <h1 className="mt-8 flex flex-wrap items-center justify-center gap-x-[0.28em] text-center font-display text-[40px] leading-[1.05] tracking-[-0.02em] text-ink sm:mt-6 sm:text-[60px]">
+      <h1 className="mt-10 flex flex-wrap items-center justify-center gap-x-[0.28em] text-center font-display text-[38px] leading-[1.05] tracking-[-0.02em] text-ink sm:text-[52px] lg:mt-1">
         <span>Welcome to</span>
         <span className="sr-only">NoX</span>
         <span aria-hidden className="translate-y-[0.04em] sm:hidden">
-          <NoxMark size={40} />
+          <NoxMark size={38} />
         </span>
         <span aria-hidden className="hidden translate-y-[0.04em] sm:inline-flex">
-          <NoxMark size={60} />
+          <NoxMark size={52} />
         </span>
       </h1>
       {(loading || demo) && (
-        <p className="mx-auto mt-3 max-w-[620px] text-balance text-center text-[15px] leading-relaxed text-ink-muted sm:text-[16.5px]">
+        <p className="mx-auto mt-2 max-w-[640px] text-balance text-center text-[14.5px] leading-relaxed text-ink-muted sm:text-[15.5px]">
           We&rsquo;ve set up a demo company so you can see NoX at work right away. Or start with an empty workspace and onboard
           your own applications.
         </p>
@@ -144,8 +144,8 @@ function Story({ demo, first, busy, onChoose }: { demo: DemoEstate; first: strin
       {
         beat: "lit",
         text: c.contracts
-          ? `NoX read each application's code and docs, wrote it a code wiki that stays in sync, and mapped the ${c.contracts} contracts between them.`
-          : "NoX read each application's code and docs and wrote it a code wiki that stays in sync.",
+          ? `NoX read each application's code and docs from the tools below, wrote it a code wiki that stays in sync, and mapped the ${c.contracts} contracts between them.`
+          : "NoX read each application's code and docs from the tools below and wrote it a code wiki that stays in sync.",
       },
       {
         beat: "flight",
@@ -196,21 +196,30 @@ function Story({ demo, first, busy, onChoose }: { demo: DemoEstate; first: strin
 
   return (
     <>
-      <div className="mt-2 flex flex-1 gap-8">
-        <div className="relative -mx-4 min-h-[340px] flex-1 sm:-mx-8 sm:min-h-[400px] lg:mx-0">
-          <WelcomeSky ref={sky} org={org} note={note} teams={demo.teams} onReady={start} />
-        </div>
-        {demo.sources.length > 0 && <Sources groups={demo.sources} className="hidden w-[300px] shrink-0 self-center lg:block" />}
+      {/* The map takes whatever height is left, so the whole page fits one screen on a laptop. */}
+      <div className="relative -mx-4 mt-2 min-h-[300px] flex-1 sm:-mx-8 lg:min-h-[250px]">
+        <WelcomeSky ref={sky} org={org} note={note} teams={demo.teams} onReady={start} />
       </div>
 
+      {/* The real tools behind the demo arrive once its applications have. */}
+      {demo.sources.length > 0 && (
+        <div
+          className="transition-[opacity,transform] duration-700 ease-out motion-reduce:transition-none"
+          style={{ opacity: beat >= 3 ? 1 : 0, transform: beat >= 3 ? "none" : "translateY(8px)", pointerEvents: beat >= 3 ? "auto" : "none" }}
+          aria-hidden={beat < 3}
+        >
+          <Sources groups={demo.sources} />
+        </div>
+      )}
+
       <div className="mx-auto flex w-full max-w-[760px] flex-col items-center text-center">
-        <div className="flex min-h-[4.6em] items-center justify-center sm:min-h-[3.4em]" aria-live="polite">
-          <p ref={caption} key={beat} className="text-balance font-display text-[21px] leading-[1.3] text-ink sm:text-[27px]">
+        <div className="mt-3 flex min-h-[4em] items-center justify-center sm:min-h-[2.8em]" aria-live="polite">
+          <p ref={caption} key={beat} className="text-balance font-display text-[19px] leading-[1.3] text-ink sm:text-[22px]">
             {beats[Math.max(beat, 0)].text}
           </p>
         </div>
 
-        <div className="mt-3 flex items-center gap-1.5" role="group" aria-label="Story">
+        <div className="mt-1 flex items-center gap-1.5" role="group" aria-label="Story">
           {beats.map((b, i) => (
             <button
               key={b.beat}
@@ -242,7 +251,7 @@ function Story({ demo, first, busy, onChoose }: { demo: DemoEstate; first: strin
           </button>
         </div>
 
-        <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:gap-5">
+        <div className="mt-3 flex flex-col items-center gap-3 sm:flex-row sm:gap-5">
           <LiquidMetalButton
             type="button"
             onClick={() => onChoose("demo")}
@@ -261,12 +270,7 @@ function Story({ demo, first, busy, onChoose }: { demo: DemoEstate; first: strin
             {busy === "fresh" ? "Setting up an empty workspace…" : "Start empty and onboard my own applications"}
           </button>
         </div>
-        <p className="mt-4 text-[12px] text-ink-faint">
-          <span className="[@media(hover:none)]:hidden">Hover</span>
-          <span className="hidden [@media(hover:none)]:inline">Tap</span> a dot to see its application. You can join or leave the demo later from the account menu.
-        </p>
       </div>
-      {demo.sources.length > 0 && <Sources groups={demo.sources} className="mx-auto mt-8 w-full max-w-[520px] lg:hidden" />}
     </>
   );
 }
@@ -280,45 +284,65 @@ const SOURCE_KIND: Record<string, { name: string; one: string; many: string }> =
   slack: { name: "Slack", one: "channel", many: "channels" },
   notion: { name: "Notion", one: "page", many: "pages" },
   upload: { name: "Uploads", one: "file", many: "files" },
-  wiki: { name: "Code wikis by NoX", one: "repository", many: "repositories" },
+  wiki: { name: "Code wikis by NoX", one: "repo", many: "repos" },
 };
 
 /**
- * Proof that the demo is real: every tool its applications are built from, ticked off, with links to open each one.
- * The last row is what NoX produced from them: a code wiki repository per application.
+ * Proof that the demo is real: one ticked chip per tool its applications are built from. Each chip opens a list of
+ * links to the actual repositories, spaces, projects, channels and pages. The last chip is what NoX produced from them.
  */
-function Sources({ groups, className = "" }: { groups: SourceGroup[]; className?: string }) {
+function Sources({ groups }: { groups: SourceGroup[] }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !root.current?.contains(e.target as Node)) setOpen(null);
+    };
+    window.addEventListener("mousedown", close);
+    window.addEventListener("keydown", close);
+    return () => {
+      window.removeEventListener("mousedown", close);
+      window.removeEventListener("keydown", close);
+    };
+  }, [open]);
+
   return (
-    <section aria-labelledby="sources-title" className={`rounded-md border border-hairline bg-[rgb(var(--raise-lo)/.72)] p-4 text-left backdrop-blur-sm ${className}`}>
-      <h2 id="sources-title" className="text-[15px] font-semibold text-ink">
-        Built from real, connected tools
-      </h2>
-      <p className="mt-1 text-[12.5px] leading-relaxed text-ink-faint">The company is made up. Its tools are real: open any source to see it.</p>
-      <ul className="mt-3 divide-y divide-hairline">
+    <section ref={root} aria-label="The real tools behind the demo" className="mx-auto mt-1 flex w-full flex-col items-center gap-2">
+      <p className="text-center text-[12.5px] text-ink-faint">
+        <span className="font-medium text-ink-muted">The company is made up. Its tools are real.</span> Open any of them:
+      </p>
+      <ul className="flex flex-wrap justify-center gap-1.5">
         {groups.map((g) => {
           const kind = SOURCE_KIND[g.type] ?? { name: g.type, one: "source", many: "sources" };
           const n = g.items.length;
+          const isOpen = open === g.type;
           return (
-            <li key={g.type}>
-              <details className="group">
-                <summary className="flex cursor-pointer list-none items-center gap-2.5 py-2.5 text-[13.5px] [&::-webkit-details-marker]:hidden">
-                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[color:var(--verify)] text-abyss" aria-hidden>
-                    <Check size={11} strokeWidth={3} />
-                  </span>
-                  {g.type === "wiki" ? (
-                    <BookOpen size={15} className="shrink-0 text-nox" aria-hidden />
-                  ) : g.type in SOURCE_KIND ? (
-                    <BrandLogo name={g.type as "github"} size={15} />
-                  ) : null}
-                  <span className="font-medium text-ink">{kind.name}</span>
-                  <span className="ml-auto whitespace-nowrap text-[12.5px] text-ink-faint">
-                    {n} {n === 1 ? kind.one : kind.many}
-                  </span>
-                  <ChevronDown size={14} className="shrink-0 text-ink-dim transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden />
-                </summary>
-                <ul className="mb-2.5 max-h-44 space-y-1.5 overflow-y-auto pl-[26px] pr-1">
+            <li key={g.type} className="relative">
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : g.type)}
+                aria-expanded={isOpen}
+                aria-label={`${kind.name}: ${n} ${n === 1 ? kind.one : kind.many}`}
+                title={`${kind.name}: ${n} ${n === 1 ? kind.one : kind.many}`}
+                className="flex h-8 items-center gap-1.5 rounded-full border border-hairline bg-[rgb(var(--raise-lo)/.75)] pl-1.5 pr-2.5 text-[12.5px] transition-colors hover:border-[rgb(var(--line)/.35)]"
+                style={isOpen ? { borderColor: "var(--nox)" } : undefined}
+              >
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[color:var(--verify)] text-abyss" aria-hidden>
+                  <Check size={10} strokeWidth={3} />
+                </span>
+                {/* The tool's logo says which it is; the name is in the tooltip and for screen readers. */}
+                {g.type === "wiki" ? <BookOpen size={15} className="shrink-0 text-nox" aria-hidden /> : g.type in SOURCE_KIND ? <BrandLogo name={g.type as "github"} size={15} title="" /> : null}
+                <span className="font-medium tabular-nums text-ink" aria-hidden>
+                  {n}
+                  {g.type === "wiki" && <span className="font-normal text-ink-faint"> code wikis</span>}
+                </span>
+              </button>
+              {isOpen && (
+                <ul className="absolute bottom-full left-1/2 z-30 mb-2 max-h-56 w-max min-w-[220px] max-w-[300px] -translate-x-1/2 space-y-1.5 overflow-y-auto rounded-sm border border-hairline bg-deck p-3 text-left shadow-[0_14px_40px_-16px_rgb(0_0_0/.55)]">
                   {g.items.map((it) => (
-                    <li key={`${it.label}-${it.url}`} className="min-w-0 text-[12.5px] leading-snug">
+                    <li key={`${it.label}-${it.url}`} className="min-w-0 leading-snug">
                       {it.url ? (
                         <a href={it.url} target="_blank" rel="noreferrer" className="inline-flex max-w-full items-center gap-1 font-mono text-[12px] text-ink-muted hover:text-ink">
                           <span className="truncate">{it.label}</span>
@@ -331,7 +355,7 @@ function Sources({ groups, className = "" }: { groups: SourceGroup[]; className?
                     </li>
                   ))}
                 </ul>
-              </details>
+              )}
             </li>
           );
         })}
