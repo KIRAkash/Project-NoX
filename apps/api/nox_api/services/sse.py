@@ -3,7 +3,8 @@
 Pipelines run in the API process or in Celery workers, so events go through Redis pub/sub
 (channel `nox:events:<key>`): any process can publish, and each SSE subscriber in the API
 process listens on the channel. If Redis is unreachable, events fall back to in-memory
-queues, which only reach subscribers in the same process.
+queues, which only reach subscribers in the same process. With REDIS_URL empty (the demo deployment:
+one API instance, jobs in-process) that in-memory path is the only one, and it is not a failure.
 """
 
 import asyncio
@@ -37,6 +38,8 @@ class SSEManager:
     async def subscribe(self, key: str) -> asyncio.Queue:
         queue: asyncio.Queue = asyncio.Queue()
         self.connections.setdefault(key, []).append(queue)
+        if not settings.REDIS_URL:
+            return queue
         try:
             pubsub = self._client().pubsub()
             await pubsub.subscribe(_channel(key))
@@ -70,11 +73,12 @@ class SSEManager:
                 pass
 
     async def broadcast(self, key: str, event: dict) -> None:
-        try:
-            await self._client().publish(_channel(key), json.dumps(event, default=str))
-            return
-        except Exception as exc:
-            logger.warning(f"SSE publish to Redis failed, delivering in-process only: {exc}")
+        if settings.REDIS_URL:
+            try:
+                await self._client().publish(_channel(key), json.dumps(event, default=str))
+                return
+            except Exception as exc:
+                logger.warning(f"SSE publish to Redis failed, delivering in-process only: {exc}")
         for queue in self.connections.get(key, []):
             await queue.put(event)
 

@@ -11,7 +11,7 @@ def test_deploy_gcp_dry_run():
     env["DRY_RUN"] = "1"
     env["GCP_PROJECT_ID"] = "test-project-123"
     env["NOX_SQL_INSTANCE"] = "proj:region:inst"
-    env["CLOUD_REDIS_URL"] = "redis://localhost:6379"
+    env["CLOUD_REDIS_URL"] = ""  # the demo deployment has no Redis
 
     res = subprocess.run(
         [str(script_path), "all"],
@@ -34,14 +34,18 @@ def test_deploy_gcp_dry_run():
     assert "--threshold-rule=percent=0.9" in stdout
     assert "--threshold-rule=percent=1.0" in stdout
 
-    # Requirement 3: api max-instances=5 and concurrency=80
-    assert "--max-instances=5" in stdout
-    assert "--concurrency=80" in stdout
-
-    # Requirement 4: worker max-instances=1 and concurrency=1
+    # Requirement 3: one API instance (jobs and live events in-process), scale to zero, CPU on while up
+    assert "gcloud run deploy nox-api" in stdout
     assert "--max-instances=1" in stdout
-    assert "--concurrency=1" in stdout
+    assert "--min-instances 0" in stdout
+    assert "--no-cpu-throttling" in stdout
+    assert "WORKER_MODE=in_process" in stdout
+
+    # Requirement 4: no worker, no Redis, no VPC egress
+    assert "nox-worker" not in stdout
+    assert "redis.googleapis.com" not in stdout
+    assert "--vpc-egress" not in stdout
 
     # Requirement 5: consumer quota overrides for aiplatform & modelarmor
-    assert "gcloud services consumer-quota overrides create --service=aiplatform.googleapis.com" in stdout
-    assert "gcloud services consumer-quota overrides create --service=modelarmor.googleapis.com" in stdout
+    assert "gcloud beta services quota update --service=aiplatform.googleapis.com" in stdout
+    assert "gcloud beta services quota update --service=modelarmor.googleapis.com" in stdout

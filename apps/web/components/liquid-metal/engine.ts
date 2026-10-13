@@ -677,17 +677,20 @@ export function createLiquidMetal(canvas: HTMLCanvasElement, btn: HTMLElement): 
     btn.dataset.metal = pressTarget ? "press" : hoverTarget ? "hot" : "rest";
   };
 
+  // Plain property writes, not `[ptr.x, ptr.y] = …`: the production minifier treats properties written only by
+  // destructuring as constants, and emits `[0,0]=…`, a syntax error that takes the whole chunk down.
+  const aim = (e: PointerEvent) => { const [x, y] = localPt(e); ptr.x = x; ptr.y = y; };
   const onEnter = (e: PointerEvent) => {
     if (e.pointerType !== "mouse") return;
-    [ptr.x, ptr.y] = localPt(e);
+    aim(e);
     ptrS.x = ptr.x; ptrS.y = ptr.y; ptrSpeed = 0;
     on.over = true; sync();
   };
   const onLeave = (e: PointerEvent) => { if (e.pointerType === "mouse") { on.over = false; sync(); } };
-  const onMove = (e: PointerEvent) => { if (on.over || on.press) [ptr.x, ptr.y] = localPt(e); };
+  const onMove = (e: PointerEvent) => { if (on.over || on.press) aim(e); };
   const onDown = (e: PointerEvent) => {
     if (disabled) return;
-    [ptr.x, ptr.y] = localPt(e);
+    aim(e);
     on.press = true; sync();
     addRipple(ptr.x, ptr.y);
   };

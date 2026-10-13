@@ -21,7 +21,7 @@ from enum import StrEnum
 import httpx
 from fastapi import Depends, Header, HTTPException, Request, status
 from google.auth import jwt as google_jwt
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.database import get_db
@@ -83,8 +83,16 @@ async def verify_firebase_token(token: str) -> dict:
 # ── Current user ─────────────────────────────────────────────────────────────
 
 
-async def _upsert_user(db: AsyncSession, uid: str, email: str | None, name: str | None, photo: str | None) -> User:
+async def _upsert_user(db: AsyncSession, uid: str, email: str | None, name: str | None, photo: str | None,
+                       email_verified: bool = False) -> User:
     user = (await db.execute(select(User).where(User.firebase_uid == uid))).scalars().first()
+    if user is None and email and email_verified:
+        # Same person, new sign-in ID (the deployment moved to another Firebase project): keep their account,
+        # missions and memberships. Only for an email the identity provider has verified.
+        user = (await db.execute(select(User).where(func.lower(User.email) == email.lower(), ~User.firebase_uid.startswith("dev:"))
+                                 .order_by(User.created_at))).scalars().first()
+        if user is not None:
+            user.firebase_uid = uid
     if user is None:
         user = User(firebase_uid=uid, email=email, name=name or (email or "").split("@")[0], photo_url=photo)
         db.add(user)
@@ -152,7 +160,8 @@ async def current_user(
         await db.commit()
     elif scheme == "Bearer" and credential:
         claims = await verify_firebase_token(credential)
-        user = await _upsert_user(db, claims["sub"], claims.get("email"), claims.get("name"), claims.get("picture"))
+        user = await _upsert_user(db, claims["sub"], claims.get("email"), claims.get("name"), claims.get("picture"),
+                                  email_verified=claims.get("email_verified") is True)
     elif scheme == "Dev" and settings.NOX_DEV_AUTH and credential:
         email = credential.lower()
         user = await _upsert_user(db, f"dev:{email}", email, None, None)

@@ -126,12 +126,16 @@ async def readyz():
     except Exception as e:
         checks["database"] = f"error: {type(e).__name__}"
     try:
+        if not settings.REDIS_URL:
+            raise LookupError  # no Redis on purpose (demo deployment): not a readiness failure
         import redis.asyncio as aioredis
 
         r = aioredis.from_url(settings.REDIS_URL)
         await r.ping()
         await r.aclose()
         checks["redis"] = "ok"
+    except LookupError:
+        pass
     except Exception as e:
         checks["redis"] = f"error: {type(e).__name__}"
     ok = all(v == "ok" for v in checks.values())

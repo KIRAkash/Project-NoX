@@ -131,3 +131,21 @@ async def test_bad_firebase_tokens_are_rejected(db_clean, firebase_keys, overrid
     token = _signed_token(firebase_keys, "k1", "nox-demo", **overrides)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as c:
         assert (await c.get("/api/v1/me", headers={"Authorization": f"Bearer {token}"})).status_code == 401
+
+
+async def _me(token: str) -> dict:
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as c:
+        return (await c.get("/api/v1/me", headers={"Authorization": f"Bearer {token}"})).json()
+
+
+async def test_new_sign_in_id_with_verified_email_keeps_the_account(db_clean, firebase_keys):
+    """Moving to another Firebase project issues new IDs: the same verified email keeps its account."""
+    first = await _me(_signed_token(firebase_keys, "k1", "nox-demo", sub="old-uid", email_verified=True))
+    again = await _me(_signed_token(firebase_keys, "k1", "nox-demo", sub="new-uid", email="Judge@Example.com", email_verified=True))
+    assert again["id"] == first["id"]
+
+
+async def test_new_sign_in_id_with_unverified_email_gets_its_own_account(db_clean, firebase_keys):
+    first = await _me(_signed_token(firebase_keys, "k1", "nox-demo", sub="old-uid", email_verified=True))
+    other = await _me(_signed_token(firebase_keys, "k1", "nox-demo", sub="new-uid"))  # no email_verified claim
+    assert other["id"] != first["id"]

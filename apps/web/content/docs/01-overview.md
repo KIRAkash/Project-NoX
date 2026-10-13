@@ -58,7 +58,7 @@ NoX assumes a large organization from the start:
 - **Many applications, one map.** Contracts between applications (REST routes, event topics, gRPC services, shared models) are extracted from every knowledge base into one organization-wide contract map. An engineering lead can see who calls an endpoint before they change it.
 - **Role-based access.** Four seats (business user, product owner, engineering lead, developer), each with its own capabilities, enforced by the server on every request.
 - **Everything in Git, in an open format.** Knowledge bases are Open Knowledge Format bundles and spec files are Markdown, all in repositories the organization owns and reviewed through pull requests like any other change.
-- **Cloud-native on Google Cloud.** Cloud Run, Cloud SQL with pgvector, Memorystore, Cloud Storage and Secret Manager, with Gemini reached through the runtime service account, so no API key is ever deployed.
+- **Cloud-native on Google Cloud.** Cloud Run, Cloud SQL with pgvector, Cloud Storage and Secret Manager, with Gemini reached through the runtime service account, so no API key is ever deployed.
 
 ## Where to go next
 

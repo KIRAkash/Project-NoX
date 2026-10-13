@@ -294,7 +294,7 @@ _BQ_IMPACT = {
                  FROM `{ds}.mission_stage_durations` WHERE org_id IN UNNEST(@orgs) AND started_at >= @since
                  GROUP BY stage""",
     "send_backs": """SELECT from_stage AS stage, COUNT(*) AS count FROM `{ds}.mission_send_backs`
-                     WHERE org_id IN UNNEST(@orgs) AND at >= @since GROUP BY stage ORDER BY count DESC""",
+                     WHERE org_id IN UNNEST(@orgs) AND `at` >= @since GROUP BY stage ORDER BY count DESC""",
     "grounding": """SELECT SUM(answers) AS answers, SUM(grounded) AS grounded FROM `{ds}.grounding`
                     WHERE (org_id IS NULL OR org_id IN UNNEST(@orgs)) AND day >= DATE(@since)""",
     "cost": """SELECT AVG(usd) AS usd FROM `{ds}.ai_cost` WHERE org_id IN UNNEST(@orgs) AND mission_id IS NOT NULL

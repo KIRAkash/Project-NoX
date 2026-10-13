@@ -1,0 +1,7 @@
+{
+  "hosting": {
+    "public": "public",
+    "ignore": ["**/.*"],
+    "rewrites": [{ "source": "**", "run": { "serviceId": "nox-web", "region": "us-central1" } }]
+  }
+}

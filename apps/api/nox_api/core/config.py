@@ -109,7 +109,7 @@ class Settings(BaseSettings):
     STORAGE_BACKEND: str = "local"                     # "local" or "gcs"
     GCS_BUCKET_NAME: str = ""
     GOOGLE_APPLICATION_CREDENTIALS: str | None = None
-    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_URL: str = "redis://localhost:6379/0"        # empty: no Redis (one API instance, jobs and live events in-process)
     WORKER_MODE: str = "auto"                          # "auto", "celery", or "in_process"
     SOURCE_MONITOR_MODE: str = "webhook"
     WEBHOOK_SECRET: str = ""                           # Required; see validate_required_settings()

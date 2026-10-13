@@ -93,7 +93,7 @@ Business ─▶ Product ─▶ Engineering ─▶ Developer ─▶ Build ─▶ 
 
 ## Work in the background
 
-Everything slow runs as a job: builds, syncs, rollups, drafts, co-writer turns, learning a lesson from a send-back, Git mirroring, Jira calls, the PR guard and following a Jules session (a watcher per hand-off, and a `jules_tick` on Celery beat every minute as the safety net). The API validates the request, writes the state, queues the job and returns straight away. Two model calls do run in a request, because a person is waiting for them and both stream: an Ask answer, and the transcription of a voice recording. Jobs run on **Celery** workers over Redis in production. `WORKER_MODE=in_process` runs them inside the API instead, which is handy for small deployments and development.
+Everything slow runs as a job: builds, syncs, rollups, drafts, co-writer turns, learning a lesson from a send-back, Git mirroring, Jira calls, the PR guard and following a Jules session (a watcher per hand-off, and, with Celery, a `jules_tick` on beat every minute as the safety net). The API validates the request, writes the state, queues the job and returns straight away. Two model calls do run in a request, because a person is waiting for them and both stream: an Ask answer, and the transcription of a voice recording. Jobs can run on **Celery** workers over Redis when you need to scale out. `WORKER_MODE=in_process` runs them inside the API instead; the demo deployment does this, and development uses it too.
 
 Each job writes events as it goes, and each event is published to Redis, so every browser watching that application or mission gets it over **server-sent events** immediately: flight-log lines, trajectory changes, the co-writer's section edits, timeline entries.
 
@@ -131,11 +131,11 @@ Other targets: `make api`, `make web`, `make worker`, `make migrate`, `make test
 ```bash
 scripts/deploy_gcp.sh secrets      # copy secrets from .env into Secret Manager
 scripts/deploy_gcp.sh ai-access    # let the runtime service account call Gemini, Model Armor, DLP and BigQuery
-scripts/deploy_gcp.sh all          # enable APIs, build with Cloud Build, deploy nox-api, nox-worker, nox-web
+scripts/deploy_gcp.sh all          # enable APIs, build with Cloud Build, deploy nox-api and nox-web
 DRY_RUN=1 scripts/deploy_gcp.sh all   # print every gcloud command instead of running it
 ```
 
-It enables the services it needs, creates the Artifact Registry repository and Cloud Storage bucket, builds images with Cloud Build, and deploys three Cloud Run services: `nox-api` (public), `nox-worker` (private) and `nox-web`. They connect to Cloud SQL for PostgreSQL, where the `vector` extension is enabled by a migration, and to Memorystore for Redis over Direct VPC egress, so no serverless VPC connector is needed. `ai-access` also creates the `nox-shield` Model Armor template and the `nox_analytics` BigQuery dataset with its views, and the API is deployed with Shield in `enforce` mode and the flight recorder on.
+It enables the services it needs, creates the Artifact Registry repository and Cloud Storage bucket, builds images with Cloud Build, and deploys two Cloud Run services, `nox-api` and `nox-web`, that scale to zero when nobody is using them. The API connects to Cloud SQL for PostgreSQL, where the `vector` extension is enabled by a migration. The deployment is sized for a demo: no worker and no Redis. The API runs jobs in-process and delivers live events in memory, so it runs as one instance, with CPU kept on while it is up so jobs finish after their request returns. To scale out, set `CLOUD_REDIS_URL` to a Memorystore instance (reached by Direct VPC egress, so no connector is needed) and run Celery workers. `ai-access` also creates the `nox-shield` Model Armor template and the `nox_analytics` BigQuery dataset with its views, and the API is deployed with Shield in `enforce` mode and the flight recorder on.
 
 ## Quality
 

@@ -88,11 +88,12 @@ Then, in the coding agent: `/nox NOX-12`. `nox help` lists the rest (`context`, 
 
 ## Deploying
 
-`scripts/deploy_gcp.sh` builds and deploys `nox-api`, `nox-worker` and `nox-web` to Cloud Run, with secrets in
+`scripts/deploy_gcp.sh` builds and deploys `nox-api` and `nox-web` to Cloud Run, with secrets in
 Secret Manager (`scripts/deploy_gcp.sh secrets` copies them from `.env`). `DRY_RUN=1` prints the commands.
 Gemini runs on the Agent Platform as the runtime service account (`scripts/deploy_gcp.sh ai-access` grants
-`roles/aiplatform.user`, plus Model Armor, DLP and BigQuery for NoX Shield and the flight recorder), and Memorystore is reached by Direct VPC egress, so no connector is needed.
-The header of the script lists the variables it needs (Cloud SQL instance, Memorystore URL, VPC connector).
+`roles/aiplatform.user`, plus Model Armor, DLP and BigQuery for NoX Shield and the flight recorder).
+It is sized for a mostly idle demo: both services scale to zero, and the API runs jobs in-process on a single
+instance, so there is no worker and no Redis. The header of the script lists the variables it needs.
 The 5-minute demo is in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 
 ## Where things stand

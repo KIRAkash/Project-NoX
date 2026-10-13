@@ -223,10 +223,9 @@ NoX's knowledge tools are an **MCP** server, and its Ask agent is an **A2A** ser
 | --- | --- |
 | **Gemini Enterprise Agent Platform** | Every agent's model calls and embeddings, authenticated by service account |
 | **Open Knowledge Format** (Google Cloud's open specification) | The format of every knowledge base NoX writes, so the knowledge is portable to any OKF-aware agent |
-| **Cloud Run** | `nox-api`, `nox-worker` and `nox-web`, each scaled independently |
+| **Cloud Run** | `nox-api` and `nox-web`, each scaling to zero when idle |
 | **Cloud Build** and **Artifact Registry** | Building and storing the container images |
 | **Cloud SQL for PostgreSQL** with **pgvector** | All application data, ADK sessions and the search index |
-| **Memorystore for Redis** | The Celery job queue and live event fan-out, reached by Direct VPC egress |
 | **Cloud Storage** | Source snapshots, build checkpoints, uploads and spec-file images |
 | **Secret Manager** | Every credential, mounted into Cloud Run at deploy time |
 | **Model Armor** | Screens sources, questions and chat for prompt injection, malicious links and unsafe content |

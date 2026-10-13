@@ -1,0 +1,1 @@
+Firebase Hosting needs a public folder. It stays empty: every request is forwarded to the nox-web Cloud Run service.

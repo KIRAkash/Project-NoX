@@ -64,7 +64,7 @@ NoX looks once a week by default, on Monday at 08:00 UTC, across a top-level org
 
 A scheduled run skips every application whose inputs haven't changed since the last one, so a quiet week costs almost nothing. Open sightings on a changed application are checked again first. If the pages or code they cite are gone, they leave the feed as outdated. At most five new sightings per seat come from one run (`NOX_SIGHTINGS_MAX_PER_SEAT`). The last run's model calls, tokens and cost show under the schedule.
 
-**How the schedule runs.** Celery beat checks for due runs every 15 minutes. It runs inside the worker service on Cloud Run, so nothing else needs setting up. Without beat, set `NOX_SIGHTINGS_TICK=local` on a single API instance, or have any scheduler call `POST /api/v1/internal/sightings/tick` with the `X-Nox-Tick` secret (`NOX_SIGHTINGS_TICK_SECRET`) or a Google OIDC token for `NOX_SIGHTINGS_SCHEDULER_SA`. Due schedules are claimed with a row lock, so two instances never start the same run twice.
+**How the schedule runs.** The deployed API checks for due runs every 15 minutes itself (`NOX_SIGHTINGS_TICK=local`), while an instance is up. With Celery workers, beat does the same instead. You can also have any scheduler call `POST /api/v1/internal/sightings/tick` with the `X-Nox-Tick` secret (`NOX_SIGHTINGS_TICK_SECRET`) or a Google OIDC token for `NOX_SIGHTINGS_SCHEDULER_SA`. Due schedules are claimed with a row lock, so two instances never start the same run twice.
 
 ## API
 
