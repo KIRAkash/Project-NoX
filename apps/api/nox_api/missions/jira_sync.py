@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..core.config import settings
 from ..core.time_utils import now_utc
 from ..db.models import ExternalLink, Mission, MissionStage, Role, SpecFile
-from ..integrations.jira import JiraClient, JiraError, adf_to_text
+from ..integrations.jira import JiraClient, JiraError, JiraNotFoundError, adf_to_text
 from .events import record
 from .templates import TITLE
 
@@ -94,6 +94,26 @@ async def link_issue(db: AsyncSession, mission: Mission, issue_key: str, actor) 
         db.add(link)
     await db.commit()
     await record(db, mission, "jira.linked", {"key": issue["key"], "url": url, "primary": link.primary}, actor.user, actor.role.value)
+    return link
+
+
+async def resync_issue(db: AsyncSession, mission: Mission, link_or_key: ExternalLink | str, actor=None) -> ExternalLink:
+    if isinstance(link_or_key, str):
+        link = next((l for l in mission.links if l.system == "jira" and l.external_id == link_or_key.upper()), None)
+        if not link:
+            raise JiraNotFoundError(f"Issue {link_or_key} is not linked to mission {mission.key}")
+    else:
+        link = link_or_key
+
+    async with JiraClient() as jira:
+        issue = await jira.get_issue(link.external_id)
+
+    new_state = {**(link.state or {}), **issue_state(issue)}
+    link.state = new_state
+    await db.commit()
+    user = getattr(actor, "user", None) if actor else None
+    role = getattr(getattr(actor, "role", None), "value", getattr(actor, "role", None)) if actor else None
+    await record(db, mission, "jira.synced", {"key": link.external_id, "status": new_state.get("status")}, user, role)
     return link
 
 

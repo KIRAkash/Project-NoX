@@ -116,3 +116,57 @@ async def test_bad_credentials_surface_as_502(db_clean, fake_nox, jira_env):
             key = (await dev.post("/api/v1/missions", json={"prompt": "Lock accounts after failed logins", "appIds": [kb]})).json()["key"]
             res = await dev.post(f"/api/v1/missions/{key}/jira/create", json={})
             assert res.status_code == 502 and "credentials" in res.json()["detail"]
+
+
+async def test_manual_resync_endpoint(db_clean, fake_nox, jira_env):
+    kb = await _setup_app()
+    with respx.mock(assert_all_called=False) as router:
+        router.route(host="test").pass_through()
+        _mock_jira(router, status="To Do")
+        async with _client("developer") as dev:
+            key = (await dev.post("/api/v1/missions", json={"prompt": "Lock accounts after failed logins", "appIds": [kb]})).json()["key"]
+            await _wait_drafts(dev, key)
+            await dev.post(f"/api/v1/missions/{key}/jira/link", json={"issueKey": "apex-7"})
+
+            # Change mock Jira response for APEX-7 to reflect external update
+            router.get(url__regex=rf"{BASE}/rest/api/3/issue/APEX-7(\?.*)?$").mock(
+                return_value=httpx.Response(200, json=_issue(status="In Review"))
+            )
+
+            resync_res = await dev.post(f"/api/v1/missions/{key}/jira/resync")
+            assert resync_res.status_code == 200, resync_res.text
+            m = resync_res.json()
+            assert m["links"][0]["state"]["status"] == "In Review"
+
+            events = [e["type"] for e in (await dev.get(f"/api/v1/missions/{key}/events")).json()]
+            assert "jira.synced" in events
+
+
+async def test_resync_no_links_returns_404(db_clean, fake_nox, jira_env):
+    kb = await _setup_app()
+    async with _client("developer") as dev:
+        key = (await dev.post("/api/v1/missions", json={"prompt": "Lock accounts after failed logins", "appIds": [kb]})).json()["key"]
+        await _wait_drafts(dev, key)
+        resync_res = await dev.post(f"/api/v1/missions/{key}/jira/resync")
+        assert resync_res.status_code == 404
+        assert "No linked Jira issues" in resync_res.json()["detail"]
+
+
+async def test_resync_bad_credentials_returns_502(db_clean, fake_nox, jira_env):
+    kb = await _setup_app()
+    with respx.mock(assert_all_called=False) as router:
+        router.route(host="test").pass_through()
+        _mock_jira(router)
+        async with _client("developer") as dev:
+            key = (await dev.post("/api/v1/missions", json={"prompt": "Lock accounts after failed logins", "appIds": [kb]})).json()["key"]
+            await _wait_drafts(dev, key)
+            await dev.post(f"/api/v1/missions/{key}/jira/link", json={"issueKey": "apex-7"})
+
+            # Mock Jira returning 401 Unauthorized for the resync fetch
+            router.get(url__regex=rf"{BASE}/rest/api/3/issue/APEX-7(\?.*)?$").mock(
+                return_value=httpx.Response(401, json={"errorMessages": ["Unauthorized"]})
+            )
+
+            resync_res = await dev.post(f"/api/v1/missions/{key}/jira/resync")
+            assert resync_res.status_code == 502
+            assert "credentials" in resync_res.json()["detail"]

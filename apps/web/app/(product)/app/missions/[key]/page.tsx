@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, CornerUpLeft, ExternalLink, Film, Lock, MoreHorizontal, Paperclip, Pencil, RotateCcw, Trash2, X } from "lucide-react";
+import { Ban, CornerUpLeft, ExternalLink, Film, Lock, MoreHorizontal, Paperclip, Pencil, RefreshCw, RotateCcw, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -692,7 +692,24 @@ function LinksPanel({ m, jules, onChanged }: { m: Mission; jules: ReturnType<typ
   };
 
   return (
-    <Panel title="Jira & pull requests">
+    <Panel
+      title="Jira & pull requests"
+      action={
+        jira.length > 0 && !m.cancelled ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void run(() => api(`/api/v1/missions/${m.key}/jira/resync`, { method: "POST" }), "Resynced Jira tickets")}
+            aria-label="Resync Jira"
+            title="Resync linked Jira tickets"
+            className="inline-flex items-center gap-1 text-[12.5px] text-ink-dim hover:text-ink disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={busy ? "animate-spin" : ""} />
+            Resync
+          </button>
+        ) : undefined
+      }
+    >
       {jira.length > 0 && (
         <ul className="space-y-2.5">
           {jira.map((l) => (

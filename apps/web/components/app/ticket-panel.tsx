@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, UserRound } from "lucide-react";
+import { Check, RefreshCw, UserRound } from "lucide-react";
 import { useState } from "react";
 
 import { Panel, useToast } from "@/components/app/ui";
@@ -17,8 +17,22 @@ export function TicketPanel({ missionKey, state, onChanged, readOnly = false }: 
   const toast = useToast();
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
   const people = useApi<Person[]>(picking ? `/api/v1/missions/${missionKey}/people` : null);
   const a = state?.assignee ?? null;
+
+  const resyncJira = async () => {
+    setResyncing(true);
+    try {
+      await api(`/api/v1/missions/${missionKey}/jira/resync`, { method: "POST" });
+      toast("Jira synced", "success");
+      onChanged();
+    } catch (e) {
+      toast(e instanceof ApiError ? e.detail : "Resync failed", "error");
+    } finally {
+      setResyncing(false);
+    }
+  };
 
   const assign = async (userId: string | null) => {
     setBusy(true);
@@ -38,9 +52,22 @@ export function TicketPanel({ missionKey, state, onChanged, readOnly = false }: 
       title="Ticket"
       action={
         !readOnly && (
-          <button type="button" onClick={() => setPicking((p) => !p)} aria-expanded={picking} className="text-[12.5px] text-ink-dim hover:text-ink">
-            {picking ? "Cancel" : a ? "Reassign" : "Assign"}
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              disabled={resyncing || busy}
+              onClick={() => void resyncJira()}
+              aria-label="Resync Jira"
+              title="Resync linked Jira ticket"
+              className="inline-flex items-center gap-1 text-[12.5px] text-ink-dim hover:text-ink disabled:opacity-50"
+            >
+              <RefreshCw size={12} className={resyncing ? "animate-spin" : ""} />
+              Resync
+            </button>
+            <button type="button" onClick={() => setPicking((p) => !p)} aria-expanded={picking} className="text-[12.5px] text-ink-dim hover:text-ink">
+              {picking ? "Cancel" : a ? "Reassign" : "Assign"}
+            </button>
+          </div>
         )
       }
     >
