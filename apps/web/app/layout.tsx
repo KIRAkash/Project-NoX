@@ -35,12 +35,13 @@ export const metadata: Metadata = {
  * Pre-hydration theme initialization script.
  * Runs synchronously before <body> rendering to eliminate any Flash of Wrong Theme (FOWT).
  */
-const NOX_THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('nox-theme');var d=(t==='light'||t==='dark')?t:'dark';document.documentElement.setAttribute('data-theme',d);document.documentElement.style.colorScheme=d;}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
+const NOX_THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('nox-theme');var d=(t==='light'||t==='dark')?t:'light';document.documentElement.setAttribute('data-theme',d);document.documentElement.style.colorScheme=d;}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
+      data-theme="light"
       suppressHydrationWarning
       className={`${display.variable} ${sans.variable} ${mono.variable}`}
     >

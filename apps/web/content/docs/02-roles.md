@@ -109,4 +109,4 @@ Each seat has a short navigation of its own. The missions entry takes the seat's
 
 The command palette in the top bar (`⌘K`) jumps to any page or action from anywhere.
 
-The sun and moon button in the top bar switches between the dark theme and a light one. Each seat keeps its own colour in both, deepened in the light theme so it stays easy to read. NoX remembers your choice on this device, and the landing page and docs have the same button.
+NoX opens in its light theme. The sun and moon button in the top bar switches to the dark theme and back. Each seat keeps its own colour in both, deepened in the light theme so it stays easy to read. NoX remembers your choice on this device, and the landing page and docs have the same button.

@@ -25,7 +25,8 @@ export interface ThemeProviderProps {
 }
 
 export const THEME_STORAGE_KEY = "nox-theme";
-export const DEFAULT_THEME: Theme = "dark";
+/** What a visitor with no saved choice sees. */
+export const DEFAULT_THEME: Theme = "light";
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
