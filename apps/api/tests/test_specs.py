@@ -1,13 +1,13 @@
 import uuid
-import pytest
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from fastapi.testclient import TestClient
-from fastapi import FastAPI
 
-from nox_api.main import app
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from nox_api.core.auth import Actor, current_actor, current_user
 from nox_api.db.database import Base, get_db
-from nox_api.db.models import KnowledgeBase, Mission, SpecFile, SpecStatus, Role, User, Org, Membership
-from nox_api.core.auth import current_user, current_actor, Actor
+from nox_api.db.models import KnowledgeBase, Membership, Mission, Org, Role, SpecFile, SpecStatus, User
+from nox_api.main import app
 
 
 @pytest.fixture
