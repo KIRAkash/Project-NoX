@@ -138,6 +138,21 @@ async def subtasks(key: str, db: AsyncSession = Depends(get_db), actor: Actor = 
     return {"created": created}
 
 
+@router.post("/api/v1/missions/{key}/jira/resync")
+async def resync(key: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(current_actor)):
+    mission = await load_live_mission(db, actor, key)
+    jira_links = [l for l in mission.links if l.system == "jira"]
+    if not jira_links:
+        raise HTTPException(404, "No linked Jira issues")
+    try:
+        for link in jira_links:
+            await jira_sync.resync_issue(db, mission, link, actor)
+    except (JiraError, AtlassianConfigError) as e:
+        raise _jira_http(e) from e
+    mission = await load_mission(db, actor, key)
+    return mission_json(mission, await mission_apps(db, mission), with_bodies=True)
+
+
 @router.post("/api/v1/webhooks/jira")
 async def jira_webhook(request: Request, secret: str = Query(default=""), db: AsyncSession = Depends(get_db)):
     import hmac
