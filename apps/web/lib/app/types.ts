@@ -115,6 +115,32 @@ export type SpecFile = {
   };
 };
 
+export type SpecItem = {
+  id: string;
+  missionId: string;
+  missionKey: string;
+  missionTitle: string;
+  missionType: string;
+  missionStage: MissionStage;
+  orgId: string;
+  role: "business" | "product" | "engineering" | "developer";
+  title: string;
+  fileName: string;
+  status: SpecStatus;
+  version: number;
+  markdown: string;
+  gitPath: string | null;
+  gitCommitSha: string | null;
+  updatedAt: string | null;
+  approvedAt: string | null;
+  authorId: string | null;
+  authorName: string | null;
+  approvedById: string | null;
+  approvedByName: string | null;
+  apps: { id: string; name: string }[];
+  verification: Record<string, unknown>;
+};
+
 export type MissionLink = { system: "jira" | "github_pr" | "jules"; externalId: string; url: string | null; primary: boolean; state: Record<string, unknown> };
 
 /** Hand off to Jules (CP20): why the button is or isn't available, and the mission's Jules sessions. */

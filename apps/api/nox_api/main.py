@@ -27,6 +27,7 @@ from .routers import (
     orgs,
     sightings,
     sources,
+    specs,
     voice,
     webhooks,
 )
@@ -102,6 +103,7 @@ app.include_router(cli.router)
 app.include_router(sightings.router)
 app.include_router(sightings.org_router)
 app.include_router(sightings.internal_router)
+app.include_router(specs.router)
 
 # MCP at exactly /mcp and A2A under /a2a/ask; both refuse requests without a NoX token (interop/).
 app.router.routes.append(Route("/mcp", mcp_server.gate, methods=["GET", "POST", "DELETE"]))
