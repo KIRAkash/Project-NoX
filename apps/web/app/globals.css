@@ -518,3 +518,36 @@ html[data-theme="light"] {
     animation: none;
   }
 }
+
+/* The welcome sky (components/app/welcome-sky.tsx): a night sky in the dark theme, a printed star chart in the light one. */
+.sky {
+  --sky-star: #fff6e0;
+  --sky-glow: rgb(247 181 66 / 0.5);
+  --sky-line: rgb(247 181 66 / 0.7);
+  --sky-orbit: rgb(143 160 204 / 0.22);
+  --sky-flight: #f7b542;
+  --sky-figure: rgb(236 239 248 / 0.4);
+}
+/* Labels get a halo of the page colour, so lines passing under them never strike through the words. */
+.sky-label {
+  paint-order: stroke;
+  stroke: var(--void);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+/* The company's logo sits on a pool of the page colour, clear of the lines behind it. */
+.sky-lockup {
+  background: radial-gradient(closest-side, var(--void) 62%, transparent);
+}
+html[data-theme="light"] .sky {
+  --sky-star: #1b1d26;
+  --sky-glow: rgb(185 122 14 / 0.16);
+  --sky-line: rgb(110 76 16 / 0.42);
+  --sky-orbit: rgb(60 50 40 / 0.22);
+  --sky-flight: #b97a0e;
+  --sky-figure: rgb(27 29 38 / 0.38);
+}
+.sky-star:focus-visible circle[data-sky="star"] {
+  stroke: var(--sky-flight);
+  stroke-width: 2;
+}

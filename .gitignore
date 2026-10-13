@@ -43,3 +43,6 @@ demo/tidewell/screens/
 
 # agent workspace (local only)
 .agents/
+
+# Local design-tool working files (briefs, review captures)
+.impeccable/

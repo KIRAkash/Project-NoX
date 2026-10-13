@@ -50,6 +50,9 @@ async def test_demo_estate_preview_before_joining(db_clean, monkeypatch):
     assert estate["orgs"] == [{"name": "Tidewell Mutual", "slug": "tidewell"}]
     teams = {t["name"]: [a["name"] for a in t["apps"]] for t in estate["teams"]}
     assert teams == {"Claims": ["claims-intake", "fraud-scoring"], "Policy": ["rating-service"]}  # sub-team apps roll up
+    first = estate["teams"][0]["apps"][0]
+    assert first["contracts"] == 0 and first["inFlight"] is False
+    assert estate["sources"] == []  # no sources on these test applications
     assert estate["counts"] == {"teams": 2, "apps": 3, "appsInOrbit": 2, "missionsInFlight": 0, "contracts": 0}
 
 
@@ -64,7 +67,8 @@ async def test_demo_estate_preview_leaves_out_other_orgs(db_clean, monkeypatch):
 
 async def test_demo_estate_preview_without_a_demo(db_clean):
     async with _client() as c:
-        assert (await c.get("/api/v1/me/demo-estate")).json()["available"] is False
+        empty = (await c.get("/api/v1/me/demo-estate")).json()
+        assert empty["available"] is False and empty["sources"] == []
         assert (await c.get("/api/v1/me")).json()["demoAvailable"] is False
         refused = await c.post("/api/v1/me/onboarding", json={"estate": "demo"})
         assert refused.status_code == 409
@@ -125,3 +129,27 @@ async def test_first_run_routes_need_sign_in(db_clean):
         assert (await c.post("/api/v1/me/onboarding", json={"estate": "fresh"})).status_code == 401
         assert (await c.put("/api/v1/me/tours/mission")).status_code == 401
         assert (await c.delete("/api/v1/me/tours/mission")).status_code == 401
+
+
+def test_sources_are_grouped_labelled_and_deduplicated():
+    import uuid
+
+    from nox_api.db.models import KnowledgeBase
+    from nox_api.services import onboarding
+
+    a = KnowledgeBase(id=uuid.uuid4(), app_name="claims-intake", git_repo_url="https://github.com/acme/kb-claims-intake", source_urls=[
+        {"type": "github", "url": "https://github.com/acme/claims-intake"},
+        {"type": "confluence", "url": "https://acme.atlassian.net/wiki/spaces/TWCLM"},
+        {"type": "slack", "url": "https://slack.com/archives/C01"},
+    ])
+    b = KnowledgeBase(id=uuid.uuid4(), app_name="fraud-scoring", source_urls=[
+        {"type": "confluence", "url": "https://acme.atlassian.net/wiki/spaces/TWCLM"},
+        {"type": "jira", "url": "https://acme.atlassian.net/jira/projects/TWCLM"},
+    ])
+    groups = {g["type"]: g["items"] for g in onboarding._sources([a, b])}
+    assert list(groups) == ["github", "confluence", "jira", "slack", "wiki"]
+    assert groups["github"][0]["label"] == "acme/claims-intake"
+    assert groups["confluence"] == [{"url": "https://acme.atlassian.net/wiki/spaces/TWCLM", "label": "TWCLM space", "apps": ["claims-intake", "fraud-scoring"]}]
+    assert groups["jira"][0]["label"] == "TWCLM project"
+    assert groups["slack"][0]["label"] == "Channel for claims-intake"
+    assert groups["wiki"][0]["label"] == "acme/kb-claims-intake"

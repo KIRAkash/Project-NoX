@@ -1,27 +1,42 @@
 "use client";
 
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, Check, ChevronDown, ExternalLink, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { BrandLogo } from "@/components/app/brand-logo";
 import { RequireAuth } from "@/components/app/guards";
 import { NoxMark } from "@/components/app/nox-mark";
 import { ThemeToggle } from "@/components/app/theme-toggle";
-import { KB_STATUS, type KbStatus } from "@/components/app/ui";
+import { type SkyBeat, type SkyHandle, type SkyTeam, WelcomeSky } from "@/components/app/welcome-sky";
+import { LiquidMetalButton } from "@/components/liquid-metal/liquid-metal";
 import { ApiError } from "@/lib/app/api";
 import { type Estate, useAuth } from "@/lib/app/auth";
 import { useApi } from "@/lib/app/use-api";
+import { gsap, prefersReducedMotion } from "@/lib/motion";
 
 type DemoEstate = {
   available: boolean;
   orgs: { name: string; slug: string }[];
-  teams: { name: string; apps: { name: string; status: KbStatus }[] }[];
+  teams: SkyTeam[];
+  sources: SourceGroup[];
   counts: { teams: number; apps: number; appsInOrbit: number; missionsInFlight: number; contracts: number } | null;
 };
 
+const WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+const num = (n: number) => WORDS[n] ?? String(n);
+const Num = (n: number) => {
+  const w = num(n);
+  return w.charAt(0).toUpperCase() + w.slice(1);
+};
+
+/** How long each caption holds before the next one, in ms. */
+const HOLD = [3200, 3600, 3800, 4000];
+
 /**
- * First sign-in: greet the user, show them the demo estate (read-only, before they join it), and let them choose
- * between exploring it and starting with an empty sky. Either way the role picker comes next.
+ * First sign-in. The demo company is drawn as a night sky while short captions tell its story one after another:
+ * the company, its teams and applications, the code wikis NoX wrote and the contracts it mapped, the work in flight.
+ * One action, Proceed with Tidewell; starting fresh is a quiet link beside it.
  */
 function Welcome() {
   const { me, chooseEstate, signOut } = useAuth();
@@ -47,128 +62,280 @@ function Welcome() {
     }
   };
 
-  const first = me?.name?.split(" ")[0];
   const demo = estate.data?.available ? estate.data : null;
-  const demoName = demo?.orgs[0]?.name.split(" ")[0] ?? "the demo";
   const loading = estate.loading && !estate.data;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-shell flex-col px-4 pb-16 pt-6 sm:px-8">
-      <header className="flex items-center justify-between">
-        <NoxMark size={22} />
+    <main className="mx-auto flex min-h-[100svh] w-full max-w-[1320px] flex-col px-4 pb-8 pt-6 sm:px-8">
+      {/* The headline carries the wordmark on this page, so the header keeps only the controls. */}
+      <header className="flex items-center justify-end">
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          <button type="button" onClick={() => void signOut()} className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-dim hover:text-ink">
+          <button type="button" onClick={() => void signOut()} className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint hover:text-ink">
             Sign out
           </button>
         </div>
       </header>
 
-      <section className="mx-auto mt-12 flex w-full max-w-[680px] flex-col items-center text-center sm:mt-16">
-        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-nox">{first ? `Hi ${first}` : "Hello"}</span>
-        <h1 className="mt-3 font-display text-[44px] leading-[1.05] text-ink sm:text-[60px]">Welcome to NoX</h1>
-        <p className="mt-4 max-w-[540px] text-[15px] leading-relaxed text-ink-muted">
-          NoX keeps a live map of a company&rsquo;s applications and carries each change from one plain sentence to shipped,
-          verified code.{" "}
-          {demo || loading ? "We built a company for you to try it on." : "Let’s chart your first organization."}
+      <h1 className="mt-8 flex flex-wrap items-center justify-center gap-x-[0.28em] text-center font-display text-[40px] leading-[1.05] tracking-[-0.02em] text-ink sm:mt-6 sm:text-[60px]">
+        <span>Welcome to</span>
+        <span className="sr-only">NoX</span>
+        <span aria-hidden className="translate-y-[0.04em] sm:hidden">
+          <NoxMark size={40} />
+        </span>
+        <span aria-hidden className="hidden translate-y-[0.04em] sm:inline-flex">
+          <NoxMark size={60} />
+        </span>
+      </h1>
+      {(loading || demo) && (
+        <p className="mx-auto mt-3 max-w-[620px] text-balance text-center text-[15px] leading-relaxed text-ink-muted sm:text-[16.5px]">
+          We&rsquo;ve set up a demo company so you can see NoX at work right away. Or start with an empty workspace and onboard
+          your own applications.
         </p>
+      )}
 
-        {loading && <div className="mt-10 h-[220px] w-full animate-pulse rounded-lg border border-hairline bg-[rgb(var(--raise)/.4)] motion-reduce:animate-none" aria-hidden />}
-        {demo && <EstateCard demo={demo} />}
-
-        {demo ? (
-          <div className="mt-8 grid w-full gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => void choose("demo")}
-              disabled={busy !== null}
-              className="group flex flex-col gap-1.5 rounded-lg border p-5 text-left transition disabled:opacity-60"
-              style={{
-                borderColor: "rgb(var(--nox-rgb)/.65)",
-                background: "linear-gradient(180deg, rgb(var(--nox-rgb)/.1), rgb(var(--raise-lo)/.8))",
-                boxShadow: "0 18px 50px -30px rgb(var(--nox-rgb)/.9)",
-              }}
-            >
-              <span className="flex items-center justify-between gap-2 text-[16px] font-semibold text-ink">
-                {busy === "demo" ? `Joining ${demoName}…` : `Explore ${demoName}`}
-                <span className="rounded-full border border-[rgb(var(--nox-rgb)/.6)] px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.14em] text-nox">Recommended</span>
-              </span>
-              <span className="text-[13.5px] leading-relaxed text-ink-muted">Join the demo company. Pick a seat and follow real missions. A short tour shows you around.</span>
-              <span className="mt-1 flex items-center gap-1 text-[13px] font-medium text-nox">
-                Take me there <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" />
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => void choose("fresh")}
-              disabled={busy !== null}
-              className="group flex flex-col gap-1.5 rounded-lg border border-hairline bg-[rgb(var(--raise-lo)/.7)] p-5 text-left transition hover:border-[rgb(var(--line)/.35)] disabled:opacity-60"
-            >
-              <span className="text-[16px] font-semibold text-ink">{busy === "fresh" ? "Clearing the sky…" : "Start fresh"}</span>
-              <span className="text-[13.5px] leading-relaxed text-ink-muted">An empty sky. Chart your own organization and onboard your own applications.</span>
-              <span className="mt-1 flex items-center gap-1 text-[13px] text-ink-faint group-hover:text-ink">
-                Start empty <ArrowRight size={14} />
-              </span>
-            </button>
-          </div>
-        ) : (
-          !loading && (
-            <button
-              type="button"
-              onClick={() => void choose("fresh")}
-              disabled={busy !== null}
-              className="mt-10 inline-flex h-12 items-center gap-2 rounded-full bg-nox px-6 text-[15px] font-semibold text-abyss disabled:opacity-60"
-            >
-              {busy ? "Getting ready…" : "Get started"} <ArrowRight size={17} />
-            </button>
-          )
-        )}
-
-        {error && (
-          <p role="alert" className="mt-5 text-[13px] text-[color:var(--coral-ink)]">
-            {error}
+      {loading ? (
+        <div className="flex flex-1 items-center justify-center" role="status" aria-label="Loading">
+          <span className="h-2.5 w-2.5 animate-ping rounded-full bg-nox motion-reduce:animate-none" />
+        </div>
+      ) : demo ? (
+        <Story demo={demo} first={me?.name?.split(" ")[0] ?? null} busy={busy} onChoose={(c) => void choose(c)} />
+      ) : (
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <p className="max-w-[520px] text-[17px] leading-relaxed text-ink-muted">
+            NoX keeps a live map of a company&rsquo;s applications and carries each change from one plain sentence to shipped,
+            verified code. Let&rsquo;s chart your first organization.
           </p>
-        )}
-        {demo && <p className="mt-6 text-[12.5px] text-ink-faint">You can join or leave the demo any time from your account menu.</p>}
-      </section>
+          <LiquidMetalButton
+            type="button"
+            onClick={() => void choose("fresh")}
+            disabled={busy !== null}
+            className="mt-8 inline-flex h-12 items-center gap-2 rounded-full px-7 text-[15px] font-semibold disabled:opacity-60"
+          >
+            {busy ? "Getting ready…" : "Get started"} <ArrowRight size={17} />
+          </LiquidMetalButton>
+        </div>
+      )}
+
+      {error && (
+        <p role="alert" className="mt-3 text-center text-[13px] text-[color:var(--coral-ink)]">
+          {error}
+        </p>
+      )}
     </main>
   );
 }
 
-/** The demo estate at a glance: its teams with their applications, and what's going on in it. */
-function EstateCard({ demo }: { demo: DemoEstate }) {
-  const teams = demo.teams.filter((t) => t.apps.length).slice(0, 6);
+function Story({ demo, first, busy, onChoose }: { demo: DemoEstate; first: string | null; busy: Estate | null; onChoose: (c: Estate) => void }) {
+  const sky = useRef<SkyHandle>(null);
+  const caption = useRef<HTMLParagraphElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [beat, setBeat] = useState(-1);
+  const org = demo.orgs[0]?.name ?? "the demo company";
+  const short = org.split(" ")[0];
+  const note = demo.orgs[0]?.slug === "tidewell" ? "(a mock insurance company)" : "(a mock enterprise)";
   const c = demo.counts!;
+
+  const beats = useMemo<{ beat: SkyBeat; text: string }[]>(
+    () => [
+      { beat: "org", text: `${first ? `Hi ${first}. ` : ""}To show you NoX at work, we set up a mock enterprise: ${org}.` },
+      { beat: "teams", text: `It's organised into ${num(c.teams)} teams, the way a real company would be.` },
+      { beat: "apps", text: `Each team owns its own applications, ${num(c.apps)} in all. Every dot is one.` },
+      {
+        beat: "lit",
+        text: c.contracts
+          ? `NoX read each application's code and docs, wrote it a code wiki that stays in sync, and mapped the ${c.contracts} contracts between them.`
+          : "NoX read each application's code and docs and wrote it a code wiki that stays in sync.",
+      },
+      {
+        beat: "flight",
+        text: c.missionsInFlight
+          ? `${Num(c.missionsInFlight)} ${c.missionsInFlight === 1 ? "change is" : "changes are"} already in flight across these teams, each moving through four seats.`
+          : "Nothing is in flight yet, so the first change can be yours.",
+      },
+    ],
+    [first, org, c],
+  );
+
+  // Jump to a beat: the sky shows every layer up to it at once, then the story carries on from there.
+  const go = useCallback(
+    (to: number, instant: boolean) => {
+      if (timer.current) clearTimeout(timer.current);
+      if (instant) {
+        sky.current?.reset();
+        for (let i = 0; i <= to; i++) sky.current?.play(beats[i].beat, true);
+      } else {
+        sky.current?.play(beats[to].beat);
+      }
+      setBeat(to);
+      if (to < beats.length - 1) timer.current = setTimeout(() => go(to + 1, false), HOLD[to] ?? 3600);
+    },
+    [beats],
+  );
+
+  const start = useCallback(() => {
+    sky.current?.reset();
+    go(0, false);
+  }, [go]);
+
+  useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
+
+  // Each caption arrives out of a soft blur and leaves upward; with reduced motion it only fades.
+  useEffect(() => {
+    const el = caption.current;
+    if (!el || beat < 0) return;
+    const still = prefersReducedMotion();
+    gsap.fromTo(
+      el,
+      still ? { opacity: 0 } : { opacity: 0, y: 14, filter: "blur(8px)" },
+      still ? { opacity: 1, duration: 0.4 } : { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.8, ease: "expo.out" },
+    );
+  }, [beat]);
+
+  const done = beat === beats.length - 1;
+
   return (
-    <section aria-label={`${demo.orgs[0]?.name ?? "Demo"} estate`} className="mt-10 w-full rounded-lg border border-hairline bg-[rgb(var(--raise-lo)/.75)] p-5 text-left">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-display text-[20px] text-ink">{demo.orgs.map((o) => o.name).join(" · ")}</h2>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--nox-rgb)/.5)] px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-nox">
-          <Sparkles size={11} aria-hidden /> Demo estate
-        </span>
+    <>
+      <div className="mt-2 flex flex-1 gap-8">
+        <div className="relative -mx-4 min-h-[340px] flex-1 sm:-mx-8 sm:min-h-[400px] lg:mx-0">
+          <WelcomeSky ref={sky} org={org} note={note} teams={demo.teams} onReady={start} />
+        </div>
+        {demo.sources.length > 0 && <Sources groups={demo.sources} className="hidden w-[300px] shrink-0 self-center lg:block" />}
       </div>
-      <ul className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-        {teams.map((t) => (
-          <li key={t.name} className="min-w-0 rounded-md border border-hairline p-3">
-            <span className="block text-[13px] font-semibold text-ink">{t.name}</span>
-            <ul className="mt-1.5 space-y-1">
-              {t.apps.slice(0, 3).map((a) => (
-                <li key={a.name} className="flex min-w-0 items-center gap-1.5 font-mono text-[11.5px] text-ink-muted">
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: KB_STATUS[a.status]?.color }} title={KB_STATUS[a.status]?.label} />
-                  <span className="truncate">{a.name}</span>
-                </li>
-              ))}
-              {t.apps.length > 3 && <li className="text-[11.5px] text-ink-dim">+{t.apps.length - 3} more</li>}
-            </ul>
-          </li>
-        ))}
+
+      <div className="mx-auto flex w-full max-w-[760px] flex-col items-center text-center">
+        <div className="flex min-h-[4.6em] items-center justify-center sm:min-h-[3.4em]" aria-live="polite">
+          <p ref={caption} key={beat} className="text-balance font-display text-[21px] leading-[1.3] text-ink sm:text-[27px]">
+            {beats[Math.max(beat, 0)].text}
+          </p>
+        </div>
+
+        <div className="mt-3 flex items-center gap-1.5" role="group" aria-label="Story">
+          {beats.map((b, i) => (
+            <button
+              key={b.beat}
+              type="button"
+              onClick={() => go(i, true)}
+              aria-label={`Part ${i + 1} of ${beats.length}`}
+              aria-current={i === beat ? "step" : undefined}
+              className="group -mx-[5px] flex h-6 items-center"
+            >
+              <span
+                className="block h-[3px] w-[22px] rounded-full transition-[transform,opacity,background-color] duration-300 motion-reduce:transition-none"
+                style={{
+                  transform: `scaleX(${i === beat ? 1 : 8 / 22})`,
+                  background: i <= beat ? "var(--nox)" : "rgb(var(--line)/.25)",
+                  opacity: i < beat ? 0.55 : 1,
+                }}
+              />
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={start}
+            aria-label="Watch again"
+            title="Watch again"
+            className="ml-1.5 flex h-6 w-6 items-center justify-center rounded-full text-ink-dim transition-opacity hover:text-ink"
+            style={{ opacity: done ? 1 : 0, pointerEvents: done ? "auto" : "none" }}
+          >
+            <RotateCcw size={13} />
+          </button>
+        </div>
+
+        <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:gap-5">
+          <LiquidMetalButton
+            type="button"
+            onClick={() => onChoose("demo")}
+            disabled={busy !== null}
+            className="group inline-flex h-12 items-center gap-2 rounded-full px-7 text-[15px] font-semibold disabled:opacity-60"
+          >
+            {busy === "demo" ? `Joining ${short}…` : `Proceed with ${short}`}
+            <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" />
+          </LiquidMetalButton>
+          <button
+            type="button"
+            onClick={() => onChoose("fresh")}
+            disabled={busy !== null}
+            className="text-[13.5px] text-ink-faint underline decoration-[rgb(var(--line)/.35)] underline-offset-4 transition-colors hover:text-ink hover:decoration-current disabled:opacity-50"
+          >
+            {busy === "fresh" ? "Setting up an empty workspace…" : "Start empty and onboard my own applications"}
+          </button>
+        </div>
+        <p className="mt-4 text-[12px] text-ink-faint">
+          <span className="[@media(hover:none)]:hidden">Hover</span>
+          <span className="hidden [@media(hover:none)]:inline">Tap</span> a dot to see its application. You can join or leave the demo later from the account menu.
+        </p>
+      </div>
+      {demo.sources.length > 0 && <Sources groups={demo.sources} className="mx-auto mt-8 w-full max-w-[520px] lg:hidden" />}
+    </>
+  );
+}
+
+type SourceGroup = { type: string; items: { url: string | null; label: string; apps: string[] }[] };
+
+const SOURCE_KIND: Record<string, { name: string; one: string; many: string }> = {
+  github: { name: "GitHub", one: "repository", many: "repositories" },
+  confluence: { name: "Confluence", one: "space", many: "spaces" },
+  jira: { name: "Jira", one: "project", many: "projects" },
+  slack: { name: "Slack", one: "channel", many: "channels" },
+  notion: { name: "Notion", one: "page", many: "pages" },
+  upload: { name: "Uploads", one: "file", many: "files" },
+  wiki: { name: "Code wikis by NoX", one: "repository", many: "repositories" },
+};
+
+/**
+ * Proof that the demo is real: every tool its applications are built from, ticked off, with links to open each one.
+ * The last row is what NoX produced from them: a code wiki repository per application.
+ */
+function Sources({ groups, className = "" }: { groups: SourceGroup[]; className?: string }) {
+  return (
+    <section aria-labelledby="sources-title" className={`rounded-md border border-hairline bg-[rgb(var(--raise-lo)/.72)] p-4 text-left backdrop-blur-sm ${className}`}>
+      <h2 id="sources-title" className="text-[15px] font-semibold text-ink">
+        Built from real, connected tools
+      </h2>
+      <p className="mt-1 text-[12.5px] leading-relaxed text-ink-faint">The company is made up. Its tools are real: open any source to see it.</p>
+      <ul className="mt-3 divide-y divide-hairline">
+        {groups.map((g) => {
+          const kind = SOURCE_KIND[g.type] ?? { name: g.type, one: "source", many: "sources" };
+          const n = g.items.length;
+          return (
+            <li key={g.type}>
+              <details className="group">
+                <summary className="flex cursor-pointer list-none items-center gap-2.5 py-2.5 text-[13.5px] [&::-webkit-details-marker]:hidden">
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[color:var(--verify)] text-abyss" aria-hidden>
+                    <Check size={11} strokeWidth={3} />
+                  </span>
+                  {g.type === "wiki" ? (
+                    <BookOpen size={15} className="shrink-0 text-nox" aria-hidden />
+                  ) : g.type in SOURCE_KIND ? (
+                    <BrandLogo name={g.type as "github"} size={15} />
+                  ) : null}
+                  <span className="font-medium text-ink">{kind.name}</span>
+                  <span className="ml-auto whitespace-nowrap text-[12.5px] text-ink-faint">
+                    {n} {n === 1 ? kind.one : kind.many}
+                  </span>
+                  <ChevronDown size={14} className="shrink-0 text-ink-dim transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden />
+                </summary>
+                <ul className="mb-2.5 max-h-44 space-y-1.5 overflow-y-auto pl-[26px] pr-1">
+                  {g.items.map((it) => (
+                    <li key={`${it.label}-${it.url}`} className="min-w-0 text-[12.5px] leading-snug">
+                      {it.url ? (
+                        <a href={it.url} target="_blank" rel="noreferrer" className="inline-flex max-w-full items-center gap-1 font-mono text-[12px] text-ink-muted hover:text-ink">
+                          <span className="truncate">{it.label}</span>
+                          <ExternalLink size={11} className="shrink-0 text-ink-dim" aria-hidden />
+                        </a>
+                      ) : (
+                        <span className="font-mono text-[12px] text-ink-muted">{it.label}</span>
+                      )}
+                      {it.apps.length > 1 && <span className="block truncate text-[11.5px] text-ink-faint">{it.apps.join(", ")}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </li>
+          );
+        })}
       </ul>
-      <p className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[12.5px] text-ink-faint">
-        <span><b className="font-semibold tabular-nums text-ink">{c.teams}</b> teams</span>
-        <span><b className="font-semibold tabular-nums text-ink">{c.apps}</b> applications, {c.appsInOrbit} with a code wiki in orbit</span>
-        <span><b className="font-semibold tabular-nums text-ink">{c.missionsInFlight}</b> missions in flight</span>
-        {c.contracts > 0 && <span><b className="font-semibold tabular-nums text-ink">{c.contracts}</b> contracts mapped</span>}
-      </p>
     </section>
   );
 }

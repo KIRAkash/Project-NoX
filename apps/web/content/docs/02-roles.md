@@ -6,9 +6,9 @@ Everyone in NoX works from one of four seats. A seat decides which file you writ
 
 1. Open NoX and choose **Enter NoX**. Sign in with Google through **Firebase Authentication**. In local development there is also a one-field dev sign-in.
 2. Every request the web app sends carries the Firebase ID token. The API verifies it with `firebase-admin` and creates your user record the first time it sees you.
-3. The first time you sign in, NoX greets you with **Welcome to NoX** and a look at the demo estate: Tidewell Mutual, its teams and applications, and what's in flight. Choose one:
-   - **Explore Tidewell** joins you to the demo company, so you can follow real missions from any seat.
-   - **Start fresh** joins you to nothing. You chart your own organization and onboard your own applications.
+3. The first time you sign in, NoX greets you with **Welcome to NoX** and a short animated tour of the demo estate: Tidewell Mutual, a mock insurance company, drawn as a map of its teams, with a dot for each application and the work in flight. Beside it, a checklist shows the real GitHub repositories, Confluence spaces, Jira projects, Slack channels and Notion pages it is built from, with links. Choose one:
+   - **Proceed with Tidewell** joins you to the demo company, so you can follow real missions from any seat.
+   - **Start empty and onboard my own applications** joins you to nothing. You chart your own organization and onboard your own applications.
 
    You can change your mind later: **Explore the demo** or **Leave the demo** is in the account menu. Leaving removes only what the demo gave you. Organizations someone invited you to stay.
 4. Pick a seat on the role picker. Each seat is a planet in its own colour. On your first visit a short hint explains the seats, and a **Start here** tag marks the business user (or the engineering lead, if you started fresh, because that seat charts organizations). Your choice is remembered, and returning users see **Continue as …** at the top. Next to the four seats, a **More coming soon** planet shows the seats that are next in the queue: Sales, Design, Security & Compliance, and QA. They can't be picked yet.
