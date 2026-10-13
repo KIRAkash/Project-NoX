@@ -16,12 +16,12 @@ function prefersReducedMotion(): boolean {
 }
 
 /** Room for a planet and its props (the bulb, the ring) at each breakpoint. */
-const PLANET_BOX = "h-[150px] sm:h-[190px] lg:h-[150px] xl:h-[170px]";
+const PLANET_BOX = "h-[150px] sm:h-[190px] lg:h-[132px] xl:h-[146px]";
 
 /** Planet size for the picker's grid: two columns on phones and tablets, five in a row from `lg`. */
 const PLANET_SIZES: [query: string, size: number][] = [
-  ["(min-width: 1280px)", 132],
-  ["(min-width: 1024px)", 116],
+  ["(min-width: 1280px)", 116],
+  ["(min-width: 1024px)", 104],
   ["(min-width: 640px)", 156],
 ];
 
@@ -43,12 +43,8 @@ function RolePicker() {
   const [picked, setPicked] = useState<RoleId | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hovered, setHovered] = useState<RoleId | null>(null);
-  const [hintOpen, setHintOpen] = useState(true);
   const size = usePlanetSize();
-  // First visit (no seat picked yet): a quiet hint, and a "Start here" on the seat that suits how they began.
-  const firstVisit = !me?.role;
   const fresh = me?.estate === "fresh" && !me.inDemo;
-  const startHere: RoleId = fresh ? "engineering" : "business";
 
   const pick = async (role: RoleId) => {
     if (picked) return;
@@ -67,7 +63,7 @@ function RolePicker() {
   const current = me?.role ? ROLE_BY_ID[me.role] : null;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-shell flex-col px-4 pb-16 pt-6 sm:px-8">
+    <main className="mx-auto flex min-h-[100svh] max-w-shell flex-col px-4 pb-6 pt-5 sm:px-8">
       <header className="flex items-center justify-between">
         <NoxMark size={22} />
         <div className="flex items-center gap-3">
@@ -78,30 +74,18 @@ function RolePicker() {
         </div>
       </header>
 
-      <section className="mt-14 text-center sm:mt-20">
+      <section className="mt-auto pt-6 text-center">
         <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-nox">{fresh ? "Starting fresh" : "Demo mode"}</span>
-        <h1 className="mt-3 font-display text-[40px] leading-[1.05] text-ink sm:text-[56px]">Choose a role to experience NoX</h1>
-        <p className="mx-auto mt-4 max-w-[560px] text-[15px] leading-relaxed text-ink-muted">
+        <h1 className="mt-2 font-display text-[38px] leading-[1.05] text-ink sm:text-[50px]">Choose a role to experience NoX</h1>
+        <p className="mx-auto mt-3 max-w-[660px] text-balance text-[15px] leading-relaxed text-ink-muted">
           You&rsquo;re picking a role only to try the platform from that seat. Everything behind it is real. Your
           applications, knowledge bases and tickets. Switch any time from the top bar.
         </p>
-        {firstVisit && hintOpen && (
-          <p role="note" className="mx-auto mt-6 inline-flex max-w-full items-center gap-3 rounded-full border border-hairline bg-[rgb(var(--raise-lo)/.8)] py-1.5 pl-4 pr-1.5 text-left text-[13px] text-ink-muted">
-            <span>
-              {fresh
-                ? "You're starting fresh. The engineering lead charts organizations, so start there. You can switch any time from the top bar."
-                : "These are the four seats on every mission. Pick one to start. You can switch any time from the top bar."}
-            </span>
-            <button type="button" onClick={() => setHintOpen(false)} className="shrink-0 rounded-full border-l border-hairline px-3 py-1 text-[12px] text-ink-dim hover:text-ink">
-              Got it
-            </button>
-          </p>
-        )}
         {current && (
           <button
             type="button"
             onClick={() => void pick(current.id)}
-            className="mt-6 inline-flex items-center gap-2 text-[14px] font-medium hover:underline"
+            className="mt-4 inline-flex items-center gap-2 text-[14px] font-medium hover:underline"
             style={{ color: current.ink }}
           >
             Continue as {current.name} →
@@ -109,7 +93,7 @@ function RolePicker() {
         )}
       </section>
 
-      <ul className="mt-12 grid grid-cols-2 gap-x-4 gap-y-10 sm:mt-16 lg:grid-cols-5 lg:gap-x-4 xl:gap-x-6">
+      <ul className="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 sm:mt-10 lg:mt-8 lg:grid-cols-5 lg:gap-x-4 xl:gap-x-6">
         {ROLES.map((role, index) => {
           const isPicked = picked === role.id;
           const dimmed = picked !== null && !isPicked;
@@ -124,25 +108,16 @@ function RolePicker() {
                 onBlur={() => setHovered((h) => (h === role.id ? null : h))}
                 disabled={picked !== null}
                 aria-label={`Play as ${role.name}`}
-                className="group relative flex w-full flex-col items-center rounded-md px-2 py-4 text-center transition-opacity duration-500 focus-visible:outline-offset-4 disabled:cursor-default"
-                style={{
-                  opacity: dimmed ? 0.15 : 1,
-                  outline: firstVisit && role.id === startHere && !picked ? `1px dashed color-mix(in srgb, ${role.ink} 55%, transparent)` : undefined,
-                  outlineOffset: -2,
-                }}
+                className="group flex w-full flex-col items-center rounded-md px-2 py-3 text-center transition-opacity duration-500 focus-visible:outline-offset-4 disabled:cursor-default"
+                style={{ opacity: dimmed ? 0.15 : 1 }}
               >
-                {firstVisit && role.id === startHere && !picked && (
-                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-abyss" style={{ background: role.hue }}>
-                    Start here
-                  </span>
-                )}
                 <span
                   className={`flex ${PLANET_BOX} items-center justify-center transition-transform duration-[650ms] ease-[cubic-bezier(.2,.7,.2,1)] group-hover:scale-105 group-focus-visible:scale-105 motion-reduce:transition-none`}
                   style={{ transform: isPicked ? "scale(1.35)" : undefined }}
                 >
                   <PlanetCharacter role={role} size={size} index={index} active={hovered === role.id || isPicked} />
                 </span>
-                <span className="mt-5 text-[18px] font-semibold text-ink" style={{ color: isPicked ? role.ink : undefined }}>
+                <span className="mt-3 text-[18px] font-semibold text-ink" style={{ color: isPicked ? role.ink : undefined }}>
                   {role.name}
                 </span>
                 <span className="mt-2 max-w-[250px] text-[13px] leading-[1.55] text-ink-muted">{role.blurb}</span>
@@ -158,7 +133,7 @@ function RolePicker() {
           {error}
         </p>
       )}
-      <p className="mt-auto pt-14 text-center text-[13px] text-ink-faint">
+      <p className="mt-auto pt-6 text-center text-[13px] text-ink-faint">
         {fresh
           ? "Starting fresh? Begin as the Engineering lead to chart your organization, then onboard an application."
           : "New here? Start as the Business user. That’s where every request begins."}
@@ -184,13 +159,13 @@ function ComingSoon({ size, dimmed }: { size: number; dimmed: boolean }) {
         onFocus={on}
         onBlur={off}
         onClick={on}
-        className="mx-auto flex w-full max-w-[340px] flex-col items-center rounded-md px-2 py-4 text-center transition-opacity duration-500 focus-visible:outline-offset-4"
+        className="mx-auto flex w-full max-w-[340px] flex-col items-center rounded-md px-2 py-3 text-center transition-opacity duration-500 focus-visible:outline-offset-4"
         style={{ opacity: dimmed ? 0.15 : 1 }}
       >
         <span className={`flex ${PLANET_BOX} items-center justify-center`}>
           <ComingSoonPlanet size={Math.round(size * 0.88)} active={active} />
         </span>
-        <span className="mt-5 text-[18px] font-semibold text-ink-muted">More coming soon</span>
+        <span className="mt-3 text-[18px] font-semibold text-ink-muted">More coming soon</span>
         <span className="mt-2 grid">
           <span
             className="text-[13px] leading-[1.55] text-ink-faint transition-opacity duration-300 [grid-area:1/1] motion-reduce:transition-none"

@@ -11,7 +11,7 @@ Everyone in NoX works from one of four seats. A seat decides which file you writ
    - **Start empty and onboard my own applications** joins you to nothing. You chart your own organization and onboard your own applications.
 
    You can change your mind later: **Explore the demo** or **Leave the demo** is in the account menu. Leaving removes only what the demo gave you. Organizations someone invited you to stay.
-4. Pick a seat on the role picker. Each seat is a planet in its own colour. On your first visit a short hint explains the seats, and a **Start here** tag marks the business user (or the engineering lead, if you started fresh, because that seat charts organizations). Your choice is remembered, and returning users see **Continue as …** at the top. Next to the four seats, a **More coming soon** planet shows the seats that are next in the queue: Sales, Design, Security & Compliance, and QA. They can't be picked yet.
+4. Pick a seat on the role picker. Each seat is a planet in its own colour. A line at the bottom suggests where to begin: the business user for the demo, or the engineering lead if you started fresh, because that seat charts organizations. Your choice is remembered, and returning users see **Continue as …** at the top. Next to the four seats, a **More coming soon** planet shows the seats that are next in the queue: Sales, Design, Security & Compliance, and QA. They can't be picked yet.
 
 The role picker allows teams to experience the interface from each seat's perspective. The server treats the seat you picked as your acting role for the session and checks every request against it, so each seat gets its real limits. To switch seats, use the role chip in the top bar or **Switch role** at the bottom of the sidebar.
 
