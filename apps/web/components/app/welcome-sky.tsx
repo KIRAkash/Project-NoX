@@ -311,7 +311,7 @@ function Tip({ left, top, above = false, children }: { left: number; top: number
 function layout(teams: SkyTeam[], w: number, h: number) {
   const compact = w < 560;
   const n = Math.max(teams.length, 1);
-  const R = compact ? Math.min(26, w / 13) : Math.max(20, Math.min(28, h / 14));
+  const R = compact ? Math.min(26, w / 13) : Math.max(18, Math.min(23, h / 16));
   const pad = 6;
   // On a phone the logo fills the middle band, so teams sit in two rows: above it and below it.
   const top = Math.floor(n / 2);
@@ -341,11 +341,13 @@ function layout(teams: SkyTeam[], w: number, h: number) {
     if (span(mid) <= h - pad * 2) lo = mid;
     else hi = mid;
   }
-  const ry = lo;
-  const cy = pad - Math.min(...sin.map((s, i) => s * ry - up[i]));
+  // On a wide screen the teams stay close around the logo rather than spreading to the edges.
+  const ry = compact ? lo : Math.min(lo, 165);
+  const cy = pad - Math.min(...sin.map((s, i) => s * ry - up[i])) + (h - pad * 2 - span(ry)) / 2;
   const cx = w / 2;
   const half = Math.max(R, ...teams.map((t, i) => (beside[i] ? 0 : width(t) / 2)));
-  const rx = Math.max(w / 2 - (compact ? Math.max(R, 46) : half) - 12, R * 2.2);
+  const spread = Math.max(w / 2 - (compact ? Math.max(R, 46) : half) - 12, R * 2.2);
+  const rx = compact ? spread : Math.min(spread, Math.max(250, Math.min(360, w * 0.25)));
   // The company's logo, as an ellipse the spokes start from.
   const hubX = compact ? 92 : 116;
   const hubY = compact ? 84 : 70;

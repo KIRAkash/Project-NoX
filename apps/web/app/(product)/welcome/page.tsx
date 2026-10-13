@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, BookOpen, ExternalLink, RotateCcw } from "lucide-react";
+import { ArrowRight, BookOpen, ChevronLeft, ChevronRight, ExternalLink, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -31,7 +31,7 @@ const Num = (n: number) => {
 };
 
 /** How long each caption holds before the next one, in ms. */
-const HOLD = [3200, 3600, 3800, 4000];
+const HOLD = [2400, 2600, 2800, 3000];
 
 /**
  * First sign-in. The demo company is drawn as a night sky while short captions tell its story one after another:
@@ -163,7 +163,7 @@ function Story({ demo, first, busy, onChoose }: { demo: DemoEstate; first: strin
         sky.current?.play(beats[to].beat);
       }
       setBeat(to);
-      if (to < beats.length - 1) timer.current = setTimeout(() => go(to + 1, false), HOLD[to] ?? 3600);
+      if (to < beats.length - 1) timer.current = setTimeout(() => go(to + 1, false), HOLD[to] ?? 2800);
     },
     [beats],
   );
@@ -205,10 +205,15 @@ function Story({ demo, first, busy, onChoose }: { demo: DemoEstate; first: strin
       </div>
 
       <div className="mx-auto flex w-full max-w-[760px] flex-col items-center text-center">
-        <div className="mt-2 flex min-h-[2.8em] items-center justify-center sm:min-h-[1.6em]" aria-live="polite">
-          <p ref={caption} key={beat} className="text-balance font-display text-[18px] leading-[1.3] text-ink sm:text-[21px]">
-            {beats[Math.max(beat, 0)].text}
-          </p>
+        {/* The caption, with arrows to step back or ahead; left alone, the story moves on by itself. */}
+        <div className="mt-2 flex w-full items-center justify-center gap-3">
+          <StepArrow dir="back" disabled={beat <= 0} onClick={() => go(beat - 1, true)} />
+          <div className="flex min-h-[2.8em] min-w-0 flex-1 items-center justify-center sm:min-h-[1.6em]" aria-live="polite">
+            <p ref={caption} key={beat} className="text-balance font-display text-[18px] leading-[1.3] text-ink sm:text-[21px]">
+              {beats[Math.max(beat, 0)].text}
+            </p>
+          </div>
+          <StepArrow dir="next" disabled={beat >= beats.length - 1} onClick={() => go(beat + 1, false)} />
         </div>
 
         <div className="mt-1 flex items-center gap-1.5" role="group" aria-label="Story">
@@ -264,6 +269,22 @@ function Story({ demo, first, busy, onChoose }: { demo: DemoEstate; first: strin
         </div>
       </div>
     </>
+  );
+}
+
+function StepArrow({ dir, disabled, onClick }: { dir: "back" | "next"; disabled: boolean; onClick: () => void }) {
+  const Icon = dir === "back" ? ChevronLeft : ChevronRight;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={dir === "back" ? "Previous" : "Next"}
+      title={dir === "back" ? "Previous" : "Next"}
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-hairline text-ink-muted transition-colors hover:border-[rgb(var(--line)/.4)] hover:text-ink disabled:pointer-events-none disabled:opacity-30"
+    >
+      <Icon size={16} />
+    </button>
   );
 }
 
