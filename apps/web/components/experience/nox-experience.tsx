@@ -203,7 +203,7 @@ export default function NoxExperience() {
       scrollTrigger: {
         trigger: heroEl,
         start: "top top",
-        end: "+=6370",
+        end: "+=7000",
         pin: true,
         scrub: 0.3,
         anticipatePin: 1,
@@ -262,7 +262,7 @@ export default function NoxExperience() {
     bookAtRef.current = BOOK_AT;
 
     // Beat 4 — the spec book: written page by page by the four seats, locked,
-    // sent for development and returned verified. It sits over the screen
+    // handed to a coding agent that builds from it, and returned verified. It sits over the screen
     // area the galaxy used, so pointer-events stay off until it's visible —
     // otherwise its buttons would steal the drag meant for the estate.
     // `.set()` calls in a scrubbed timeline toggle cleanly both ways.

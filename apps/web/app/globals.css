@@ -512,7 +512,12 @@ html[data-theme="light"] {
     transform: translateY(6px);
   }
 }
+/* The landing's spec book: its heading and caption ease in as the story moves on. */
+.beat-in {
+  animation: tour-in 0.35s ease-out both;
+}
 @media (prefers-reduced-motion: reduce) {
+  .beat-in,
   .tour-halo,
   .tour-in {
     animation: none;

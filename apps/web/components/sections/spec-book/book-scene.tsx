@@ -7,6 +7,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { gsap } from "@/lib/motion";
 import { BOOK_PAGES } from "@/lib/spec-book";
 import { drawBackCover, drawCover, drawSpecPage, drawStatus, layoutPage, makeCanvas, readFonts, type Fonts } from "./draw";
+import { handoffLayout } from "./handoff";
 import { bookState } from "./timeline";
 
 /*
@@ -17,6 +18,12 @@ import { bookState } from "./timeline";
  * sheet curls instead of rotating like a rigid card (the arc-length idea
  * from ThreeUI's 3D Paper, MIT). Faces are canvas textures from draw.ts;
  * the front and back of a leaf are picked per fragment.
+ *
+ * Closed, it rests like a stapled paper booklet rather than a board: every
+ * sheet bows up off the spine in a soft dome (the top sheets more, so they
+ * nest), the cover's fore edge lifts a little, and each page under it creeps
+ * out a hair further than the one above, so the closed book shows its stack
+ * of sheets at the edges. All of it fades out as the cover opens.
  *
  * Everything is driven by `timeRef` through bookState(), so the scroll
  * scrub can run it forwards and back; each leaf follows its angle on a
@@ -30,6 +37,12 @@ const COVER_W = 1.035;
 const COVER_H = 1.42;
 const LAYER = 0.007;
 const PAGE_LIFT = 0.14;
+// the closed booklet's rest pose, top sheet first: cover, the pages, then the back cover.
+// REST bows each sheet up off the spine, CURL lifts its fore edge, CREEP is how far a page
+// sticks out past the cover (the inner sheets of a stapled booklet push out further)
+const REST = [0.56, 0.46, 0.37, 0.28, 0.19, 0.05];
+const CURL = [0.42, 0.3, 0.22, 0.15, 0.09, 0];
+const CREEP = [0, 0.011, 0.019, 0.026, 0.032];
 // the approval stamp takes this long to come down, in real time, however fast the visitor scrolls
 const STAMP_SECONDS = 0.55;
 // each leaf follows its scroll-given angle on a spring, so turns ease in and settle with a little follow-through
@@ -37,7 +50,7 @@ const SPRING_K = 70;
 const SPRING_C = 2 * Math.sqrt(SPRING_K) * 0.82;
 
 const BEND = /* glsl */ `
-uniform float uAngle, uDir, uLag, uLift, uW, uH, uZ, uTime;
+uniform float uAngle, uDir, uLag, uLift, uW, uH, uZ, uTime, uRest, uCurl;
 
 // uDir carries how fast (and which way) the leaf is moving, so a quick turn curls more;
 // the bottom corner lags less than the top, so the sheet bends on a diagonal like a real page
@@ -46,7 +59,9 @@ float leafTheta(float s, float v){
   float lag  = uLag * uDir * sin(uAngle) * pow(s, 1.35) * corner;
   float lift = uLift * exp(-7.0 * s) * cos(uAngle);
   float flutter = 0.035 * sin(uAngle) * sin(uTime * 3.1 + s * 4.0) * s;
-  return uAngle - lag + lift + flutter;
+  // at rest in a closed book: a soft dome off the spine and a fore edge that lifts, the top corner most
+  float rest = cos(uAngle) * (uRest * (0.5 - s) + uCurl * smoothstep(0.7, 1.0, s) * (0.7 + 0.6 * v));
+  return uAngle - lag + lift + flutter + rest;
 }
 
 // integrate the bend along the page so its length is conserved
@@ -75,6 +90,8 @@ type LeafUniforms = {
   uH: { value: number };
   uZ: { value: number };
   uTime: { value: number };
+  uRest: { value: number };
+  uCurl: { value: number };
   uRim: { value: number };
   uSelfLit: { value: THREE.Vector2 };
   uBack: { value: THREE.Texture | null };
@@ -90,6 +107,8 @@ function leafMaterial(front: THREE.Texture, back: THREE.Texture, opts: { w: numb
     uH: { value: opts.h },
     uZ: { value: 0 },
     uTime: { value: 0 },
+    uRest: { value: 0 },
+    uCurl: { value: 0 },
     uRim: { value: opts.cover ? 0.4 : 0.32 },
     // how much of the print shows through unlit (front face, back face): paper stays white whatever
     // the light does. The cover's outside is board, lit normally; its inside is paper.
@@ -99,9 +118,9 @@ function leafMaterial(front: THREE.Texture, back: THREE.Texture, opts: { w: numb
   const mat = new THREE.MeshPhysicalMaterial({
     map: front,
     side: THREE.DoubleSide,
-    roughness: opts.cover ? 0.5 : 0.82,
+    roughness: opts.cover ? 0.62 : 0.82,
     metalness: 0,
-    clearcoat: opts.cover ? 0.35 : 0,
+    clearcoat: opts.cover ? 0.14 : 0,
     clearcoatRoughness: 0.4,
     sheen: opts.cover ? 0 : 0.35,
     sheenRoughness: 0.8,
@@ -191,23 +210,30 @@ function envTexture(light: boolean) {
 
 export type Pointer = { x: number; y: number };
 
+/** Where the book's fore edge and bottom edge are on screen, in px of the canvas box, for the hand-off arrows. */
+export type Anchor = { fx: number; fy: number; bx: number; by: number };
+
 export default function BookScene({
   timeRef,
   pointerRef,
   isVisible,
   onStep,
+  anchorRef,
   light = false,
 }: {
   timeRef: MutableRefObject<number>;
   pointerRef: MutableRefObject<Pointer>;
   isVisible: () => boolean;
   onStep: (step: number) => void;
+  anchorRef: MutableRefObject<Anchor | null>;
   /** The site's light theme: a bright studio and a soft shadow behind the book that fades inside the frame. */
   light?: boolean;
 }) {
   const { gl, scene, camera, size, invalidate } = useThree();
   const root = useRef<THREE.Group>(null);
   const block = useRef<THREE.Group>(null);
+  const haloMesh = useRef<THREE.Mesh>(null);
+  const probe = useMemo(() => ({ fore: new THREE.Vector3(), bottom: new THREE.Vector3() }), []);
   const fontsRef = useRef<Fonts | null>(null);
   const stepRef = useRef(-1);
   const keys = useRef<string[]>([]);
@@ -330,7 +356,14 @@ export default function BookScene({
     const byH = (visH * 0.86) / COVER_H;
     const open = Math.min(byH, (visW * 0.94) / (COVER_W * 2));
     // closed, the book grows into the space the spread needs — but not so much that opening it reads as a zoom
-    return { open, closed: Math.min(byH * 0.84, (visW * 0.8) / COVER_W, open * 1.6) };
+    // handed off, the locked book shrinks aside to where handoffLayout() puts it
+    const L = handoffLayout(size.width, size.height).book;
+    const hand = {
+      x: (L.x - 0.5) * visW,
+      y: (0.5 - L.y) * visH,
+      scale: Math.min((L.h * visH) / COVER_H, (L.w * visW) / COVER_W),
+    };
+    return { open, closed: Math.min(byH * 0.84, (visW * 0.8) / COVER_W, open * 1.6), hand };
   }, [camera, size]);
 
   useFrame((state, delta) => {
@@ -393,6 +426,7 @@ export default function BookScene({
       return sp;
     });
     const coverOpen = Math.min(1, Math.max(0, angles[0].a / Math.PI));
+    const closed = 1 - coverOpen;
     leaves.forEach((leaf, k) => {
       const { a, v, way } = angles[k];
       leaf.uniforms.uAngle.value = a;
@@ -402,11 +436,19 @@ export default function BookScene({
       leaf.uniforms.uTime.value = clock;
       // pages rise off the spine only in an open book; closed, they lie flat under the cover
       if (k > 0) leaf.uniforms.uLift.value = PAGE_LIFT * coverOpen;
+      leaf.uniforms.uRest.value = REST[k] * closed;
+      leaf.uniforms.uCurl.value = CURL[k] * closed;
+      // closed, each page creeps out just past the cover; open, it's back to its own size
+      if (k > 0) {
+        leaf.uniforms.uW.value = PAGE_W + (COVER_W + CREEP[k] - PAGE_W) * closed;
+        leaf.uniforms.uH.value = PAGE_H + (COVER_H + CREEP[k] * 1.2 - PAGE_H) * closed;
+      }
       // right-hand stack: cover on top; left-hand stack: the most recently turned on top
       leaf.uniforms.uZ.value = a < Math.PI / 2 ? (n - k) * LAYER : (k + 1) * LAYER;
       leaf.mat.opacity = s.appear;
     });
     book.backLeaf.uniforms.uZ.value = 0;
+    book.backLeaf.uniforms.uRest.value = REST[n] * closed;
     book.backLeaf.mat.opacity = s.appear;
     halo.opacity = s.appear;
 
@@ -416,12 +458,30 @@ export default function BookScene({
     const idle = Math.sin(clock * 0.6) * 0.02;
     tilt.current.x += (pointerRef.current.y * 0.1 - tilt.current.x) * 0.06;
     tilt.current.y += (pointerRef.current.x * 0.16 - tilt.current.y) * 0.06;
-    const away = s.verified ? 1 - s.back : s.send;
-    const scale = fit.closed + (fit.open - fit.closed) * coverOpen;
+    const open = fit.closed + (fit.open - fit.closed) * coverOpen;
+    const scale = open + (fit.hand.scale - open) * s.hand;
     g.scale.setScalar(scale * (0.92 + 0.08 * s.appear));
     // the book gives a little under the stamp as it lands
-    g.position.set(away * 6.2, -0.35 * (1 - s.appear) + idle, -1.6 * away - 0.05 * impact);
-    g.rotation.set(-0.2 + tilt.current.x + idle * 0.5, 0.1 + tilt.current.y - 0.6 * away, 0.015 * Math.sin(clock * 0.4));
+    const hx = fit.hand.x * s.hand;
+    const hy = fit.hand.y * s.hand;
+    g.position.set(hx, hy - 0.35 * (1 - s.appear) + idle * (1 - 0.6 * s.hand), -0.05 * impact);
+    // closed, the book turns its fore edge a little toward the viewer, so the bowed sheets and their edges show
+    const turn = 0.1 - 0.42 * closed;
+    g.rotation.set(-0.2 - 0.12 * closed + tilt.current.x + idle * 0.5, turn + tilt.current.y, 0.015 * Math.sin(clock * 0.4));
+    if (haloMesh.current) {
+      haloMesh.current.position.set(hx, hy, -0.9);
+      haloMesh.current.scale.set(6.5 * (1 - 0.55 * s.hand), 5.2 * (1 - 0.55 * s.hand), 1);
+    }
+
+    // ---- where the arrows start: the fore edge (agents to the right) and the bottom edge (agents below)
+    g.updateMatrixWorld(true);
+    const toPx = (v: THREE.Vector3) => {
+      v.project(camera);
+      return [((v.x + 1) / 2) * size.width, ((1 - v.y) / 2) * size.height];
+    };
+    const [fx, fy] = toPx(inner.localToWorld(probe.fore.set(COVER_W, 0, 0.03)));
+    const [bx, by] = toPx(inner.localToWorld(probe.bottom.set(COVER_W * 0.5, -COVER_H / 2, 0.03)));
+    anchorRef.current = { fx, fy, bx, by };
   });
 
   return (
@@ -429,7 +489,7 @@ export default function BookScene({
       <ambientLight intensity={light ? 0.55 : 0.45} />
       <directionalLight position={[-3.2, 2.4, 3]} intensity={1.9} color="#fff4e6" />
       <directionalLight position={[3.6, -1.6, 2]} intensity={0.35} color="#9fb6ff" />
-      <mesh position={[0, 0, -0.9]} scale={[6.5, 5.2, 1]} material={halo}>
+      <mesh ref={haloMesh} position={[0, 0, -0.9]} scale={[6.5, 5.2, 1]} material={halo}>
         <planeGeometry args={[1, 1]} />
       </mesh>
       <group ref={root}>
