@@ -48,8 +48,8 @@ type TeamNode = {
 };
 
 const NAME = 13.5; // team name size
-const APP = 11; // application name size (mono: 0.6em per character)
-const ROW = 16; // application line height
+const APP = 10.5; // application name size (mono: 0.6em per character)
+const ROW = 15; // application line height
 
 /**
  * The demo company as a simple org map: its logo at the centre, a line out to each team, and each team a circle
@@ -57,8 +57,8 @@ const ROW = 16; // application line height
  * wiki is in orbit and gets a pulsing ring while a mission is changing it. On a phone the lists give way to a count,
  * and tapping a team shows its applications. Drawn at the container's real pixel size, so text stays legible.
  */
-export const WelcomeSky = forwardRef<SkyHandle, { org: string; note?: string; teams: SkyTeam[]; onReady?: () => void }>(function WelcomeSky(
-  { org, note, teams, onReady },
+export const WelcomeSky = forwardRef<SkyHandle, { org: string; note?: string; teams: SkyTeam[]; tools?: React.ReactNode; onReady?: () => void }>(function WelcomeSky(
+  { org, note, teams, tools, onReady },
   ref,
 ) {
   const box = useRef<HTMLDivElement>(null);
@@ -240,9 +240,9 @@ export const WelcomeSky = forwardRef<SkyHandle, { org: string; note?: string; te
                     {!compact && <rect x={a.dx - 8} y={a.ty - ROW + 3} width={a.name.length * APP * 0.6 + 22} height={ROW} fill="transparent" />}
                     {a.status === "published" && <circle data-sky="glow" cx={a.dx} cy={a.dy} r={compact ? 7 : 9} fill="url(#sky-glow)" style={{ opacity: 0 }} />}
                     {a.inFlight && <circle data-sky="ring" cx={a.dx} cy={a.dy} r={compact ? 5 : 6} fill="none" stroke="var(--sky-flight)" strokeWidth={1.3} style={{ opacity: 0 }} />}
-                    <circle cx={a.dx} cy={a.dy} r={compact ? 2.4 : 3} fill="var(--sky-star)" />
+                    <circle cx={a.dx} cy={a.dy} r={compact ? 2.4 : 2.6} fill="var(--sky-star)" />
                     {!compact && (
-                      <text x={a.tx} y={a.ty} className="sky-label font-mono" fontSize={APP} fill={focus === `app:${a.name}` ? "var(--ink)" : "var(--ink-muted)"}>
+                      <text x={a.tx} y={a.ty} className="sky-label font-mono" fontSize={APP} fill={focus === `app:${a.name}` ? "var(--ink)" : "var(--ink-faint)"}>
                         {a.name}
                       </text>
                     )}
@@ -256,9 +256,11 @@ export const WelcomeSky = forwardRef<SkyHandle, { org: string; note?: string; te
 
       {/* The company itself sits at the centre, as its logo. */}
       {drawn && (
-        <div className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2" style={{ left: centre.x, top: centre.y }}>
-          <div data-sky="org" className="sky-lockup rounded-full px-6 py-4" style={{ opacity: 0 }}>
+        <div className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-1/2" style={{ left: centre.x, top: centre.y }}>
+          <div data-sky="org" className="sky-lockup flex flex-col items-center rounded-full px-8 py-5" style={{ opacity: 0 }}>
             <OrgLockup name={org} note={note} compact={compact} />
+            {/* The real tools it's built from sit right under the company, as logos. */}
+            {tools && <div className="pointer-events-auto mt-2">{tools}</div>}
           </div>
         </div>
       )}
@@ -311,14 +313,24 @@ function layout(teams: SkyTeam[], w: number, h: number) {
   const n = Math.max(teams.length, 1);
   const R = compact ? Math.min(26, w / 13) : Math.max(20, Math.min(28, h / 14));
   const pad = 6;
-  const angles = teams.map((_, i) => -Math.PI / 2 + (i / n) * Math.PI * 2);
+  // On a phone the logo fills the middle band, so teams sit in two rows: above it and below it.
+  const top = Math.floor(n / 2);
+  const angles = compact
+    ? teams.map((_, i) =>
+        i < top
+          ? -Math.PI + ((i + 0.5) / top) * Math.PI * 0.9 + Math.PI * 0.05
+          : ((i - top + 0.5) / (n - top)) * Math.PI * 0.9 + Math.PI * 0.05,
+      )
+    : teams.map((_, i) => -Math.PI / 2 + (i / n) * Math.PI * 2);
   const sin = angles.map(Math.sin);
   // A team above the logo puts its name and list beside its circle, clear of the line that reaches it from below.
-  const beside = sin.map((s) => s < -0.85);
+  // On a phone, the upper row names itself above its circles instead.
+  const beside = sin.map((s) => s < -0.85 && !compact);
+  const above = sin.map((s) => compact && s < 0);
   const listH = (k: number) => (compact ? 30 : 22 + k * ROW);
   const width = (t: SkyTeam) => Math.max(t.name.length * NAME * 0.58, ...t.apps.map((a) => a.name.length * APP * 0.6 + 14));
-  const up = teams.map((t, i) => (beside[i] ? Math.max(R, listH(t.apps.length) / 2) : R));
-  const down = teams.map((t, i) => (beside[i] ? Math.max(R, listH(t.apps.length) / 2) : R + 4 + listH(t.apps.length)));
+  const up = teams.map((t, i) => (beside[i] ? Math.max(R, listH(t.apps.length) / 2) : above[i] ? R + 36 : R));
+  const down = teams.map((t, i) => (beside[i] ? Math.max(R, listH(t.apps.length) / 2) : above[i] ? R : R + 4 + listH(t.apps.length)));
 
   // The tallest ring that still fits every circle and its list inside the box.
   const span = (ry: number) => Math.max(...sin.map((s, i) => s * ry + down[i])) - Math.min(...sin.map((s, i) => s * ry - up[i]));
@@ -335,8 +347,8 @@ function layout(teams: SkyTeam[], w: number, h: number) {
   const half = Math.max(R, ...teams.map((t, i) => (beside[i] ? 0 : width(t) / 2)));
   const rx = Math.max(w / 2 - (compact ? Math.max(R, 46) : half) - 12, R * 2.2);
   // The company's logo, as an ellipse the spokes start from.
-  const hubX = compact ? 74 : 104;
-  const hubY = compact ? 42 : 50;
+  const hubX = compact ? 92 : 116;
+  const hubY = compact ? 84 : 70;
 
   const nodes: TeamNode[] = teams.map((team, i) => {
     const x = cx + Math.cos(angles[i]) * rx;
@@ -358,7 +370,7 @@ function layout(teams: SkyTeam[], w: number, h: number) {
     } else {
       anchor = "middle";
       nameX = compact ? Math.min(Math.max(x, 52), w - 52) : x;
-      nameY = y + R + (compact ? 15 : 19);
+      nameY = above[i] ? y - R - 22 : y + R + (compact ? 15 : 19);
       left = x - width(team) / 2 + 4;
     }
     const firstRow = nameY + ROW + 1;
