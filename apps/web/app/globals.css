@@ -477,3 +477,44 @@ html[data-theme="light"] .lm[data-metal="press"] {
   color: #fff;
   box-shadow: 0 1px 2px rgba(60, 44, 30, 0.16);
 }
+
+/* Guided tours (components/app/tour): the spotlight's huge shadow dims the page; the halo breathes in the seat's hue. */
+:root {
+  --tour-scrim: rgb(2 3 8 / 0.72);
+}
+html[data-theme="light"] {
+  --tour-scrim: rgb(40 30 20 / 0.5);
+}
+.tour-spot {
+  box-shadow: 0 0 0 2px var(--role), 0 0 0 200vmax var(--tour-scrim);
+}
+.tour-spot.no-hole {
+  box-shadow: 0 0 0 200vmax var(--tour-scrim);
+}
+.tour-halo {
+  animation: tour-halo 2.4s ease-in-out infinite;
+}
+.tour-in {
+  animation: tour-in 0.18s ease-out both;
+}
+@keyframes tour-halo {
+  0%,
+  100% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--role) 22%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 11px color-mix(in srgb, var(--role) 8%, transparent);
+  }
+}
+@keyframes tour-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-halo,
+  .tour-in {
+    animation: none;
+  }
+}

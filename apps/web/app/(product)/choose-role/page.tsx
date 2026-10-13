@@ -43,7 +43,12 @@ function RolePicker() {
   const [picked, setPicked] = useState<RoleId | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hovered, setHovered] = useState<RoleId | null>(null);
+  const [hintOpen, setHintOpen] = useState(true);
   const size = usePlanetSize();
+  // First visit (no seat picked yet): a quiet hint, and a "Start here" on the seat that suits how they began.
+  const firstVisit = !me?.role;
+  const fresh = me?.estate === "fresh" && !me.inDemo;
+  const startHere: RoleId = fresh ? "engineering" : "business";
 
   const pick = async (role: RoleId) => {
     if (picked) return;
@@ -74,12 +79,24 @@ function RolePicker() {
       </header>
 
       <section className="mt-14 text-center sm:mt-20">
-        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-nox">Demo mode</span>
+        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-nox">{fresh ? "Starting fresh" : "Demo mode"}</span>
         <h1 className="mt-3 font-display text-[40px] leading-[1.05] text-ink sm:text-[56px]">Choose a role to experience NoX</h1>
         <p className="mx-auto mt-4 max-w-[560px] text-[15px] leading-relaxed text-ink-muted">
           You&rsquo;re picking a role only to try the platform from that seat. Everything behind it is real. Your
           applications, knowledge bases and tickets. Switch any time from the top bar.
         </p>
+        {firstVisit && hintOpen && (
+          <p role="note" className="mx-auto mt-6 inline-flex max-w-full items-center gap-3 rounded-full border border-hairline bg-[rgb(var(--raise-lo)/.8)] py-1.5 pl-4 pr-1.5 text-left text-[13px] text-ink-muted">
+            <span>
+              {fresh
+                ? "You're starting fresh. The engineering lead charts organizations, so start there. You can switch any time from the top bar."
+                : "These are the four seats on every mission. Pick one to start. You can switch any time from the top bar."}
+            </span>
+            <button type="button" onClick={() => setHintOpen(false)} className="shrink-0 rounded-full border-l border-hairline px-3 py-1 text-[12px] text-ink-dim hover:text-ink">
+              Got it
+            </button>
+          </p>
+        )}
         {current && (
           <button
             type="button"
@@ -107,9 +124,18 @@ function RolePicker() {
                 onBlur={() => setHovered((h) => (h === role.id ? null : h))}
                 disabled={picked !== null}
                 aria-label={`Play as ${role.name}`}
-                className="group flex w-full flex-col items-center rounded-md px-2 py-4 text-center transition-opacity duration-500 focus-visible:outline-offset-4 disabled:cursor-default"
-                style={{ opacity: dimmed ? 0.15 : 1 }}
+                className="group relative flex w-full flex-col items-center rounded-md px-2 py-4 text-center transition-opacity duration-500 focus-visible:outline-offset-4 disabled:cursor-default"
+                style={{
+                  opacity: dimmed ? 0.15 : 1,
+                  outline: firstVisit && role.id === startHere && !picked ? `1px dashed color-mix(in srgb, ${role.ink} 55%, transparent)` : undefined,
+                  outlineOffset: -2,
+                }}
               >
+                {firstVisit && role.id === startHere && !picked && (
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-abyss" style={{ background: role.hue }}>
+                    Start here
+                  </span>
+                )}
                 <span
                   className={`flex ${PLANET_BOX} items-center justify-center transition-transform duration-[650ms] ease-[cubic-bezier(.2,.7,.2,1)] group-hover:scale-105 group-focus-visible:scale-105 motion-reduce:transition-none`}
                   style={{ transform: isPicked ? "scale(1.35)" : undefined }}
@@ -133,7 +159,9 @@ function RolePicker() {
         </p>
       )}
       <p className="mt-auto pt-14 text-center text-[13px] text-ink-faint">
-        New here? Start as the Business user. That&rsquo;s where every request begins.
+        {fresh
+          ? "Starting fresh? Begin as the Engineering lead to chart your organization, then onboard an application."
+          : "New here? Start as the Business user. That’s where every request begins."}
       </p>
     </main>
   );

@@ -18,6 +18,7 @@ import type { MediaCapture, Mission, Sighting } from "@/lib/app/types";
 import { useApi } from "@/lib/app/use-api";
 
 import { RequestCard } from "./shared";
+import { useHomeTour } from "@/components/app/tour/tour";
 
 type Suggestion = { id: string; name: string; score: number };
 
@@ -37,13 +38,14 @@ export function BusinessHome({ role }: { role: RoleDef }) {
   const waiting = useApi<Mission[]>("/api/v1/missions?view=waiting");
   const needsYou = new Set([...(back.data ?? []), ...(waiting.data ?? [])].map((m) => m.key));
   const rest = (all.data ?? []).filter((m) => !needsYou.has(m.key));
+  useHomeTour(role.id, !all.loading && !back.loading && !waiting.loading);
 
   return (
     <div className="mx-auto mt-8 max-w-[860px] space-y-10">
       <RequestComposer role={role} />
 
       {(back.data?.length || waiting.data?.length) ? (
-        <section>
+        <section data-tour="needs-you">
           <h2 className="mb-4 text-[20px] font-semibold text-ink">Needs you</h2>
           <div className="grid gap-4">
             {(back.data ?? []).map((m) => (
@@ -56,7 +58,7 @@ export function BusinessHome({ role }: { role: RoleDef }) {
         </section>
       ) : null}
 
-      <section>
+      <section data-tour="on-their-way">
         <h2 className="mb-4 text-[20px] font-semibold text-ink">On their way</h2>
         {all.loading && !all.data ? (
           <p className="text-[14px] text-ink-faint">Loading…</p>
@@ -83,7 +85,7 @@ function Ideas({ role }: { role: RoleDef }) {
   const { data, reload } = useApi<Sighting[]>("/api/v1/sightings");
   if (!data?.length) return null;
   return (
-    <section>
+    <section data-tour="ideas">
       <div className="mb-4 flex items-baseline justify-between gap-3">
         <h2 className="text-[20px] font-semibold text-ink">Ideas from NoX</h2>
         <Link href="/app/sightings" className="text-[13px] hover:underline" style={{ color: role.ink }}>
@@ -166,6 +168,7 @@ function RequestComposer({ role }: { role: RoleDef }) {
       <p className="mt-1 text-[14px] text-ink-muted">Say it the way you&rsquo;d say it to a colleague, or show NoX. NoX writes it up and gets it to the right people.</p>
       <textarea
         id="ask"
+        data-tour="composer"
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
         rows={3}
@@ -174,7 +177,11 @@ function RequestComposer({ role }: { role: RoleDef }) {
         placeholder={EXAMPLES[0]}
         className="mt-4 w-full resize-y rounded-lg border border-hairline bg-[rgb(var(--void-rgb)/.6)] p-4 text-[16px] leading-relaxed text-ink outline-none placeholder:text-ink-dim focus:border-[color:var(--role)]"
       />
-      <VoiceInput value={prompt} onChange={setPrompt} label="Or just say it" accent className="mt-2 w-full justify-end" />
+      <div className="mt-2 flex justify-end">
+        <span data-tour="voice" className="inline-flex">
+          <VoiceInput value={prompt} onChange={setPrompt} label="Or just say it" accent />
+        </span>
+      </div>
       <div className="mt-3">
         <CaptureBar
           global
@@ -209,6 +216,7 @@ function RequestComposer({ role }: { role: RoleDef }) {
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {apps.length > 0 ? (
           <span
+            data-tour="app-guess"
             className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 self-start rounded-full border py-1 pl-3 pr-1.5 text-[13px] text-ink-muted"
             style={{ borderColor: "color-mix(in srgb, var(--role) 45%, transparent)", background: "color-mix(in srgb, var(--role) 10%, transparent)" }}
           >

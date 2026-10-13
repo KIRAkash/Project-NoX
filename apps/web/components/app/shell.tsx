@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Command, LogOut, Repeat, Search, SquareTerminal } from "lucide-react";
+import { Bell, Command, Compass, LogIn, LogOut, Repeat, Search, SquareTerminal } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -14,7 +14,8 @@ import { useApi } from "@/lib/app/use-api";
 import { Planet } from "./planet";
 import { NoxMark } from "./nox-mark";
 import { ThemeToggle } from "./theme-toggle";
-import { ToastProvider, usePopover } from "./ui";
+import { TourProvider, useTour } from "./tour/tour";
+import { ToastProvider, usePopover, useToast } from "./ui";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { me } = useAuth();
@@ -24,13 +25,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <ToastProvider>
       {/* `data-seat` sets the seat's colour (`--role`) and texture in globals.css: warm and airy, board, blueprint or terminal. */}
       <div data-seat={role.id} className="seat-shell min-h-screen lg:pl-[232px]">
-        <Sidebar role={role} />
-        <div className="flex min-h-screen flex-col">
-          <DemoRibbon />
-          <TopBar role={role} />
-          <main className="seat-main relative flex-1 px-4 pb-28 pt-6 sm:px-8 lg:pb-12">{children}</main>
-        </div>
-        <BottomNav role={role} />
+        <TourProvider>
+          <Sidebar role={role} />
+          <div className="flex min-h-screen flex-col">
+            {me.inDemo && <DemoRibbon />}
+            <TopBar role={role} />
+            <main className="seat-main relative flex-1 px-4 pb-28 pt-6 sm:px-8 lg:pb-12">{children}</main>
+          </div>
+          <BottomNav role={role} />
+        </TourProvider>
       </div>
     </ToastProvider>
   );
@@ -62,6 +65,7 @@ function Sidebar({ role }: { role: RoleDef }) {
             <Link
               key={item.key}
               href={`/app${item.path}`}
+              data-tour={`nav-${item.key}`}
               aria-current={active ? "page" : undefined}
               className={`relative flex h-10 items-center gap-3 rounded-sm px-3 text-[14px] transition ${
                 active ? "bg-[rgb(var(--line)/.08)] text-ink" : "text-ink-muted hover:bg-[rgb(var(--line)/.05)] hover:text-ink"
@@ -75,7 +79,7 @@ function Sidebar({ role }: { role: RoleDef }) {
         })}
       </nav>
       <div className="mt-auto px-6 pb-6">
-        <Link href="/choose-role" className="flex items-center gap-3 rounded-md border border-hairline p-3 hover:border-[rgb(var(--line)/.3)]">
+        <Link href="/choose-role" data-tour="seat-switch" className="flex items-center gap-3 rounded-md border border-hairline p-3 hover:border-[rgb(var(--line)/.3)]">
           <Planet role={role} size={28} />
           <span className="min-w-0">
             <span className="block text-[13px] font-medium" style={{ color: role.ink }}>
@@ -100,6 +104,7 @@ function BottomNav({ role }: { role: RoleDef }) {
           <Link
             key={item.key}
             href={`/app${item.path}`}
+            data-tour={`nav-${item.key}`}
             aria-current={active ? "page" : undefined}
             className="flex min-h-[58px] flex-1 flex-col items-center justify-center gap-1 text-[10.5px]"
             style={{ color: active ? role.ink : "var(--ink-faint)" }}
@@ -121,6 +126,73 @@ function DemoRibbon() {
       <span aria-hidden>·</span>
       <span>Sample data</span>
     </div>
+  );
+}
+
+/** Account-menu items for the first run: replay this page's tour, and join or leave the demo estate. */
+function FirstRunItems({ onDone }: { onDone: () => void }) {
+  const { me, chooseEstate } = useAuth();
+  const tour = useTour();
+  const toast = useToast();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const estate = useApi<{ yourMissions: number }>(confirming ? "/api/v1/me/demo-estate" : null);
+  const item = "flex w-full items-center gap-2 px-4 py-2.5 text-left text-ink-muted hover:bg-[rgb(var(--line)/.06)] hover:text-ink disabled:opacity-50";
+
+  const switchTo = async (estateChoice: "demo" | "fresh") => {
+    setBusy(true);
+    try {
+      await chooseEstate(estateChoice);
+      window.location.assign("/app"); // a clean start: every page refetches with the new set of organizations
+    } catch {
+      toast(estateChoice === "demo" ? "Couldn't join the demo. Try again." : "Couldn't leave the demo. Try again.", "error");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      {tour.registered && (
+        <button
+          type="button"
+          onClick={() => {
+            onDone();
+            void tour.replay();
+          }}
+          className={item}
+        >
+          <Compass size={14} /> Replay the tour
+        </button>
+      )}
+      {me?.demoAvailable && !me.inDemo && (
+        <button type="button" disabled={busy} onClick={() => void switchTo("demo")} className={item}>
+          <LogIn size={14} /> {busy ? "Joining…" : "Explore the demo"}
+        </button>
+      )}
+      {me?.inDemo &&
+        (confirming ? (
+          <div className="border-y border-hairline bg-[rgb(var(--line)/.04)] px-4 py-3">
+            <p className="text-[12.5px] leading-relaxed text-ink-muted">
+              Leave the demo?{" "}
+              {estate.data?.yourMissions
+                ? `You'll lose access to the ${estate.data.yourMissions === 1 ? "mission" : `${estate.data.yourMissions} missions`} you started there.`
+                : "You can join it again from this menu."}
+            </p>
+            <div className="mt-2.5 flex gap-2">
+              <button type="button" disabled={busy || estate.loading} onClick={() => void switchTo("fresh")} className="h-8 rounded-sm bg-[color:var(--coral)] px-3 text-[12.5px] font-semibold text-abyss disabled:opacity-50">
+                {busy ? "Leaving…" : "Leave"}
+              </button>
+              <button type="button" onClick={() => setConfirming(false)} className="h-8 rounded-sm border border-hairline px-3 text-[12.5px] text-ink-muted hover:text-ink">
+                Stay
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" onClick={() => setConfirming(true)} className={item}>
+            <LogOut size={14} className="rotate-180" /> Leave the demo
+          </button>
+        ))}
+    </>
   );
 }
 
@@ -170,6 +242,7 @@ function TopBar({ role }: { role: RoleDef }) {
       {/* On desktop the sidebar's seat card already names the seat and switches it. */}
       <Link
         href="/choose-role"
+        data-tour="seat-switch"
         className="hidden items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] font-medium sm:flex lg:hidden"
         style={{ borderColor: tint(role.ink, 33), color: role.ink }}
         title="Switch role"
@@ -193,6 +266,7 @@ function TopBar({ role }: { role: RoleDef }) {
         <button
           type="button"
           onClick={avatar.toggle}
+          data-tour="seat-switch"
           aria-label="Account menu"
           aria-expanded={avatar.open}
           className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border text-[13px] font-semibold text-ink"
@@ -209,6 +283,7 @@ function TopBar({ role }: { role: RoleDef }) {
             <Link href="/choose-role" className="flex items-center gap-2 px-4 py-2.5 text-ink-muted hover:bg-[rgb(var(--line)/.06)] hover:text-ink">
               <Repeat size={14} /> Switch role
             </Link>
+            <FirstRunItems onDone={() => avatar.setOpen(false)} />
             <button type="button" onClick={() => void signOut()} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-ink-muted hover:bg-[rgb(var(--line)/.06)] hover:text-ink">
               <LogOut size={14} /> Sign out
             </button>

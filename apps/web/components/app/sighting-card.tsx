@@ -192,13 +192,14 @@ export function SightingCard({ s, role, onChanged, compact = false }: { s: Sight
 }
 
 /** The top sightings for the acting seat, for its home. */
-export function SightingsPanel({ role, className, limit = 3 }: { role: RoleDef; className?: string; limit?: number }) {
+export function SightingsPanel({ role, className, limit = 3, tour = "sightings" }: { role: RoleDef; className?: string; limit?: number; tour?: string }) {
   const { data, loading, reload } = useApi<Sighting[]>("/api/v1/sightings");
   const items = data ?? [];
   return (
     <Panel
       title={items.length ? `Spotted by NoX · ${items.length}` : "Spotted by NoX"}
       className={className}
+      tour={tour}
       action={
         <Link href="/app/sightings" className="text-[12px] hover:underline" style={{ color: role.ink }}>
           All sightings →

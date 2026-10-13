@@ -185,7 +185,7 @@ export function CaptureBar({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Show NoX" style={accentVars}>
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Show NoX" style={accentVars} data-tour="capture">
         {!compact && <span className={`mr-1 font-mono uppercase text-[color:var(--role)] ${accent ? "text-[11.5px] font-semibold tracking-[0.16em]" : "text-[10.5px] tracking-[0.14em]"}`}>Show NoX</span>}
         {screenOk && !local && (
           <button type="button" disabled={busy} onClick={() => setSheet({ mode: "setup" })} className={btn}>

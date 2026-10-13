@@ -12,6 +12,7 @@ import { useApi } from "@/lib/app/use-api";
 
 import { MissionPanel } from "./shared";
 import { legible } from "@/lib/app/palette";
+import { useHomeTour } from "@/components/app/tour/tour";
 
 /**
  * The product board: the product owner triages what comes in, orders the backlog, and accepts what ships.
@@ -27,11 +28,12 @@ export function ProductHome({ role }: { role: RoleDef }) {
   const open = missions.filter((m) => m.stage !== "done");
   const reload = () => void all.reload();
   const inOrbit = kbs.data?.filter((k) => k.status === "published").length ?? 0;
+  useHomeTour(role.id, !all.loading);
 
   return (
     <div className="mt-10 space-y-5">
       <div className="grid items-start gap-5 lg:grid-cols-3">
-        <Panel title={incoming.length ? `Triage · ${incoming.length}` : "Triage"} className="lg:col-span-2">
+        <Panel title={incoming.length ? `Triage · ${incoming.length}` : "Triage"} className="lg:col-span-2" tour="triage">
           {all.loading && !all.data ? (
             <p className="text-[13px] text-ink-faint">Loading…</p>
           ) : incoming.length ? (
@@ -53,13 +55,14 @@ export function ProductHome({ role }: { role: RoleDef }) {
             <EmptyState role={role} line="Nothing to triage. New requests from the business land here first." />
           )}
         </Panel>
-        <MissionPanel title="Back for acceptance" view="back" empty="Shipped work comes back here to check against your acceptance criteria." role={role} />
+        <MissionPanel title="Back for acceptance" view="back" empty="Shipped work comes back here to check against your acceptance criteria." role={role} tour="back-for-acceptance" />
       </div>
 
       <SightingsPanel role={role} />
 
       <Panel
         title="Roadmap"
+        tour="roadmap"
         action={
           <Link href="/app/missions" className="text-[12px] hover:underline" style={{ color: role.ink }}>
             Open backlog →

@@ -16,7 +16,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
 from nox_api.core.time_utils import now_utc_naive
@@ -163,6 +163,12 @@ class User(Base):
     last_role = Column(Enum(Role), nullable=True)
     created_at = Column(DateTime, default=now_utc_naive)
     last_seen_at = Column(DateTime, default=now_utc_naive)
+    # First run (services/onboarding.py): when they answered the welcome screen, which estate they chose
+    # ("demo" or "fresh"), and the guided tours they've finished or skipped.
+    onboarded_at = Column(DateTime, nullable=True)
+    estate = Column(String, nullable=True)
+    # JSONB on Postgres (queries that SELECT DISTINCT users need equality on every column); plain JSON elsewhere.
+    tours_seen = Column(JSON().with_variant(JSONB(), "postgresql"), nullable=False, default=list)
 
     memberships = relationship(
         "Membership", back_populates="user", cascade="all, delete-orphan", foreign_keys="Membership.user_id"

@@ -6,9 +6,23 @@ Everyone in NoX works from one of four seats. A seat decides which file you writ
 
 1. Open NoX and choose **Enter NoX**. Sign in with Google through **Firebase Authentication**. In local development there is also a one-field dev sign-in.
 2. Every request the web app sends carries the Firebase ID token. The API verifies it with `firebase-admin` and creates your user record the first time it sees you.
-3. Pick a seat on the role picker. Each seat is a planet in its own colour. Your choice is remembered, and returning users see **Continue as …** at the top. Next to the four seats, a **More coming soon** planet shows the seats that are next in the queue: Sales, Design, Security & Compliance, and QA. They can't be picked yet.
+3. The first time you sign in, NoX greets you with **Welcome to NoX** and a look at the demo estate: Tidewell Mutual, its teams and applications, and what's in flight. Choose one:
+   - **Explore Tidewell** joins you to the demo company, so you can follow real missions from any seat.
+   - **Start fresh** joins you to nothing. You chart your own organization and onboard your own applications.
+
+   You can change your mind later: **Explore the demo** or **Leave the demo** is in the account menu. Leaving removes only what the demo gave you. Organizations someone invited you to stay.
+4. Pick a seat on the role picker. Each seat is a planet in its own colour. On your first visit a short hint explains the seats, and a **Start here** tag marks the business user (or the engineering lead, if you started fresh, because that seat charts organizations). Your choice is remembered, and returning users see **Continue as …** at the top. Next to the four seats, a **More coming soon** planet shows the seats that are next in the queue: Sales, Design, Security & Compliance, and QA. They can't be picked yet.
 
 The role picker allows teams to experience the interface from each seat's perspective. The server treats the seat you picked as your acting role for the session and checks every request against it, so each seat gets its real limits. To switch seats, use the role chip in the top bar or **Switch role** at the bottom of the sidebar.
+
+## Guided tours
+
+The first time you reach a seat's home, a short tour points at what that seat can do, one thing at a time. The business user's tour is the longest: asking in a sentence, speaking or showing NoX, how NoX picks the application, what needs you, following a request, ideas from NoX, and where to find the atlas and Impact. The other seats get the queue where their work arrives, what only they do, and the pages in their nav. A mission, the atlas and an application's page each have their own short tour the first time you open one. If you started fresh, your home has a two-step tour on charting your first organization instead.
+
+- **Next**, **Back** or the arrow keys move through it. **Esc**, **Skip tour** or × end it.
+- Using the highlighted thing ends the tour, so it never gets in the way of real work.
+- Each tour runs once. NoX remembers which ones you've seen across devices. **Replay the tour** in the account menu runs the current page's tour again.
+- On a phone the tour sits in a sheet at the bottom of the screen.
 
 Every seat uses the same address: `/app`. NoX knows your seat from the server, not from the URL, so a link to a mission works for whoever opens it. Old links that still carry a seat, such as `/app/developer/missions/NOX-1`, redirect to the same page without it.
 

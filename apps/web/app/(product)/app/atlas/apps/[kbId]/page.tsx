@@ -8,6 +8,8 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { BrandLogo, SourceLogos } from "@/components/app/brand-logo";
 import { BuildGraph, GRAPH_EVENTS } from "@/components/app/build-graph";
 import { LessonsPanel } from "@/components/app/lessons";
+import { kbTour } from "@/components/app/tour/steps";
+import { usePageTour } from "@/components/app/tour/tour";
 import { KbMarkdown } from "@/components/app/markdown";
 import { EmptyState, FEED_LIST, KbStatusChip, type KbStatus, Panel, useToast } from "@/components/app/ui";
 import { ListenButton, VoiceInput } from "@/components/app/voice-input";
@@ -35,6 +37,8 @@ function AppPageInner() {
   const tab = (search.get("tab") as Tab) || "overview";
   const kb = useApi<KbDetail>(`/api/v1/kb/${kbId}`);
   const [live, setLive] = useState<KbEvent[]>([]);
+  const tourSteps = useMemo(() => kbTour(), []);
+  usePageTour("kb", tourSteps, Boolean(kb.data));
 
   // Live pipeline events: append to the feed and refresh the record when the status moves.
   const reloadRef = useRef(kb.reload);
@@ -85,6 +89,7 @@ function AppPageInner() {
       </header>
 
       <nav
+        data-tour="kb-tabs"
         className="mt-6 grid grid-cols-3 gap-1.5 rounded-md surface-panel surface-panel--flat p-1.5"
         aria-label="Application sections"
       >
@@ -250,7 +255,7 @@ function Overview({ app, live, onChanged }: { app: KbDetail; live: KbEvent[]; on
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div className="space-y-5">
-        <Panel title="Trajectory">
+        <Panel title="Trajectory" tour="kb-lifecycle">
           <Trajectory status={app.status} />
           <div className="mt-5 empty:hidden">
             <BuildGraph events={allEvents} />
@@ -354,7 +359,7 @@ function SourcesPanel({ app, canManage, onChanged }: { app: KbDetail; canManage:
   };
   const shield = useApi<ShieldState>(`/api/v1/kb/${app.id}/shield?v=${encodeURIComponent(app.updatedAt ?? "")}`);
   return (
-    <Panel title="Sources" action={<ShieldChip state={shield.data} />}>
+    <Panel title="Sources" action={<ShieldChip state={shield.data} />} tour="kb-sources">
       <ul className="space-y-3">
         {app.sourceUrls.map((s) => {
           const mon = app.sourceMonitors.find((m) => (m.sourceUrl || m.repoUrl) === s.url);

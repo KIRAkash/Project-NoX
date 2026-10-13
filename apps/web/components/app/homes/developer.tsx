@@ -13,6 +13,7 @@ import { useApi } from "@/lib/app/use-api";
 
 import { AtlasPanel, MissionPanel, NoxCommand } from "./shared";
 import { C, legible } from "@/lib/app/palette";
+import { useHomeTour } from "@/components/app/tour/tour";
 
 type Token = { id: string; name: string; createdAt: string; lastUsedAt: string | null };
 
@@ -25,11 +26,12 @@ export function DeveloperHome({ role }: { role: RoleDef }) {
   const all = useApi<Mission[]>("/api/v1/missions?view=all");
   const tokens = useApi<Token[]>("/api/v1/me/tokens");
   const prs = (all.data ?? []).flatMap((m) => m.links.filter((l) => l.system === "github_pr").map((l) => ({ m, l })));
+  useHomeTour(role.id, !waiting.loading && !all.loading && !tokens.loading);
 
   return (
     <div className="mt-10 space-y-5">
       <div className="grid items-start gap-5 lg:grid-cols-3">
-        <Panel title={waiting.data?.length ? `Build queue · ${waiting.data.length}` : "Build queue"} className="lg:col-span-2">
+        <Panel title={waiting.data?.length ? `Build queue · ${waiting.data.length}` : "Build queue"} className="lg:col-span-2" tour="build-queue">
           {waiting.loading && !waiting.data ? (
             <p className="font-mono text-[13px] text-ink-faint">loading…</p>
           ) : waiting.data?.length ? (
@@ -58,7 +60,7 @@ export function DeveloperHome({ role }: { role: RoleDef }) {
       <SightingsPanel role={role} />
 
       <div className="grid items-start gap-5 lg:grid-cols-3">
-        <Panel title={prs.length ? `Pull requests · ${prs.length}` : "Pull requests"}>
+        <Panel title={prs.length ? `Pull requests · ${prs.length}` : "Pull requests"} tour="pull-requests">
           {prs.length ? (
             <ul className="space-y-2.5">
               {prs.slice(0, 6).map(({ m, l }) => {
@@ -83,8 +85,8 @@ export function DeveloperHome({ role }: { role: RoleDef }) {
             <EmptyState line="No pull requests linked yet. `nox pr NOX-n` links one and runs the guard." />
           )}
         </Panel>
-        <MissionPanel title="Verify first" view="back" empty="After you mark a mission completed, your verification checklist lights up here first." role={role} />
-        <AtlasPanel role={role} title="Your applications" />
+        <MissionPanel title="Verify first" view="back" empty="After you mark a mission completed, your verification checklist lights up here first." role={role} tour="verify-first" />
+        <AtlasPanel role={role} title="Your applications" tour="your-apps" />
       </div>
     </div>
   );
@@ -96,6 +98,7 @@ function CliPanel({ tokens, loading }: { tokens: Token[] | null; loading: boolea
   return (
     <Panel
       title="Terminal"
+      tour="terminal"
       action={
         <Link href="/app/cli" className="font-mono text-[11.5px] text-ink-dim hover:text-ink">
           cli →

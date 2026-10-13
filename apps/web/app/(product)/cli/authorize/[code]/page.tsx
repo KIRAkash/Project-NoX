@@ -78,7 +78,7 @@ function Authorize() {
 
 export default function AuthorizePage() {
   return (
-    <RequireAuth needRole={false}>
+    <RequireAuth needRole={false} needOnboarded={false}>
       <Authorize />
     </RequireAuth>
   );

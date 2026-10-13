@@ -96,8 +96,7 @@ async def _upsert_user(db: AsyncSession, uid: str, email: str | None, name: str 
     if user is None:
         user = User(firebase_uid=uid, email=email, name=name or (email or "").split("@")[0], photo_url=photo)
         db.add(user)
-        await db.flush()
-        await _join_demo_orgs(db, user)
+        await db.flush()  # demo orgs are joined on the welcome screen (services/onboarding.py), not here
     else:
         user.email = email or user.email
         user.name = name or user.name
@@ -107,16 +106,6 @@ async def _upsert_user(db: AsyncSession, uid: str, email: str | None, name: str 
     await db.commit()
     await db.refresh(user)
     return user
-
-
-async def _join_demo_orgs(db: AsyncSession, user: User) -> None:
-    """New users join the demo orgs listed in NOX_DEMO_ORG_SLUGS, so a fresh sign-in sees the demo estate."""
-    slugs = [s.strip() for s in settings.NOX_DEMO_ORG_SLUGS.split(",") if s.strip()]
-    if not slugs:
-        return
-    orgs = (await db.execute(select(Org).where(Org.slug.in_(slugs)))).scalars().all()
-    for org in orgs:
-        db.add(Membership(user_id=user.id, org_id=org.id))
 
 
 async def _claim_invites(db: AsyncSession, user: User) -> None:

@@ -23,7 +23,7 @@ NoX is one web app, one API, one worker pool and one database. The API is the on
 
 | Component | Responsibility |
 | --- | --- |
-| **NoX web** (`apps/web`) | The landing experience, sign-in, the role picker, the four seat homes, the Atlas, Missions and the spec editor |
+| **NoX web** (`apps/web`) | The landing experience, sign-in, the welcome screen, the role picker, the four seat homes and their guided tours, the Atlas, Missions and the spec editor |
 | **NoX API** (`apps/api`) | Token verification, the access matrix, REST routes, webhooks and server-sent event streams |
 | **Workers** | Knowledge-base builds, syncs and rollups; spec drafting and co-writing; Git mirroring; Jira sync; the PR guard |
 | **Postgres** | Organizations, applications, sources, contracts, users, memberships, missions, spec files and versions, events, ADK sessions, the search index |
@@ -35,7 +35,7 @@ NoX is one web app, one API, one worker pool and one database. The API is the on
 
 ```text
 apps/web/                 Next.js 15, React 19, TypeScript, Tailwind
-  app/(product)/          the product: login, role picker, /app/… (one URL for every seat)
+  app/(product)/          the product: login, welcome, role picker, /app/… (one URL for every seat)
   components/app/         shell, panels, spec editor, verification, contract map, planets
   components/landing/     the landing experience
   content/docs/           these docs (also rendered at /docs)

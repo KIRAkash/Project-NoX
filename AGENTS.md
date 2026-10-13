@@ -30,7 +30,7 @@ These shape every decision in the codebase. Keep them.
 apps/web/                         Next.js 15, React 19, TypeScript, Tailwind 3
   app/page.tsx                    landing experience (three.js / GSAP)
   app/docs/                       product docs, rendered from content/docs/*.md
-  app/(product)/login, choose-role, cli/authorize/[code]
+  app/(product)/login, welcome (first run: demo or fresh), choose-role, cli/authorize/[code]
   app/(product)/app/[role]/       the product, scoped to the acting seat (impact/ is the flight recorder)
     page.tsx                      Mission control (waiting / in flight / coming back)
     atlas/                        org canvas, onboarding (new/), app page (apps/[kbId]/), connectors/
@@ -38,7 +38,8 @@ apps/web/                         Next.js 15, React 19, TypeScript, Tailwind 3
   components/app/                 shell, ui (Panel, PageHeader, KbStatusChip, FEED_LIST…), spec-editor,
                                   verify-panel, contract-map, markdown, planet(-character),
                                   jules-handoff, lessons (team memory), voice-input (mic + Listen),
-                                  media/ (Show NoX: capture bar, recorders, annotator, player, capture card, chips)
+                                  media/ (Show NoX: capture bar, recorders, annotator, player, capture card, chips),
+                                  tour/ (guided tours: engine + steps, anchored on data-tour attributes)
   lib/app/                        api client, auth (Firebase), roles, nav, types, SSE stream, useApi
   lib/docs.ts                     docs chapter manifest
   content/docs/                   the user docs (Markdown, one file per chapter)
@@ -56,7 +57,7 @@ apps/api/nox_api/                 FastAPI, Python 3.12, SQLAlchemy 2 async, Alem
                                   media (Show NoX: perceive, ground, seat views, evidence), memory (team lessons), jules (hand-off)
   routers/                        orgs, kb, missions, media, jira, jules, memory, voice, cli, webhooks, integrations, sources, me
   services/                       search (hybrid), sse, gitops, storage (local/GCS), media_storage (signed URLs), pins, discovery,
-                                  shield (Model Armor + DLP), analytics (BigQuery flight recorder), scope (token → visible apps),
+                                  shield (Model Armor + DLP), analytics (BigQuery flight recorder), scope (token → visible apps), onboarding (welcome choice, tours),
                                   team_memory (Postgres or Agent Platform Memory Bank)
   interop/                        mcp_server (NoX tools over MCP at /mcp), a2a (Ask agent over A2A at /a2a/ask)
   workers/                        Celery tasks + dispatcher (celery | in_process | auto)
@@ -114,6 +115,7 @@ Search (`services/search.py`): pages chunked at `##`, embedded with `gemini-embe
 | MCP / A2A | `/mcp`, `/a2a/ask` (token-gated) | `interop/mcp_server.py`, `interop/a2a.py`; scope from `services/scope.py` |
 | Shield | ingest, Ask, chat, new mission, pre-commit | `services/shield.py` (`screen_prompt`, `guard_source`, `assert_pages_clean`); findings in `shield_findings` |
 | Impact | `GET /api/v1/orgs/{id}/impact`, `…/missions/{key}/flight` | `services/analytics.py` (BigQuery or Postgres), views in `services/analytics_views.sql` |
+| First run | `/welcome` → `POST /api/v1/me/onboarding`, `PUT` or `DELETE /api/v1/me/tours/{key}` | `services/onboarding.py` (demo join/leave, estate preview, `TOUR_KEYS`); `components/app/tour/` (`usePageTour`, steps per seat and page) |
 
 Mission stages: `business → product → engineering → developer → build → verifying → done`. Server-enforced in `routers/missions.py`; the UI only reflects it.
 

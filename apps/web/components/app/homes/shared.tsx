@@ -22,10 +22,10 @@ export function greeting(): string {
 }
 
 /** One mission list from `GET /missions?view=…`, as compact cards. */
-export function MissionPanel({ title, view, empty, role, className }: { title: string; view: string; empty: string; role?: RoleDef; className?: string }) {
+export function MissionPanel({ title, view, empty, role, className, tour }: { title: string; view: string; empty: string; role?: RoleDef; className?: string; tour?: string }) {
   const { data, loading } = useApi<Mission[]>(`/api/v1/missions?view=${view}`);
   return (
-    <Panel title={data?.length ? `${title} · ${data.length}` : title} className={className}>
+    <Panel title={data?.length ? `${title} · ${data.length}` : title} className={className} tour={tour}>
       {loading && !data ? (
         <p className="text-[13px] text-ink-faint">Loading…</p>
       ) : data?.length ? (
@@ -41,12 +41,13 @@ export function MissionPanel({ title, view, empty, role, className }: { title: s
   );
 }
 
-export function AtlasPanel({ role, className, title = "Atlas · applications" }: { role: RoleDef; className?: string; title?: string }) {
+export function AtlasPanel({ role, className, title = "Atlas · applications", tour }: { role: RoleDef; className?: string; title?: string; tour?: string }) {
   const { data, loading, error } = useApi<Kb[]>("/api/v1/kb");
   return (
     <Panel
       title={title}
       className={className}
+      tour={tour}
       action={
         <Link href="/app/atlas" className="text-[12px] hover:underline" style={{ color: role.ink }}>
           Open atlas →
@@ -82,10 +83,10 @@ export function AtlasPanel({ role, className, title = "Atlas · applications" }:
   );
 }
 
-export function ConnectorHealth({ className }: { className?: string }) {
+export function ConnectorHealth({ className, tour }: { className?: string; tour?: string }) {
   const { data, loading } = useApi<{ ok: boolean; integrations: Integration[] }>("/api/v1/integrations/status");
   return (
-    <Panel title="Connector health" className={className}>
+    <Panel title="Connector health" className={className} tour={tour}>
       {loading ? (
         <p className="text-[13px] text-ink-faint">Checking connectors…</p>
       ) : (

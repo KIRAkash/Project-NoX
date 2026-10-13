@@ -23,7 +23,19 @@ export type Me = {
   /** "local" is NoX Local (Gemma): it reads images only, so video and voice capture are hidden. */
   aiBackend?: "enterprise" | "api_key" | "local";
   orgs: { id: string; name: string; slug: string; parentOrgId: string | null }[];
+  /** First run: false until the welcome screen is answered. */
+  onboarded: boolean;
+  /** What they chose on the welcome screen (or switched to later from the account menu). */
+  estate: Estate | null;
+  /** A member of the demo estate's orgs right now. */
+  inDemo: boolean;
+  /** This deployment has a demo estate to offer. */
+  demoAvailable: boolean;
+  /** Guided tours finished or skipped (keys in components/app/tour/steps.ts). */
+  toursSeen: string[];
 };
+
+export type Estate = "demo" | "fresh";
 
 type Status = "loading" | "signed-out" | "signed-in";
 
@@ -36,6 +48,9 @@ type AuthState = {
   signInDev: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   chooseRole: (role: RoleId) => Promise<Me>;
+  chooseEstate: (estate: Estate) => Promise<Me>;
+  markTourSeen: (key: string) => void;
+  replayTour: (key: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -163,9 +178,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return data;
   }, []);
 
+  const chooseEstate = useCallback(async (estate: Estate) => {
+    const data = await api<Me>("/api/v1/me/onboarding", { method: "POST", json: { estate } });
+    roleRef.current = data.role;
+    setMe(data);
+    return data;
+  }, []);
+
+  // Tours update locally first so a finished tour never starts again on this page, then tell the server.
+  const markTourSeen = useCallback((key: string) => {
+    setMe((cur) => (cur && !cur.toursSeen.includes(key) ? { ...cur, toursSeen: [...cur.toursSeen, key] } : cur));
+    void api(`/api/v1/me/tours/${encodeURIComponent(key)}`, { method: "PUT" }).catch(() => {
+      /* best effort: at worst the tour offers itself once more next visit */
+    });
+  }, []);
+
+  const replayTour = useCallback(async (key: string) => {
+    await api(`/api/v1/me/tours/${encodeURIComponent(key)}`, { method: "DELETE" });
+    setMe((cur) => (cur ? { ...cur, toursSeen: cur.toursSeen.filter((k) => k !== key) } : cur));
+  }, []);
+
   const value = useMemo<AuthState>(
-    () => ({ status, me, error, devAuth: DEV_AUTH, signInWithGoogle, signInDev, signOut, chooseRole }),
-    [status, me, error, signInWithGoogle, signInDev, signOut, chooseRole],
+    () => ({ status, me, error, devAuth: DEV_AUTH, signInWithGoogle, signInDev, signOut, chooseRole, chooseEstate, markTourSeen, replayTour }),
+    [status, me, error, signInWithGoogle, signInDev, signOut, chooseRole, chooseEstate, markTourSeen, replayTour],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

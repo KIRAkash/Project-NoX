@@ -21,7 +21,9 @@ function LoginInner() {
 
   useEffect(() => {
     if (status !== "signed-in") return;
-    if (!me?.role) router.replace("/choose-role");
+    if (next?.startsWith("/cli/")) router.replace(next); // the CLI's device sign-in doesn't wait for the welcome
+    else if (me && !me.onboarded) router.replace("/welcome");
+    else if (!me?.role) router.replace("/choose-role");
     else router.replace(next ?? `/app`);
   }, [status, me, next, router]);
 

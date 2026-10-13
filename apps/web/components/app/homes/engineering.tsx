@@ -11,6 +11,7 @@ import { STAGE_LABEL, type Mission } from "@/lib/app/types";
 import { useApi } from "@/lib/app/use-api";
 
 import { AtlasPanel, ConnectorHealth, MissionPanel, useRootOrgMap } from "./shared";
+import { useHomeTour } from "@/components/app/tour/tour";
 
 /**
  * The flight director: the engineering lead decides which applications change and what must not break.
@@ -25,6 +26,7 @@ export function EngineeringHome({ role }: { role: RoleDef }) {
   const lit: Record<string, string> = {};
   for (const m of [...open].reverse()) for (const a of m.apps) lit[a.id] = stageHue(m.stage);
   const touched = new Set(Object.keys(lit));
+  useHomeTour(role.id, !loading && !all.loading);
 
   return (
     <div className="mt-10 space-y-5">
@@ -32,6 +34,7 @@ export function EngineeringHome({ role }: { role: RoleDef }) {
         <Panel
           title={root ? `Blast radius · ${root.name}` : "Blast radius"}
           className="lg:col-span-2"
+          tour="blast-radius"
           action={
             <Link href="/app/atlas" className="text-[12px] hover:underline" style={{ color: role.ink }}>
               Open atlas →
@@ -66,8 +69,8 @@ export function EngineeringHome({ role }: { role: RoleDef }) {
           )}
         </Panel>
         <div className="space-y-5">
-          <MissionPanel title="Design review queue" view="waiting" empty="No product specs waiting on a design." role={role} />
-          <ConnectorHealth />
+          <MissionPanel title="Design review queue" view="waiting" empty="No product specs waiting on a design." role={role} tour="design-queue" />
+          <ConnectorHealth tour="connectors" />
         </div>
       </div>
 
@@ -75,8 +78,8 @@ export function EngineeringHome({ role }: { role: RoleDef }) {
 
       <div className="grid items-start gap-5 lg:grid-cols-3">
         <MissionPanel title="In build" view="flight" empty="Designs you've approved show here while they're built." />
-        <MissionPanel title="Back for a scope check" view="back" empty="Shipped missions come back here for a scope check against your design." />
-        <AtlasPanel role={role} title="Knowledge bases" />
+        <MissionPanel title="Back for a scope check" view="back" empty="Shipped missions come back here for a scope check against your design." tour="scope-check" />
+        <AtlasPanel role={role} title="Knowledge bases" tour="knowledge-bases" />
       </div>
     </div>
   );

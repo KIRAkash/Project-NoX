@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import { SourceLogos } from "@/components/app/brand-logo";
 import { appHue, ContractMap } from "@/components/app/contract-map";
+import { atlasTour } from "@/components/app/tour/steps";
+import { usePageTour } from "@/components/app/tour/tour";
 import { EmptyState, KbStatusChip, PageHeader, Panel, useToast } from "@/components/app/ui";
 import { LiquidMetalLink } from "@/components/liquid-metal/liquid-metal";
 import { api, ApiError } from "@/lib/app/api";
@@ -38,7 +40,7 @@ export default function AtlasPage() {
         title="Your applications, mapped"
         lead="Every team, the applications it owns, and the code wiki NoX keeps in step with each one."
         action={
-          <div className="flex flex-wrap gap-2">
+          <div data-tour="atlas-actions" className="flex flex-wrap gap-2">
             <Link href="/app/atlas/connectors" className="inline-flex h-10 items-center gap-2 rounded-sm border border-hairline px-4 text-[13px] text-ink-muted hover:text-ink">
               <Settings2 size={15} /> Connectors
             </Link>
@@ -151,6 +153,8 @@ function prune(node: OrgTree, q: string): OrgTree | null {
 
 function OrgCanvas({ orgId, canManageOrgs, onChanged }: { orgId: string; canManageOrgs: boolean; onChanged: () => void }) {
   const tree = useApi<OrgTree>(`/api/v1/orgs/${orgId}/tree`);
+  const tourSteps = useMemo(() => atlasTour(), []);
+  usePageTour("atlas", tourSteps, Boolean(tree.data));
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
   const shown = useMemo(() => (tree.data ? prune(tree.data, q) : null), [tree.data, q]);
@@ -173,6 +177,7 @@ function OrgCanvas({ orgId, canManageOrgs, onChanged }: { orgId: string; canMana
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="min-w-0 space-y-5">
         <section
+          data-tour="atlas-org"
           className="overflow-hidden rounded-md surface-panel"
           aria-label={org.name}
         >
@@ -478,7 +483,7 @@ function MembersPanel({ orgId }: { orgId: string }) {
     }
   };
   return (
-    <Panel title="Members">
+    <Panel title="Members" tour="atlas-members">
       {members.data ? (
         <ul className="space-y-2 text-[13px]">
           {members.data.members.map((m) => (
@@ -520,7 +525,7 @@ function MembersPanel({ orgId }: { orgId: string }) {
 function MapPanel({ orgId }: { orgId: string }) {
   const map = useApi<OrgMap>(`/api/v1/orgs/${orgId}/map`);
   return (
-    <Panel title="Contract map">
+    <Panel title="Contract map" tour="atlas-map">
       {map.loading ? (
         <p className="text-[13px] text-ink-faint">Charting…</p>
       ) : map.data && map.data.apps.length ? (

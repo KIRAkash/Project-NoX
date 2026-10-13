@@ -14,15 +14,18 @@ export function Panel({
   action,
   children,
   className = "",
+  tour,
 }: {
   title: string;
   action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  /** A guided-tour anchor (`data-tour`, see components/app/tour). */
+  tour?: string;
 }) {
   return (
     // A flat slate surface over the void. The acting seat's hue (`--role`, set by the shell) shows in one place: the title dot.
-    <section className={`surface-panel overflow-hidden rounded-md ${className}`}>
+    <section data-tour={tour} className={`surface-panel overflow-hidden rounded-md ${className}`}>
       <header className="flex items-center justify-between gap-3 border-b border-hairline px-5 py-3.5">
         <h2 className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-muted">
           <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--role)" }} />
@@ -59,7 +62,7 @@ export function EmptyState({ role, line, children }: { role?: RoleDef; line: str
 
 export type KbStatus = "queued" | "ingesting" | "generating" | "in_review" | "published" | "failed";
 
-const KB_STATUS: Record<KbStatus, { label: string; color: string; pulse?: boolean }> = {
+export const KB_STATUS: Record<KbStatus, { label: string; color: string; pulse?: boolean }> = {
   queued: { label: "In the Void", color: C.inkFaint },
   ingesting: { label: "Scanning Nebula", color: C.iceInk, pulse: true },
   generating: { label: "Compiling Stars", color: C.violetInk, pulse: true },

@@ -118,7 +118,7 @@ class Settings(BaseSettings):
     # ── NoX ───────────────────────────────────────────────────────────────────
     NOX_WEB_ORIGIN: str = "http://localhost:3000"      # Comma-separated CORS allow-list
     NOX_COMMIT_SPECS: bool = True
-    NOX_DEMO_ORG_SLUGS: str = ""                       # New users auto-join these orgs (e.g. "apex")
+    NOX_DEMO_ORG_SLUGS: str = ""                       # The demo estate offered on the welcome screen (e.g. "tidewell")
     NOX_DEV_AUTH: bool = False                         # Accept `Authorization: Dev <email>`; local dev only
     NOX_PUBLIC_API_URL: str = ""                       # The API as agents reach it (MCP, A2A card); empty = WEBHOOK_BASE_URL
 

@@ -18,6 +18,8 @@ import { MissionMediaProvider, useMissionMedia } from "@/components/app/media/mi
 import { MissionBlastRadius, SeatBanner } from "@/components/app/seat-rail";
 import { SpecEditor } from "@/components/app/spec-editor";
 import { TicketPanel } from "@/components/app/ticket-panel";
+import { missionTour } from "@/components/app/tour/steps";
+import { usePageTour } from "@/components/app/tour/tour";
 import { FEED_LIST, OrbitArc, Panel, usePopover, useToast } from "@/components/app/ui";
 import { UpdateBanner } from "@/components/app/update-banner";
 import { VerifyPanel, VerifyStrip } from "@/components/app/verify-panel";
@@ -51,6 +53,8 @@ export default function MissionPage() {
   const updates = useApi<MissionUpdate[]>(`/api/v1/missions/${key}/updates`);
   const ticket = useApi<TicketState>(`/api/v1/missions/${key}/state`);
   const jules = useJules(key, mission.data?.links, myRole !== "business" && Boolean(mission.data));
+  const tourSteps = useMemo(() => missionTour(myRole), [myRole]);
+  usePageTour("mission", tourSteps, Boolean(mission.data));
   const search = useSearchParams();
   const linked = search.get("media");
   const [tab, setTab] = useState<RoleId | "evidence">(linked ? "evidence" : myRole);
@@ -109,12 +113,16 @@ export default function MissionPage() {
       <ProceedBanner m={m} onChanged={() => void mission.reload()} onReview={() => setTab("business")} />
       <SeatBanner m={m} seat={myRole} />
       <UpdateBanner m={m} updates={updates.data ?? []} myRole={myRole} />
-      {myRole !== "business" && <VerifyStrip m={m} />}
+      {myRole !== "business" && (
+        <div data-tour="verify-strip" className="empty:hidden">
+          <VerifyStrip m={m} />
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div>
           {!trail && (
-            <div className="mb-2 flex flex-wrap items-end justify-between gap-2 border-b border-hairline">
+            <div data-tour="spec-tabs" className="mb-2 flex flex-wrap items-end justify-between gap-2 border-b border-hairline">
               <button type="button" onClick={() => setTrail(true)} className="pb-2 text-[13px] text-ink-faint underline decoration-dotted hover:text-ink">
                 Show the full trail: what product, engineering and development wrote
               </button>
@@ -132,7 +140,7 @@ export default function MissionPage() {
             </div>
           )}
           {trail && (
-            <nav className="flex gap-1 overflow-x-auto border-b border-hairline" aria-label="Spec files">
+            <nav data-tour="spec-tabs" className="flex gap-1 overflow-x-auto border-b border-hairline" aria-label="Spec files">
               {ORDER.map((r) => {
                 const f = m.files.find((x) => x.role === r)!;
                 const role = ROLE_BY_ID[r];
@@ -178,10 +186,20 @@ export default function MissionPage() {
               </ul>
             </Panel>
           )}
-          <EvidencePanel onOpenTab={() => setTab("evidence")} readOnly={Boolean(m.cancelled)} />
-          <TicketPanel missionKey={m.key} state={ticket.data} onChanged={() => void ticket.reload()} readOnly={Boolean(m.cancelled)} />
-          {myRole !== "business" && <LinksPanel m={m} jules={jules} onChanged={() => void mission.reload()} />}
-          <FlightStrip missionKey={m.key} version={events.data?.length} />
+          <div data-tour="evidence" className="empty:hidden">
+            <EvidencePanel onOpenTab={() => setTab("evidence")} readOnly={Boolean(m.cancelled)} />
+          </div>
+          <div data-tour="ticket" className="empty:hidden">
+            <TicketPanel missionKey={m.key} state={ticket.data} onChanged={() => void ticket.reload()} readOnly={Boolean(m.cancelled)} />
+          </div>
+          {myRole !== "business" && (
+            <div data-tour="links" className="empty:hidden">
+              <LinksPanel m={m} jules={jules} onChanged={() => void mission.reload()} />
+            </div>
+          )}
+          <div data-tour="flight" className="empty:hidden">
+            <FlightStrip missionKey={m.key} version={events.data?.length} />
+          </div>
           <Timeline events={events.data ?? []} />
         </aside>
       </div>
@@ -517,7 +535,7 @@ function FilePane({ m, file, jules, onChanged }: { m: Mission; file: SpecFile; j
           )}
           <LessonsChip missionKey={m.key} role={file.role} version={file.version} />
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2 [&>*]:shrink-0 [&_button]:whitespace-nowrap">
+        <div data-tour="file-actions" className="flex flex-wrap items-center justify-end gap-2 [&>*]:shrink-0 [&_button]:whitespace-nowrap">
           {mine && m.stage !== "verifying" && <SendBack m={m} onChanged={onChanged} />}
           {building && <JulesHandoff m={m} jules={jules} onStarted={onChanged} />}
           {mine && file.role === "developer" && m.stage === "build" && (
@@ -876,7 +894,7 @@ const EVENT_TEXT: Record<string, (e: MissionEvent) => string> = {
 function Timeline({ events: all }: { events: MissionEvent[] }) {
   const events = all.filter((e) => e.type !== "mission.update"); // the verify.* entry already says it
   return (
-    <Panel title="Timeline">
+    <Panel title="Timeline" tour="timeline">
       {events.length ? (
         // Newest first, capped at a fixed height so a busy mission doesn't stretch the page.
         <ol tabIndex={0} aria-label="Timeline entries" className={`${FEED_LIST} space-y-3`}>

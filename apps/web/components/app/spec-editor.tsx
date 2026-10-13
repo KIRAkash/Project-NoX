@@ -470,7 +470,7 @@ export function SpecEditor({
   if (!editing) {
     return (
       <div className="relative">
-        <div className="flex flex-wrap items-center gap-2 rounded-t-md border border-b-0 border-hairline bg-deck px-3 py-1.5">
+        <div data-tour="refine" className="flex flex-wrap items-center gap-2 rounded-t-md border border-b-0 border-hairline bg-deck px-3 py-1.5">
           <span className="flex items-center gap-1.5 text-[12px] text-ink-muted">
             <Eye size={13} aria-hidden /> Reading
           </span>
@@ -494,7 +494,7 @@ export function SpecEditor({
 
   return (
     <div className="relative">
-      <div className="flex flex-wrap items-center gap-1 rounded-t-md border border-b-0 border-hairline bg-deck px-2 py-1.5">
+      <div data-tour="refine" className="flex flex-wrap items-center gap-1 rounded-t-md border border-b-0 border-hairline bg-deck px-2 py-1.5">
         {tools.map((t) => (
           <button key={t.label} type="button" onClick={t.run} title={t.label} aria-label={t.label} disabled={!!typing || layout === "preview"} className="flex h-8 w-8 items-center justify-center rounded-sm text-ink-muted hover:bg-[rgb(var(--line)/.1)] hover:text-ink disabled:opacity-40">
             <t.icon size={15} strokeWidth={1.7} />
@@ -728,7 +728,7 @@ function ChatDock({ missionKey, role, busy, status }: { missionKey: string; role
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="fixed bottom-20 right-4 z-40 flex h-12 items-center gap-2 rounded-full border border-[rgba(168,151,240,.5)] bg-deck px-4 text-[13px] text-ink shadow-xl hover:border-[color:var(--violet)] lg:bottom-6 lg:right-6">
+      <button type="button" onClick={() => setOpen(true)} data-tour="ask-nox" className="fixed bottom-20 right-4 z-40 flex h-12 items-center gap-2 rounded-full border border-[rgba(168,151,240,.5)] bg-deck px-4 text-[13px] text-ink shadow-xl hover:border-[color:var(--violet)] lg:bottom-6 lg:right-6">
         <MessageSquare size={16} className="text-[color:var(--violet-ink)]" /> Ask NoX
       </button>
     );

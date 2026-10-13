@@ -73,11 +73,13 @@ async def test_sub_orgs_inherit_parent_visibility(db_clean):
         assert {o["slug"] for o in (await c.get("/api/v1/orgs")).json()} == {"apex", "trading"}
 
 
-async def test_new_users_join_demo_orgs(db_clean, monkeypatch):
+async def test_new_users_join_demo_orgs_only_when_they_choose_it(db_clean, monkeypatch):
     async with _client("lead@nox.test", role="engineering") as c:
         await c.post("/api/v1/orgs", json={"name": "Apex", "slug": "apex"})
     monkeypatch.setattr(auth.settings, "NOX_DEMO_ORG_SLUGS", "apex")
     async with _client("judge@nox.test", role="developer") as c:
+        assert (await c.get("/api/v1/orgs")).json() == []  # nothing until the welcome screen is answered
+        await c.post("/api/v1/me/onboarding", json={"estate": "demo"})
         assert [o["slug"] for o in (await c.get("/api/v1/orgs")).json()] == ["apex"]
 
 
