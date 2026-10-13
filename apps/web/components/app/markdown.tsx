@@ -3,6 +3,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { CodeBlock } from "./code-block";
 import { openLesson } from "./lessons";
 import { MediaChip, parseMediaRef } from "./media/media-chip";
 
@@ -91,6 +92,7 @@ export function KbMarkdown({
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
+          pre: CodeBlock,
           a: ({ href = "", children }) => {
             if (href.startsWith("#nox-media:")) {
               const ref = parseMediaRef(decodeURIComponent(href.slice(11)));

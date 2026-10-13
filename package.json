@@ -10,6 +10,7 @@
     "dev:web": "npm run dev -w @nox/web",
     "build:web": "npm run build -w @nox/web",
     "lint:web": "npm run lint -w @nox/web",
-    "typecheck:web": "npm run typecheck -w @nox/web"
+    "typecheck:web": "npm run typecheck -w @nox/web",
+    "test:web": "npm run test -w @nox/web"
   }
 }

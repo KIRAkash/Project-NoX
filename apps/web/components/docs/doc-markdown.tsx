@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Children, isValidElement, type ReactNode } from "react";
+import { isValidElement, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { CodeBlock } from "@/components/app/code-block";
 import { slugify } from "@/lib/docs";
 
 function text(node: ReactNode): string {
@@ -60,18 +61,7 @@ export function DocMarkdown({ source }: { source: string }) {
           ) : (
             <code className="rounded-[4px] border border-hairline bg-[rgb(var(--line)/.08)] px-1.5 py-[1px] font-mono text-[0.86em] text-[color:var(--code-ink)]">{children}</code>
           ),
-        pre: ({ children }) => {
-          const child = Children.toArray(children)[0];
-          const lang = isValidElement<{ className?: string }>(child) ? (child.props.className ?? "").replace("language-", "") : "";
-          return (
-            <div className="mt-5 overflow-hidden rounded-md border border-[rgb(var(--line)/.2)] bg-[linear-gradient(180deg,rgb(var(--raise)/.9),rgb(var(--deck-rgb)/.95))]">
-              {lang && lang !== "text" && (
-                <div className="border-b border-hairline px-4 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-dim">{lang}</div>
-              )}
-              <pre className="overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-[1.65] text-[color:var(--prose)]">{children}</pre>
-            </div>
-          );
-        },
+        pre: CodeBlock,
         table: ({ children }) => (
           <div className="mt-6 overflow-x-auto rounded-md border border-[rgb(var(--line)/.2)]">
             <table className="w-full min-w-[560px] border-collapse text-left text-[13.5px]">{children}</table>
