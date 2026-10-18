@@ -1,0 +1,8 @@
+# What `gcloud builds submit .` uploads: everything Git would, minus the pitch materials (videos, deck, film
+# sources), which no image needs.
+#!include:.gitignore
+.git
+/docs/
+/video/
+/logdir/
+*.mp4

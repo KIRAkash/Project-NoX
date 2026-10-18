@@ -1,5 +1,6 @@
 "use client";
 
+import { Lockup, Tagline } from "@/components/landing/lockups";
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState, type ReactNode } from "react";
 import { Canvas } from "@react-three/fiber";
 
@@ -77,10 +78,10 @@ const SpecBook = forwardRef<SpecBookHandle, { onSeek?: (localTime: number) => vo
   return (
     <div ref={rootRef} className="flex h-full w-full flex-col px-6 pb-4 pt-[84px] sm:px-10 lg:flex-row lg:items-center lg:gap-6 lg:px-14 lg:pb-0 lg:pt-0">
       <div className="shrink-0 lg:w-[30%]">
-        <span className="mb-[16px] flex items-center gap-3">
-          <span className="block h-px w-[22px] bg-[rgba(247,181,66,.7)]" />
-          <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-nox">Spec-driven development</span>
-        </span>
+        <Lockup name="missions" className="-ml-[8px] h-[56px] sm:h-[88px] lg:h-[100px]" />
+        <Tagline className="mb-[18px] mt-[2px]">
+          Every change, <Accent>delivered</Accent>.
+        </Tagline>
         {/* a fixed two-line box, so the steps below don't jump when the heading changes */}
         <h2 className="min-h-[2.2em] max-w-[420px] text-[28px] font-semibold leading-[1.1] tracking-[-0.024em] text-ink sm:text-[36px] lg:text-[44px] [text-wrap:balance]">
           <span key={headingFor(step).key} className="beat-in block">

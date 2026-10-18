@@ -556,3 +556,8 @@ html[data-theme="light"] .sky {
   stroke: var(--sky-flight);
   stroke-width: 2;
 }
+
+/* product lockups (components/landing/lockups.tsx): one image per theme */
+.lockup-on-light { display: none; }
+html[data-theme="light"] .lockup-on-light { display: block; }
+html[data-theme="light"] .lockup-on-dark { display: none; }

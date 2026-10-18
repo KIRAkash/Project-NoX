@@ -6,6 +6,7 @@ import { Canvas } from "@react-three/fiber";
 import { gsap, ScrollTrigger, prefersReducedMotion } from "@/lib/motion";
 import { APPS } from "@/lib/content";
 import { useTheme } from "@/lib/app/theme";
+import { Lockup, SightingsMark, Tagline } from "@/components/landing/lockups";
 import { Accent, Check } from "@/components/landing/primitives";
 import { LiquidMetalLink } from "@/components/liquid-metal/liquid-metal";
 import SpecBook, { BOOK_SPAN, type SpecBookHandle } from "@/components/sections/spec-book/spec-book";
@@ -70,6 +71,7 @@ export default function NoxExperience() {
   const sourcesPanelRef = useRef<HTMLDivElement>(null);
   const bookWrapRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<SpecBookHandle>(null);
+  const sightPanelRef = useRef<HTMLDivElement>(null);
   // where the spec book's own timeline starts inside the pinned scrub, for its step links
   const bookAtRef = useRef(0);
   const launchPanelRef = useRef<HTMLDivElement>(null);
@@ -210,7 +212,7 @@ export default function NoxExperience() {
       scrollTrigger: {
         trigger: heroEl,
         start: "top top",
-        end: "+=7000",
+        end: "+=8000",
         pin: true,
         scrub: 0.3,
         anticipatePin: 1,
@@ -265,7 +267,9 @@ export default function NoxExperience() {
     const BOOK_IN = 1.35 + R;
     const BOOK_AT = BOOK_IN + 0.15;
     const BOOK_OUT = BOOK_AT + BOOK_SPAN + 0.15;
-    const LAUNCH_AT = BOOK_OUT + 0.2;
+    const SIGHT_IN = BOOK_OUT + 0.2;
+    const SIGHT_OUT = SIGHT_IN + 0.9;
+    const LAUNCH_AT = SIGHT_OUT + 0.25;
     bookAtRef.current = BOOK_AT;
 
     // Beat 4 — the spec book: written page by page by the four seats, locked,
@@ -282,6 +286,12 @@ export default function NoxExperience() {
       tl.add(specBook.build(), BOOK_AT);
       tl.fromTo(bookWrap, { opacity: 1, y: 0 }, { opacity: 0, y: -18, duration: 0.3, ease: "power1.inOut", immediateRender: false }, BOOK_OUT);
       tl.set(bookWrap, { pointerEvents: "none" }, BOOK_OUT);
+    }
+
+    // Beat 5 — Sightings: the next mission, spotted by NoX. `autoAlpha` keeps it out of the tab order while hidden.
+    if (sightPanelRef.current) {
+      tl.fromTo(sightPanelRef.current, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.35, ease: "power1.inOut" }, SIGHT_IN);
+      tl.fromTo(sightPanelRef.current, { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -18, duration: 0.3, ease: "power1.inOut", immediateRender: false }, SIGHT_OUT);
     }
 
     // Beat 6 — the way in. One large Enter NoX, the last thing the pin
@@ -627,10 +637,10 @@ export default function NoxExperience() {
         ref={sourcesPanelRef}
         className={`pointer-events-none absolute inset-x-0 z-[2] flex flex-col px-6 opacity-0 sm:px-10 lg:w-[44%] lg:px-14 ${PITCH_PANEL}`}
       >
-        <span className="mb-[20px] flex items-center gap-3">
-          <span className="block h-px w-[22px] bg-[rgba(247,181,66,.7)]" />
-          <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-nox">One application, up close</span>
-        </span>
+        <Lockup name="atlas" className="-ml-[10px] h-[64px] sm:h-[96px] lg:h-[112px]" />
+        <Tagline className="mb-[24px] mt-[2px]">
+          Every application, <Accent>mapped</Accent>.
+        </Tagline>
         <h2 className="max-w-[520px] text-[32px] font-semibold leading-[1.1] tracking-[-0.024em] text-ink sm:text-[42px] lg:text-[46px] [text-wrap:balance]">
           Every source, <Accent>one</Accent> knowledge base.
         </h2>
@@ -652,6 +662,47 @@ export default function NoxExperience() {
       {/* beat 4 — the spec book; its own timeline is nested into the scrub above */}
       <div ref={bookWrapRef} className="pointer-events-none absolute inset-0 z-[2] opacity-0">
         <SpecBook ref={bookRef} onSeek={(t) => seekTo(bookAtRef.current + t)} />
+      </div>
+
+      {/* beat 5 — Sightings: NoX proposes the next mission on its own, with the numbers and their source */}
+      <div
+        ref={sightPanelRef}
+        className="invisible absolute inset-0 z-[2] flex flex-col justify-start gap-6 overflow-hidden px-6 pt-[112px] opacity-0 sm:justify-center sm:gap-8 sm:px-10 sm:pt-[72px] lg:flex-row lg:items-center lg:gap-16 lg:px-14 lg:pt-0"
+      >
+        <div className="shrink-0 lg:w-[42%]">
+          <SightingsMark className="text-[52px] sm:text-[100px] lg:text-[120px]" />
+          <Tagline className="mb-[24px] mt-[10px]">
+            Every opportunity, <Accent>spotted</Accent>.
+          </Tagline>
+          <h2 className="max-w-[520px] text-[28px] font-semibold leading-[1.1] tracking-[-0.024em] text-ink sm:text-[36px] lg:text-[44px] [text-wrap:balance]">
+            The next mission, <Accent>spotted</Accent> before anyone reports it.
+          </h2>
+          <p className="mt-[20px] hidden max-w-[440px] text-[15px] leading-[1.62] text-ink-muted sm:block lg:text-base [text-wrap:pretty]">
+            Every week a scout for each role reads the map, the missions and the tickets, and proposes changes
+            worth making &mdash; with the numbers and where they come from. One click starts the mission.
+          </p>
+        </div>
+        <div className="w-full max-w-[520px] rounded-[18px] border border-hairline bg-deck p-5 sm:p-7">
+          <div className="flex flex-wrap gap-2 font-mono text-[11px] uppercase tracking-[0.08em]">
+            <span className="rounded-full border border-[rgba(233,113,60,.4)] px-2.5 py-1 text-ember">Impact: high</span>
+            <span className="rounded-full border border-[rgba(46,175,120,.4)] px-2.5 py-1 text-verify">Effort: low</span>
+            <span className="rounded-full border border-hairline px-2.5 py-1 text-ink-muted">Customer experience</span>
+          </div>
+          <p className="mt-4 text-[19px] font-semibold leading-[1.25] tracking-[-0.01em] text-ink sm:text-[22px]">
+            Show the assigned claims handler on the customer tracking page
+          </p>
+          <p className="mt-3 text-[14px] leading-[1.55] text-ink-muted sm:text-[15px]">
+            <b className="font-semibold text-ink">41%</b> of online claims lead to a contact-centre call within 5 days, at{" "}
+            <b className="font-semibold text-ink">&pound;6.80</b> a call.
+          </p>
+          <p className="mt-3 inline-block rounded-md border border-hairline px-2 py-1 font-mono text-[11.5px] text-ink-dim">
+            &#8627; TWDIG/digital-claims-review-q3
+          </p>
+          <div className="mt-5 flex items-center gap-4 text-[14px]">
+            <span className="rounded-[10px] bg-[#f3d27c] px-4 py-2 font-semibold text-[#181b26]">Start mission</span>
+            <span className="text-ink-dim">Not now</span>
+          </div>
+        </div>
       </div>
 
       {/* the way in — beat 6, the end of the pin: one large Enter NoX with
