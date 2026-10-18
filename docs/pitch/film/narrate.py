@@ -37,7 +37,7 @@ LINES = [
     (76.7, 78.3, "my sentence is now true."),
     (78.6, 81.8, "Shielded, connected and measured, on Google Cloud."),
     (82.5, 85.6, "People own every decision. Every claim is cited."),
-    (85.95, 89.6, "Every role. One book. One sentence, all the way to code and back."),
+    (85.95, 89.6, "Enterprise intelligence, orchestrated. Every mission, delivered."),
 ]
 
 kok = Kokoro("tts/kokoro-v1.0.onnx", "tts/voices-v1.0.bin")

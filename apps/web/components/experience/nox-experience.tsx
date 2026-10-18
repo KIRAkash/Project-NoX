@@ -52,6 +52,13 @@ function restOffset(): SystemOffset {
 const REST_PITCH = Math.PI / 4;
 const REST_YAW = 0.3;
 
+/** Where the galaxy pitches sit once arrived, and the scrim that keeps them
+ *  readable. The planets and their labels orbit freely under the copy, so on
+ *  a phone the panel spans the top of the screen and fades from the page
+ *  colour to clear below the text; on a laptop it fades left to right. */
+const PITCH_PANEL =
+  "top-0 justify-start pb-14 pt-[84px] bg-[linear-gradient(to_bottom,rgb(var(--void-rgb)/0.94)_0%,rgb(var(--void-rgb)/0.86)_70%,rgb(var(--void-rgb)/0))] lg:h-full lg:justify-center lg:pb-0 lg:pt-0 lg:bg-[linear-gradient(to_right,rgb(var(--void-rgb)/0.86)_0%,rgb(var(--void-rgb)/0.7)_62%,rgb(var(--void-rgb)/0))]";
+
 export default function NoxExperience() {
   const rootRef = useRef<HTMLElement>(null);
   const wordmarkRef = useRef<HTMLDivElement>(null);
@@ -570,7 +577,7 @@ export default function NoxExperience() {
       <div
         ref={textPanelRef}
         className={`pointer-events-none absolute inset-x-0 z-[2] flex flex-col px-6 opacity-0 sm:px-10 lg:px-14 ${
-          arrived ? "top-[76px] h-[40%] justify-start lg:top-0 lg:h-full lg:w-[42%] lg:justify-center lg:pointer-events-auto" : "top-0 h-full justify-center"
+          arrived ? `${PITCH_PANEL} lg:w-[46%] lg:pointer-events-auto` : "top-0 h-full justify-center"
         }`}
       >
         <span className="mb-[20px] flex items-center gap-3">
@@ -580,12 +587,15 @@ export default function NoxExperience() {
           </span>
         </span>
         <h1 className="max-w-[560px] text-[32px] font-semibold leading-[1.06] tracking-[-0.024em] text-ink sm:text-[44px] lg:text-[52px] [text-wrap:balance]">
-          One <Accent>sentence</Accent>, shipped across the enterprise.
+          Enterprise <Accent>intelligence</Accent>, orchestrated.
+          <span className="mt-[10px] block text-[0.62em] font-medium leading-[1.15] tracking-[-0.018em] text-ink-muted">
+            Every mission, delivered.
+          </span>
         </h1>
         <p className="mt-[22px] max-w-[480px] text-[15px] leading-[1.62] text-ink-muted lg:text-base [text-wrap:pretty]">
           Hundreds of applications, dozens of teams, contracts no one sees in full. NoX keeps a living map of
-          that estate and carries each change from a business user&rsquo;s first sentence to shipped software
-          &mdash; across every team and system it touches.
+          that estate and carries each mission from a business user&rsquo;s first sentence to verified code,
+          with every spec held to its intent &mdash; across every team and system it touches.
         </p>
       </div>
 
@@ -595,7 +605,7 @@ export default function NoxExperience() {
           not two panels in different places */}
       <div
         ref={mapPanelRef}
-        className="pointer-events-none absolute inset-x-0 top-[76px] z-[2] flex h-[40%] flex-col justify-start px-6 opacity-0 sm:px-10 lg:top-0 lg:h-full lg:w-[42%] lg:justify-center lg:px-14"
+        className={`pointer-events-none absolute inset-x-0 z-[2] flex flex-col px-6 opacity-0 sm:px-10 lg:w-[46%] lg:px-14 ${PITCH_PANEL}`}
       >
         <span className="mb-[20px] flex items-center gap-3">
           <span className="block h-px w-[22px] bg-[rgba(247,181,66,.7)]" />
@@ -615,7 +625,7 @@ export default function NoxExperience() {
           and its knowledge sources orbit it as moons, feeding one knowledge base */}
       <div
         ref={sourcesPanelRef}
-        className="pointer-events-none absolute inset-x-0 top-[76px] z-[2] flex h-[40%] flex-col justify-start px-6 opacity-0 sm:px-10 lg:top-0 lg:h-full lg:w-[40%] lg:justify-center lg:px-14"
+        className={`pointer-events-none absolute inset-x-0 z-[2] flex flex-col px-6 opacity-0 sm:px-10 lg:w-[44%] lg:px-14 ${PITCH_PANEL}`}
       >
         <span className="mb-[20px] flex items-center gap-3">
           <span className="block h-px w-[22px] bg-[rgba(247,181,66,.7)]" />
@@ -656,7 +666,7 @@ export default function NoxExperience() {
           <span className="block h-px w-[22px] bg-[rgba(247,181,66,.7)]" />
         </span>
         <h2 className="max-w-[640px] text-[28px] font-semibold leading-[1.1] tracking-[-0.024em] text-ink sm:text-[36px] lg:text-[44px] [text-wrap:balance]">
-          From a sentence to <Accent>shipped software</Accent>.
+          Every mission, <Accent>delivered</Accent>.
         </h2>
         <LiquidMetalLink
           href="/login"

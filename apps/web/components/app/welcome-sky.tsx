@@ -41,6 +41,7 @@ type TeamNode = {
   sy: number;
   ex: number;
   ey: number;
+  spoke: boolean;
   nameX: number;
   nameY: number;
   anchor: "middle" | "start";
@@ -75,7 +76,19 @@ export const WelcomeSky = forwardRef<SkyHandle, { org: string; note?: string; te
     return () => ro.disconnect();
   }, []);
 
-  const { nodes, centre, compact } = useMemo(() => layout(teams, size.w, size.h), [teams, size.w, size.h]);
+  // The company's lockup (logo, note and tools) as drawn, so the spokes start at its edge instead of crossing it.
+  const lockup = useRef<HTMLDivElement>(null);
+  const [hub, setHub] = useState<Hub | null>(null);
+  const drawn = size.w > 0;
+  useEffect(() => {
+    const el = lockup.current;
+    if (!drawn || !el) return;
+    const ro = new ResizeObserver(() => setHub({ w: el.offsetWidth, h: el.offsetHeight }));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [drawn]);
+
+  const { nodes, centre, compact } = useMemo(() => layout(teams, size.w, size.h, hub), [teams, size.w, size.h, hub]);
 
   // The map starts empty; each beat brings a layer in. `instant` jumps there (reduced motion, replays, resizes).
   useImperativeHandle(
@@ -133,7 +146,6 @@ export const WelcomeSky = forwardRef<SkyHandle, { org: string; note?: string; te
   }, [size.w, size.h]); // eslint-disable-line react-hooks/exhaustive-deps -- only a new size redraws
 
   // Tell the page once the map is drawn, so its story starts on something visible.
-  const drawn = size.w > 0;
   const told = useRef(false);
   useEffect(() => {
     if (drawn && !told.current) {
@@ -182,6 +194,7 @@ export const WelcomeSky = forwardRef<SkyHandle, { org: string; note?: string; te
           {/* A line from the company out to each team. */}
           {nodes.map((t) => (
             <line
+              visibility={t.spoke ? undefined : "hidden"}
               key={`spoke-${t.name}`}
               data-sky="spoke"
               x1={t.sx}
@@ -214,7 +227,7 @@ export const WelcomeSky = forwardRef<SkyHandle, { org: string; note?: string; te
                     <circle cx={t.x} cy={t.y} r={t.R} fill={`color-mix(in srgb, ${appHue(t.name)} 10%, var(--void))`} stroke={teamInk(t.name, 60)} strokeWidth={1.3} />
                     <Icon x={t.x - ic / 2} y={t.y - ic / 2} width={ic} height={ic} color={teamInk(t.name, 85)} strokeWidth={1.8} aria-hidden />
                   </g>
-                  <circle cx={t.ex} cy={t.ey} r={2.6} fill={teamInk(t.name, 70)} />
+                  {t.spoke && <circle cx={t.ex} cy={t.ey} r={2.6} fill={teamInk(t.name, 70)} />}
                   <text x={t.nameX} y={t.nameY} textAnchor={t.anchor} className="sky-label fill-ink font-sans" fontSize={compact ? 11.5 : NAME} fontWeight={600}>
                     {t.name}
                   </text>
@@ -256,8 +269,9 @@ export const WelcomeSky = forwardRef<SkyHandle, { org: string; note?: string; te
 
       {/* The company itself sits at the centre, as its logo. */}
       {drawn && (
-        <div className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-1/2" style={{ left: centre.x, top: centre.y }}>
-          <div data-sky="org" className="sky-lockup flex flex-col items-center rounded-full px-8 py-5" style={{ opacity: 0 }}>
+        // `w-max`: an absolute box this close to the right edge would otherwise shrink to the space left of it and wrap.
+        <div className="pointer-events-none absolute z-20 w-max -translate-x-1/2 -translate-y-1/2" style={{ left: centre.x, top: centre.y }}>
+          <div ref={lockup} data-sky="org" className={`sky-lockup flex flex-col items-center rounded-full ${compact ? "px-4 py-3" : "px-8 py-5"}`} style={{ opacity: 0 }}>
             <OrgLockup name={org} note={note} compact={compact} />
             {/* The real tools it's built from sit right under the company, as logos. */}
             {tools && <div className="pointer-events-auto mt-2">{tools}</div>}
@@ -308,7 +322,10 @@ function Tip({ left, top, above = false, children }: { left: number; top: number
   );
 }
 
-function layout(teams: SkyTeam[], w: number, h: number) {
+/** The lockup's drawn size; its padding is the clear space a spoke keeps from the logo and tools. */
+type Hub = { w: number; h: number };
+
+function layout(teams: SkyTeam[], w: number, h: number, box: Hub | null) {
   const compact = w < 560;
   const n = Math.max(teams.length, 1);
   const R = compact ? Math.min(26, w / 13) : Math.max(18, Math.min(23, h / 16));
@@ -348,9 +365,10 @@ function layout(teams: SkyTeam[], w: number, h: number) {
   const half = Math.max(R, ...teams.map((t, i) => (beside[i] ? 0 : width(t) / 2)));
   const spread = Math.max(w / 2 - (compact ? Math.max(R, 46) : half) - 12, R * 2.2);
   const rx = compact ? spread : Math.min(spread, Math.max(250, Math.min(360, w * 0.25)));
-  // The company's logo, as an ellipse the spokes start from.
-  const hubX = compact ? 92 : 116;
-  const hubY = compact ? 84 : 70;
+  // The spokes start at the edge of the company's lockup, a little inside its padding; until it is measured, an ellipse.
+  const inset = compact ? 8 : 18;
+  const hubW = box ? box.w / 2 - inset : compact ? 92 : 116;
+  const hubH = box ? box.h / 2 - inset * 0.6 : compact ? 84 : 70;
 
   const nodes: TeamNode[] = teams.map((team, i) => {
     const x = cx + Math.cos(angles[i]) * rx;
@@ -358,7 +376,7 @@ function layout(teams: SkyTeam[], w: number, h: number) {
     const len = Math.hypot(x - cx, y - cy) || 1;
     const ux = (x - cx) / len;
     const uy = (y - cy) / len;
-    const hub = 1 / Math.sqrt((ux / hubX) ** 2 + (uy / hubY) ** 2);
+    const hub = box ? Math.min(hubW / Math.abs(ux || 1e-6), hubH / Math.abs(uy || 1e-6)) : 1 / Math.sqrt((ux / hubW) ** 2 + (uy / hubH) ** 2);
     const k = team.apps.length;
     let nameX: number;
     let nameY: number;
@@ -385,7 +403,9 @@ function layout(teams: SkyTeam[], w: number, h: number) {
       const ty = firstRow + j * ROW;
       return { ...a, team: team.name, dx: left, dy: ty - 4, tx: left + 10, ty };
     });
-    return { name: team.name, x, y, R, sx: cx + ux * hub, sy: cy + uy * hub, ex: x - ux * R, ey: y - uy * R, nameX, nameY, anchor, apps };
+    // A team tucked in beside the lockup gets no spoke rather than a stub.
+    const spoke = len - R - hub > 14;
+    return { name: team.name, x, y, R, sx: cx + ux * hub, sy: cy + uy * hub, ex: x - ux * R, ey: y - uy * R, spoke, nameX, nameY, anchor, apps };
   });
 
   return { nodes, centre: { x: cx, y: cy }, compact };

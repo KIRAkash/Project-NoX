@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>NoX sub-brand lockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600&display=block" rel="stylesheet" />
+<style>
+  /* NoX Atlas and NoX Missions wordmarks. Rendered to PNG/JPG by render.mjs.
+     Atlas: an orbit ring crosses the A, with a planet on it.
+     Missions: the dots of both i's are planets on one trajectory that ends in a comet. */
+  body { margin: 0; padding: 40px; font-family: "Outfit", sans-serif; display: flex; flex-direction: column; gap: 40px; align-items: flex-start; }
+  body.light { background: #faf7f5; --ink: #181b26; --soft: #4a5268; }
+  body.dark { background: #05060b; --ink: #eceff8; --soft: #a6aec7; }
+  .lock { position: relative; display: inline-flex; align-items: baseline; gap: .28em; font-size: 120px; font-weight: 600; letter-spacing: -.01em; line-height: 1; color: var(--ink); padding: .32em .3em .18em .12em; }
+  .nox { display: inline-flex; align-items: center; }
+  .sun { display: inline-block; width: .76em; height: .76em; margin: 0 .05em; border-radius: 50%; transform: translateY(.02em);
+    background: radial-gradient(circle at 38% 34%, #fffaf0, #ffe39a 30%, #f7b542 62%, #e9713c 100%); }
+  .word { position: relative; }
+  .ch { position: relative; display: inline-block; }
+  svg.deco { position: absolute; overflow: visible; pointer-events: none; }
+  .dot { position: absolute; border-radius: 50%; }
+</style>
+</head>
+<body class="light">
+  <div class="lock" id="atlas">
+    <span class="nox">N<span class="sun"></span>X</span>
+    <span class="word"><span class="ch" id="bigA">A</span>tlas</span>
+  </div>
+  <div class="lock" id="missions">
+    <span class="nox">N<span class="sun"></span>X</span>
+    <span class="word" id="mword">M<span class="ch i">ı</span>ss<span class="ch i">ı</span>ons<span id="bl" style="display:inline-block;width:0;height:0"></span></span>
+  </div>
+<script>
+const ns = "http://www.w3.org/2000/svg";
+const el = (tag, attrs) => { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+function planet(parent, x, y, r, c1, c2) {
+  const d = document.createElement("span"); d.className = "dot";
+  Object.assign(d.style, { left: `${x - r}px`, top: `${y - r}px`, width: `${2 * r}px`, height: `${2 * r}px`,
+    background: `radial-gradient(circle at 34% 30%, #fff 0 8%, ${c1} 30%, ${c2} 100%)` });
+  parent.appendChild(d);
+}
+document.fonts.ready.then(() => {
+  const fs = 120;
+  // ---- Atlas: tilted orbit through the A, planet riding on it
+  const A = document.getElementById("bigA"), ab = A.getBoundingClientRect();
+  const lock = document.getElementById("atlas"), lb = lock.getBoundingClientRect();
+  const cx = ab.left - lb.left + ab.width / 2, cy = ab.top - lb.top + ab.height * 0.58;
+  const svgA = el("svg", { class: "deco", width: lb.width, height: lb.height, style: "left:0;top:0" });
+  const rx = ab.width * 0.66, ry = ab.height * 0.17;
+  // back half (behind the letter look: lighter), front half (stronger)
+  svgA.appendChild(el("path", { d: `M ${cx - rx} ${cy} A ${rx} ${ry} 0 0 1 ${cx + rx} ${cy}`, fill: "none", stroke: "#5fcbd8", "stroke-width": fs * 0.035, transform: `rotate(-18 ${cx} ${cy})`, "stroke-linecap": "round", opacity: 1 }));
+  lock.insertBefore(svgA, lock.firstChild);
+  const svgF = el("svg", { class: "deco", width: lb.width, height: lb.height, style: "left:0;top:0;z-index:2" });
+  svgF.appendChild(el("path", { d: `M ${cx + rx} ${cy} A ${rx} ${ry} 0 0 1 ${cx - rx} ${cy}`, fill: "none", stroke: "#12636e", "stroke-width": fs * 0.035, transform: `rotate(-18 ${cx} ${cy})`, "stroke-linecap": "round" }));
+  lock.appendChild(svgF);
+  const a0 = (232 * Math.PI) / 180, rot = (-18 * Math.PI) / 180;
+  const ex = rx * Math.cos(a0), ey = -ry * Math.sin(a0);
+  const px = cx + ex * Math.cos(rot) - ey * Math.sin(rot), py = cy + ex * Math.sin(rot) + ey * Math.cos(rot);
+  planet(lock, px, py, fs * 0.065, "#c7bcf8", "#5b45b8");
+
+  // ---- Missions: i-dots are planets on one trajectory ending in a comet
+  const m = document.getElementById("missions"), mb = m.getBoundingClientRect();
+  const is = [...m.querySelectorAll(".i")].map((e) => e.getBoundingClientRect());
+  const word = document.getElementById("mword").getBoundingClientRect();
+  const base = document.getElementById("bl").getBoundingClientRect().top - mb.top;
+  const dotY = base - fs * 0.6;
+  const p1 = [is[0].left - mb.left + is[0].width / 2, dotY], p2 = [is[1].left - mb.left + is[1].width / 2, dotY];
+  const start = [word.left - mb.left - fs * 0.05, dotY + fs * 0.1], end = [word.right - mb.left + fs * 0.1, dotY - fs * 0.34];
+  const svgM = el("svg", { class: "deco", width: mb.width, height: mb.height, style: "left:0;top:0" });
+  const grad = el("linearGradient", { id: "tr", x1: start[0], y1: start[1], x2: end[0], y2: end[1], gradientUnits: "userSpaceOnUse" });
+  grad.appendChild(el("stop", { offset: 0, "stop-color": "#f7b542", "stop-opacity": 0 }));
+  grad.appendChild(el("stop", { offset: 1, "stop-color": "#e9a23b" }));
+  const defs = el("defs", {}); defs.appendChild(grad); svgM.appendChild(defs);
+  svgM.appendChild(el("path", { d: `M ${start[0]} ${start[1]} C ${start[0] + 50} ${start[1]}, ${p1[0] - 50} ${p1[1]}, ${p1[0]} ${p1[1]} C ${p1[0] + 70} ${p1[1]}, ${p2[0] - 70} ${p2[1]}, ${p2[0]} ${p2[1]} C ${p2[0] + 90} ${p2[1]}, ${end[0] - 60} ${end[1] + 30}, ${end[0]} ${end[1]}`,
+    fill: "none", stroke: "url(#tr)", "stroke-width": fs * 0.03, "stroke-linecap": "round" }));
+  m.insertBefore(svgM, m.firstChild);
+  planet(m, p1[0], p1[1], fs * 0.068, "#f6e4ac", "#b58a2a");
+  planet(m, p2[0], p2[1], fs * 0.068, "#ddd5fb", "#5b45b8");
+  planet(m, end[0], end[1], fs * 0.05, "#fbd0b8", "#e9713c");
+  document.body.dataset.ready = "1";
+});
+</script>
+</body>
+</html>

@@ -331,7 +331,7 @@ function Tools({ groups, shown }: { groups: SourceGroup[]; shown: boolean }) {
       className="relative flex flex-wrap items-center justify-center gap-1.5 transition-opacity duration-700 motion-reduce:transition-none"
       style={{ opacity: shown ? 1 : 0, pointerEvents: shown ? "auto" : "none" }}
     >
-      <span className="w-full text-center text-[11px] text-ink-faint sm:mr-0.5 sm:w-auto">Real tools:</span>
+      <span className="mr-0.5 text-[11px] text-ink-faint">Real tools:</span>
       {groups.map((g) => {
         const kind = kindOf(g.type);
         const n = g.items.length;

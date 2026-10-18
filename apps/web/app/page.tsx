@@ -20,7 +20,7 @@ export default function Page() {
         <LiquidMetalLink
           href="/login"
           glow={1}
-          className="inline-flex h-12 items-center rounded-full px-7 font-mono text-[12.5px] font-medium uppercase tracking-[0.16em]"
+          className="inline-flex h-10 items-center rounded-full px-5 font-mono text-[11.5px] font-medium uppercase tracking-[0.16em] sm:h-12 sm:px-7 sm:text-[12.5px]"
         >
           Enter NoX
         </LiquidMetalLink>

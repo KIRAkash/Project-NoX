@@ -26,7 +26,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NoX — from a sentence to shipped software",
+  title: "NoX — enterprise intelligence, orchestrated. Every mission, delivered.",
   description:
     "NoX holds a living map of every application in your enterprise and how they depend on one another, then carries a change from a business user's first sentence through product, architecture, implementation and verification.",
 };
