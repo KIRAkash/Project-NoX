@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
+import { WakeUpNote } from "@/components/app/guards";
 import { NoxMark } from "@/components/app/nox-mark";
 import { LiquidMetalButton } from "@/components/liquid-metal/liquid-metal";
 import { firebaseConfigured, useAuth } from "@/lib/app/auth";
@@ -51,8 +52,11 @@ function LoginInner() {
         <p className="mt-2 text-[14px] leading-relaxed text-ink-muted">Sign in to see your applications and missions.</p>
 
         {status === "loading" ? (
-          <div className="mt-8 flex h-12 items-center justify-center" role="status" aria-label="Checking your session">
-            <span className="h-2.5 w-2.5 animate-ping rounded-full bg-nox" />
+          <div className="mt-8 flex flex-col items-center gap-4" role="status" aria-label="Checking your session">
+            <span className="flex h-12 items-center">
+              <span className="h-2.5 w-2.5 animate-ping rounded-full bg-nox" />
+            </span>
+            <WakeUpNote />
           </div>
         ) : (
           <>

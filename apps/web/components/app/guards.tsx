@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "@/lib/app/auth";
 
@@ -28,8 +28,29 @@ export function RequireAuth({ children, needRole = true, needOnboarded = true }:
 
 export function Loading() {
   return (
-    <div className="flex min-h-screen items-center justify-center" role="status" aria-label="Loading">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4" role="status" aria-label="Loading">
       <span className="h-3 w-3 animate-ping rounded-full bg-nox" />
+      <WakeUpNote />
     </div>
+  );
+}
+
+/**
+ * The servers scale to zero when no one is around, so the first visit after a quiet spell waits for a cold start
+ * (15–30s). Fast loads never see this; it fades in only once the wait is long enough to be that.
+ */
+export function WakeUpNote({ after = 3000 }: { after?: number }) {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setShown(true), after);
+    return () => window.clearTimeout(t);
+  }, [after]);
+  return (
+    <p
+      aria-live="polite"
+      className={`max-w-[340px] text-center text-[12px] leading-relaxed text-ink-faint transition-opacity duration-700 ${shown ? "opacity-100" : "opacity-0"}`}
+    >
+      {shown && "NoX naps to save fuel. Warming the engines, ~20s."}
+    </p>
   );
 }
