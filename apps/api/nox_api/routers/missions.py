@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..core.auth import Actor, Cap, current_actor, require, visible_org_ids
+from ..core.auth import Actor, Cap, ancestor_org_ids_cte, current_actor, require, visible_org_ids
 from ..core.config import settings
 from ..core.time_utils import now_utc, now_utc_naive
 from ..db.database import get_db
@@ -30,7 +30,6 @@ from ..db.models import (
     MissionApp,
     MissionEvent,
     MissionStage,
-    Org,
     OrgInterfaceContract,
     Role,
     SpecFile,
@@ -616,12 +615,15 @@ async def get_ticket_state(key: str, db: AsyncSession = Depends(get_db), actor: 
 
 async def _people_who_see(db: AsyncSession, mission: Mission) -> list[User]:
     """Members of the mission's org or of any org above it: access flows down, so they all see it."""
-    parents = dict((await db.execute(select(Org.id, Org.parent_org_id))).all())
-    chain, node = [], mission.org_id
-    while node is not None and node not in chain:
-        chain.append(node)
-        node = parents.get(node)
-    rows = await db.execute(select(User).join(Membership, Membership.user_id == User.id).where(Membership.org_id.in_(chain)).distinct())
+    if mission.org_id is None:
+        return []
+    ancestors = ancestor_org_ids_cte(mission.org_id)
+    rows = await db.execute(
+        select(User)
+        .join(Membership, Membership.user_id == User.id)
+        .where(Membership.org_id.in_(select(ancestors.c.id)))
+        .distinct()
+    )
     return sorted(rows.scalars().all(), key=lambda u: (u.name or u.email or "").lower())
 
 

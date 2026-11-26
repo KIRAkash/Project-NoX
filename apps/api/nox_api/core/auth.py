@@ -15,14 +15,17 @@ import hashlib
 import logging
 import time
 import uuid
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
 
 import httpx
 from fastapi import Depends, Header, HTTPException, Request, status
 from google.auth import jwt as google_jwt
-from sqlalchemy import func, select
+from sqlalchemy import Integer, Select, func, literal_column, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
+from sqlalchemy.sql.selectable import CTE
 
 from ..db.database import get_db
 from ..db.models import Membership, Org, Role, User
@@ -226,22 +229,113 @@ def require(cap: Cap):
 
 # ── Org scope ────────────────────────────────────────────────────────────────
 
+MAX_ORG_HIERARCHY_DEPTH = 64
+
+
+def _validate_max_depth(max_depth: int) -> int:
+    if max_depth < 0:
+        raise ValueError("max_depth must be non-negative")
+    return max_depth
+
+
+def descendant_org_ids_cte(
+    root_org_ids: Select[tuple[uuid.UUID]] | Iterable[uuid.UUID],
+    *,
+    max_depth: int = MAX_ORG_HIERARCHY_DEPTH,
+) -> CTE:
+    """Recursive CTE resolving root organizations and every sub-organization beneath them."""
+    limit = _validate_max_depth(max_depth)
+    roots = root_org_ids if isinstance(root_org_ids, Select) else list(root_org_ids)
+    descendants = (
+        select(
+            Org.id.label("id"),
+            literal_column("0", Integer).label("depth"),
+        )
+        .where(Org.id.in_(roots))
+        .cte(name="org_descendants", recursive=True)
+    )
+    child_org = aliased(Org, name="child_orgs")
+    return descendants.union_all(
+        select(
+            child_org.id.label("id"),
+            (descendants.c.depth + literal_column("1", Integer)).label("depth"),
+        )
+        .join(descendants, child_org.parent_org_id == descendants.c.id)
+        .where(
+            child_org.parent_org_id.is_not(None),
+            descendants.c.depth < limit,
+        )
+    )
+
+
+def ancestor_org_ids_cte(
+    org_id: uuid.UUID,
+    *,
+    max_depth: int = MAX_ORG_HIERARCHY_DEPTH,
+) -> CTE:
+    """Recursive CTE resolving `org_id` and every parent organization above it."""
+    limit = _validate_max_depth(max_depth)
+    ancestors = (
+        select(
+            Org.id.label("id"),
+            Org.parent_org_id.label("parent_org_id"),
+            literal_column("0", Integer).label("depth"),
+        )
+        .where(Org.id == org_id)
+        .cte(name="org_ancestors", recursive=True)
+    )
+    parent_org = aliased(Org, name="parent_orgs")
+    return ancestors.union_all(
+        select(
+            parent_org.id.label("id"),
+            parent_org.parent_org_id.label("parent_org_id"),
+            (ancestors.c.depth + literal_column("1", Integer)).label("depth"),
+        )
+        .join(ancestors, parent_org.id == ancestors.c.parent_org_id)
+        .where(
+            ancestors.c.parent_org_id.is_not(None),
+            ancestors.c.depth < limit,
+        )
+    )
+
+
+async def sub_org_ids(
+    db: AsyncSession,
+    root_org_ids: Iterable[uuid.UUID],
+    *,
+    max_depth: int = MAX_ORG_HIERARCHY_DEPTH,
+) -> set[uuid.UUID]:
+    """Resolve `root_org_ids` and every sub-organization beneath them in SQL."""
+    roots = list(root_org_ids)
+    if not roots:
+        return set()
+    descendants = descendant_org_ids_cte(roots, max_depth=max_depth)
+    rows = await db.execute(select(descendants.c.id).distinct())
+    return set(rows.scalars().all())
+
+
+async def ancestor_org_ids(
+    db: AsyncSession,
+    org_id: uuid.UUID | None,
+    *,
+    max_depth: int = MAX_ORG_HIERARCHY_DEPTH,
+) -> set[uuid.UUID]:
+    """Resolve `org_id` and every parent organization above it in SQL."""
+    if org_id is None:
+        return set()
+    ancestors = ancestor_org_ids_cte(org_id, max_depth=max_depth)
+    rows = await db.execute(select(ancestors.c.id).distinct())
+    return set(rows.scalars().all())
+
 
 async def visible_org_ids(db: AsyncSession, user: User) -> set[uuid.UUID]:
     """Orgs the user is a member of, plus every sub-org beneath them."""
-    roots = set((await db.execute(select(Membership.org_id).where(Membership.user_id == user.id))).scalars().all())
-    if not roots:
+    if user.id is None:
         return set()
-    parents = dict((await db.execute(select(Org.id, Org.parent_org_id))).all())
-    visible = set()
-    for org_id in parents:
-        node = org_id
-        while node is not None:
-            if node in roots:
-                visible.add(org_id)
-                break
-            node = parents.get(node)
-    return visible
+    roots = select(Membership.org_id).where(Membership.user_id == user.id)
+    descendants = descendant_org_ids_cte(roots)
+    rows = await db.execute(select(descendants.c.id).distinct())
+    return set(rows.scalars().all())
 
 
 async def assert_org_visible(db: AsyncSession, user: User, org_id: uuid.UUID | None) -> None:
