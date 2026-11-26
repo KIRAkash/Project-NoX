@@ -48,14 +48,6 @@ class SourceMonitorResponse(CamelModel):
     config: dict[str, Any] = {}
     last_synced_at: datetime | None = None
 
-class SourceCheckResult(CamelModel):
-    source_type: str
-    source_url: str
-    has_changes: bool
-    summary: str
-    affected_items: list[str] = []
-    decision: str | None = None
-
 class KBCreate(CamelModel):
     app_name: str
     source_urls: list[SourceUrlItem]
@@ -91,30 +83,8 @@ class OrgTreeNode(OrgResponse):
     knowledge_bases: list[KBResponse] = []
     apps: list[KBResponse] = []
 
-class KBStatusUpdate(CamelModel):
-    status: KBStatus
-
-class WebhookPushPayload(CamelModel):
-    ref: str
-    before: str
-    after: str
-    repository: dict[str, Any]
-    commits: list[dict[str, Any]]
-
-class WebhookPRPayload(CamelModel):
-    action: str
-    number: int
-    pull_request: dict[str, Any]
-    repository: dict[str, Any]
-
 class AddSourceRequest(CamelModel):
     type: Literal['github', 'confluence', 'notion', 'jira', 'slack', 'upload']
     url: str
     incremental_enabled: bool | None = True
     config: dict[str, Any] | None = None
-
-class AddSourceResponse(CamelModel):
-    status: str
-    message: str
-    source_added: SourceUrlItem
-    kb: KBDetailResponse
