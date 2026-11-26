@@ -40,6 +40,11 @@
   --verify: #5fd29f;
   --violet: #a897f0;
   --coral: #f3a27e;
+  --danger: #ef4444;
+  --danger-ink: #fef2f2;
+  --danger-muted: #fecaca;
+  --danger-surface: #1f0d12;
+  --danger-border: rgba(239, 68, 68, 0.45);
   --nox-ink: #f7b542;
   --ember-ink: #e9713c;
   --ice-ink: #86b9ee;
@@ -105,6 +110,11 @@ html[data-theme="light"] {
   --verify: #2eaf78;
   --violet: #9583e6;
   --coral: #ee8f66;
+  --danger: #dc2626;
+  --danger-ink: #7f1d1d;
+  --danger-muted: #991b1b;
+  --danger-surface: #fef2f2;
+  --danger-border: rgba(220, 38, 38, 0.32);
   --nox-ink: #8a5a08;
   --ember-ink: #b4471a;
   --ice-ink: #1f5e9e;
@@ -561,3 +571,21 @@ html[data-theme="light"] .sky {
 .lockup-on-light { display: none; }
 html[data-theme="light"] .lockup-on-light { display: block; }
 html[data-theme="light"] .lockup-on-dark { display: none; }
+
+/* Global toast viewport: subtle entrance and clearance above floating Ask NoX dock */
+.toast-in {
+  animation: tour-in 0.18s ease-out both;
+}
+body:has([data-tour="ask-nox"]) .toast-viewport {
+  bottom: 8.75rem;
+}
+@media (min-width: 1024px) {
+  body:has([data-tour="ask-nox"]) .toast-viewport {
+    bottom: 5.25rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast-in {
+    animation: none;
+  }
+}

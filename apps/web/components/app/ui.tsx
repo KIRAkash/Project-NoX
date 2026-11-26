@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { C, tint } from "@/lib/app/palette";
 import type { RoleDef } from "@/lib/app/roles";
@@ -127,38 +127,7 @@ export function OrbitArc({ current, reverse = false, width = 132 }: { current: n
 
 // ── Toasts ───────────────────────────────────────────────────────────────────
 
-type Toast = { id: number; text: string; tone: "info" | "success" | "error" };
-const ToastContext = createContext<(text: string, tone?: Toast["tone"]) => void>(() => {});
-
-export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const push = useCallback((text: string, tone: Toast["tone"] = "info") => {
-    const id = Date.now() + Math.random();
-    setToasts((t) => [...t, { id, text, tone }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4200);
-  }, []);
-  return (
-    <ToastContext.Provider value={push}>
-      {children}
-      <div className="pointer-events-none fixed bottom-20 right-4 z-[60] flex flex-col gap-2 lg:bottom-6" aria-live="polite">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className="pointer-events-auto flex items-center gap-2 rounded-md border bg-deck px-4 py-3 text-[13px] text-ink shadow-lg"
-            style={{ borderColor: t.tone === "error" ? tint(C.ember, 40) : t.tone === "success" ? tint(C.verify, 40) : "rgb(var(--line)/.25)" }}
-          >
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: t.tone === "error" ? C.ember : t.tone === "success" ? C.verify : C.nox }} />
-            {t.text}
-          </div>
-        ))}
-      </div>
-    </ToastContext.Provider>
-  );
-}
-
-export function useToast() {
-  return useContext(ToastContext);
-}
+export { ToastProvider, ToastViewport, useToast, type ToastFn, type ToastOptions } from "./toast";
 
 // ── Popover helper: closes on outside click / Escape ────────────────────────
 
