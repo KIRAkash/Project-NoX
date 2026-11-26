@@ -189,6 +189,8 @@ export type Mission = {
   createdBy?: string | null;
   /** Set while the mission is cancelled: read-only, out of every lane, restorable by its creator. */
   cancelled?: { at: string; by: string | null; reason: string | null } | null;
+  /** Set while the mission is archived: hidden from active board lanes, viewable under Archived, and unarchivable. */
+  archived?: { at: string; by: string | null } | null;
   files: SpecFile[];
   apps: { id: string; name: string; status?: string }[];
   links: MissionLink[];

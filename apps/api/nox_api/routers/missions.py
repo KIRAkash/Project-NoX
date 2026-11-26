@@ -11,9 +11,9 @@ import uuid
 from datetime import UTC, datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from pydantic import BaseModel, Field
-from sqlalchemy import select
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -40,7 +40,7 @@ from ..db.models import (
 )
 from ..jobs import spawn
 from ..missions.drafting import draft_mission_files
-from ..missions.events import record
+from ..missions.events import publish_event, record, stage_event
 from ..missions.gitsync import schedule_sync
 from ..missions.templates import FILE_NAME, ROLE_ORDER, TITLE, next_stage, stage_for, upstream_of
 from ..missions.verification import (
@@ -99,6 +99,8 @@ def mission_json(m: Mission, apps: list[KnowledgeBase] | None = None, with_bodie
         "createdBy": str(m.created_by) if m.created_by else None,
         "cancelled": {"at": m.cancelled_at.isoformat(), "by": str(m.cancelled_by) if m.cancelled_by else None, "reason": m.cancel_reason}
         if m.cancelled_at else None,
+        "archived": {"at": m.archived_at.isoformat(), "by": str(m.archived_by) if m.archived_by else None}
+        if m.archived_at else None,
         "files": [file_json(f, with_bodies) for f in files],
         "apps": [{"id": str(k.id), "name": k.app_name, "status": k.status.value} for k in (apps or [])],
         "links": [
@@ -256,7 +258,7 @@ ACTIVITY_EVENTS = (
 
 @router.get("")
 async def list_missions(
-    view: str = Query(default="all", pattern="^(all|waiting|flight|back|mine|cancelled)$"),
+    view: str = Query(default="all", pattern="^(all|waiting|flight|back|mine|archived|cancelled)$"),
     db: AsyncSession = Depends(get_db),
     actor: Actor = Depends(current_actor),
 ):
@@ -286,10 +288,28 @@ async def list_missions(
         f = file_for(m, actor.role)
         return f.status == SpecStatus.approved and m.stage not in (MissionStage.done,) and not waiting(m) and not back(m)
 
-    pick = {"all": lambda m: True, "waiting": waiting, "flight": flight, "back": back, "mine": mine, "cancelled": lambda m: True}[view]
+    pick = {
+        "all": lambda m: True,
+        "waiting": waiting,
+        "flight": flight,
+        "back": back,
+        "mine": mine,
+        "archived": lambda m: True,
+        "cancelled": lambda m: True,
+    }[view]
     kb_names = dict((await db.execute(select(KnowledgeBase.id, KnowledgeBase.app_name))).all())
-    # Cancelled missions show only in their own view; every other view is work that's still alive.
-    picked = [m for m in rows if (m.cancelled_at is not None) == (view == "cancelled") and pick(m)]
+
+    def in_view(m: Mission) -> bool:
+        if view == "cancelled":
+            return m.cancelled_at is not None
+        if m.cancelled_at is not None:
+            return False
+        if view == "archived":
+            return m.archived_at is not None
+        # Cancelled and archived missions stay in their own views; active views show live board work.
+        return m.archived_at is None and pick(m)
+
+    picked = [m for m in rows if in_view(m)]
     # Who asked, and the latest thing anyone did: one query each for the whole list.
     creators: dict = {}
     latest: dict = {}
@@ -316,6 +336,307 @@ async def list_missions(
         j["lastActivity"] = {"type": ev.type, "by": ev.actor_name, "role": ev.acting_role, "at": ev.created_at.isoformat()} if ev else None
         out.append(j)
     return out
+
+
+# ── Batch triage (atomic single-transaction updates and deletes) ─────────────
+
+BatchStatus = Literal[
+    "business", "product", "engineering", "developer", "build", "verifying", "done",
+    "archived", "unarchived", "cancelled", "restored",
+]
+
+
+class BatchUpdateBody(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    ids: list[str] = Field(min_length=1, max_length=200, validation_alias=AliasChoices("ids", "missionIds", "keys"))
+    status: BatchStatus | None = None
+    stage: MissionStage | None = None
+    archived: bool | None = None
+    priority: str | None = Field(default=None, pattern="^P[1-4]$")
+    reason: str | None = Field(default=None, max_length=1000)
+
+
+class BatchDeleteBody(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    ids: list[str] = Field(min_length=1, max_length=200, validation_alias=AliasChoices("ids", "missionIds", "keys"))
+
+
+def _parse_identifier(raw: str) -> tuple[uuid.UUID | None, int | None]:
+    token = raw.strip()
+    try:
+        return uuid.UUID(token), None
+    except ValueError:
+        return None, _parse_key(token)
+
+
+async def _resolve_batch_missions(db: AsyncSession, actor: Actor, raw_ids: list[str]) -> list[Mission]:
+    """Load every requested mission (by UUID or NOX-n key) under FOR UPDATE in deterministic ID order."""
+    parsed = [_parse_identifier(r) for r in raw_ids]
+    uuids = {u for u, _ in parsed if u is not None}
+    numbers = {n for _, n in parsed if n is not None}
+    clauses = []
+    if uuids:
+        clauses.append(Mission.id.in_(uuids))
+    if numbers:
+        clauses.append(Mission.number.in_(numbers))
+    if not clauses:
+        raise HTTPException(404, "Not found")
+
+    visible = await visible_org_ids(db, actor.user)
+    rows = (
+        await db.execute(
+            select(Mission)
+            .options(selectinload(Mission.files), selectinload(Mission.links))
+            .where(or_(*clauses))
+            .order_by(Mission.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalars().all()
+
+    by_id = {m.id: m for m in rows}
+    by_num = {m.number: m for m in rows}
+    ordered: list[Mission] = []
+    seen: set[uuid.UUID] = set()
+    for u, n in parsed:
+        m = by_id.get(u) if u is not None else by_num.get(n)  # type: ignore[arg-type]
+        if m is None or m.org_id not in visible:
+            raise HTTPException(404, "Not found")
+        if m.id not in seen:
+            seen.add(m.id)
+            ordered.append(m)
+    return ordered
+
+
+async def _apps_by_mission(db: AsyncSession, mission_ids: list[uuid.UUID]) -> dict[uuid.UUID, list[KnowledgeBase]]:
+    if not mission_ids:
+        return {}
+    rows = (
+        await db.execute(
+            select(MissionApp.mission_id, KnowledgeBase)
+            .join(KnowledgeBase, MissionApp.kb_id == KnowledgeBase.id)
+            .where(MissionApp.mission_id.in_(mission_ids))
+        )
+    ).all()
+    out: dict[uuid.UUID, list[KnowledgeBase]] = {}
+    for mid, kb in rows:
+        out.setdefault(mid, []).append(kb)
+    return out
+
+
+@router.patch("/batch")
+@router.post("/batch")
+async def batch_update_missions(
+    body: BatchUpdateBody,
+    db: AsyncSession = Depends(get_db),
+    actor: Actor = Depends(require(Cap.CREATE_MISSION)),
+):
+    """Apply a batch status, archive, cancel/restore, or priority change across missions in one DB transaction."""
+    if body.status is None and body.stage is None and body.archived is None and body.priority is None:
+        raise HTTPException(400, "Specify at least one batch update field")
+
+    target_stage: MissionStage | None = body.stage
+    target_archived: bool | None = body.archived
+    if body.status in MissionStage.__members__:
+        s = MissionStage(body.status)
+        if target_stage is not None and target_stage != s:
+            raise HTTPException(400, "Conflicting stage and status values")
+        target_stage = s
+    elif body.status == "archived":
+        if target_archived is False:
+            raise HTTPException(400, "Conflicting archived and status values")
+        target_archived = True
+    elif body.status == "unarchived":
+        if target_archived is True:
+            raise HTTPException(400, "Conflicting archived and status values")
+        target_archived = False
+
+    missions = await _resolve_batch_missions(db, actor, body.ids)
+
+    # Validate every mission up front so nothing is mutated if any item is forbidden or in conflict.
+    if body.status == "cancelled":
+        for m in missions:
+            _creator_only(m, actor, "cancel")
+            if m.cancelled_at:
+                raise HTTPException(409, f"{m.key} is already cancelled.")
+    elif body.status == "restored":
+        for m in missions:
+            _creator_only(m, actor, "restore")
+    else:
+        if target_stage is not None and actor.role == Role.business:
+            raise HTTPException(403, "Only board seats can batch-update mission stages")
+        if body.priority is not None and actor.role != Role.product:
+            raise HTTPException(403, "Priority is set by the product owner")
+        for m in missions:
+            if m.cancelled_at:
+                raise HTTPException(409, f"{m.key} is cancelled. Its creator can restore it to make changes.")
+            if target_archived is not None and actor.role == Role.business and m.created_by != actor.user.id:
+                raise HTTPException(403, f"Only board seats or the creator of {m.key} can archive it")
+
+    from ..missions.sightings import _emit as emit_sighting
+    from ..missions.sightings import reclaim, release
+    from ..services.tickets import set_archived, set_cancelled
+
+    now = now_utc_naive()
+    who = actor.user.name or actor.user.email
+    reason = (body.reason or "").strip() or None
+    staged_events: list[tuple[Mission, MissionEvent]] = []
+    released_sightings: list[tuple[object, Mission]] = []
+    reclaimed_sightings: list[tuple[object, Mission]] = []
+    ticket_archive_ops: list[tuple[Mission, dict | None]] = []
+    ticket_cancel_ops: list[tuple[Mission, dict | None]] = []
+    stage_notes: list[tuple[Mission, str]] = []
+
+    try:
+        for m in missions:
+            m.updated_at = now
+            if body.status == "cancelled":
+                m.cancelled_at, m.cancelled_by, m.cancel_reason = now, actor.user.id, reason
+                staged_events.append((m, stage_event(db, m, "mission.cancelled", {"reason": reason, "batch": True}, actor.user, actor.role.value)))
+                ticket_cancel_ops.append((m, {"at": m.cancelled_at.isoformat(), "by": who, "reason": reason}))
+                s = await release(db, m, commit=False)
+                if s:
+                    released_sightings.append((s, m))
+            elif body.status == "restored":
+                if m.cancelled_at:
+                    m.cancelled_at = m.cancelled_by = m.cancel_reason = None
+                    staged_events.append((m, stage_event(db, m, "mission.restored", {"batch": True}, actor.user, actor.role.value)))
+                    ticket_cancel_ops.append((m, None))
+                    stage_notes.append((m, f"Restored by {who}"))
+                    s = await reclaim(db, m, commit=False)
+                    if s:
+                        reclaimed_sightings.append((s, m))
+            else:
+                changes: dict = {}
+                if target_stage is not None and m.stage != target_stage:
+                    prev_stage = m.stage.value
+                    m.stage = target_stage
+                    m.verify_role = VERIFY_ORDER[0] if target_stage == MissionStage.verifying else None
+                    if target_stage == MissionStage.done and not m.completed_at:
+                        m.completed_at = now
+                    elif target_stage != MissionStage.done:
+                        m.completed_at = None
+                    changes["stage"] = target_stage.value
+                    changes["previousStage"] = prev_stage
+                    stage_notes.append((m, f"Moved to {target_stage.value} by {who}"))
+                    if target_archived is None and m.archived_at is not None:
+                        m.archived_at = m.archived_by = None
+                        ticket_archive_ops.append((m, None))
+                if body.priority is not None and m.priority != body.priority:
+                    m.priority = body.priority
+                    changes["priority"] = body.priority
+                if target_archived is True and m.archived_at is None:
+                    m.archived_at, m.archived_by = now, actor.user.id
+                    staged_events.append((m, stage_event(db, m, "mission.archived", {"batch": True}, actor.user, actor.role.value)))
+                    ticket_archive_ops.append((m, {"at": m.archived_at.isoformat(), "by": who}))
+                elif target_archived is False and m.archived_at is not None:
+                    m.archived_at = m.archived_by = None
+                    staged_events.append((m, stage_event(db, m, "mission.unarchived", {"batch": True}, actor.user, actor.role.value)))
+                    ticket_archive_ops.append((m, None))
+                if changes:
+                    staged_events.append((m, stage_event(db, m, "mission.updated", {**changes, "batch": True}, actor.user, actor.role.value)))
+
+        await db.flush()
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
+
+    apps_map = await _apps_by_mission(db, [m.id for m in missions])
+    for m, ev in staged_events:
+        await publish_event(m, ev)
+    for m, arc in ticket_archive_ops:
+        await set_archived(m, arc)
+    for m, can in ticket_cancel_ops:
+        await set_cancelled(m, can)
+    for s, m in released_sightings:
+        await emit_sighting(s.org_id, "sighting.released", {"id": str(s.id), "mission": m.key})  # type: ignore[attr-defined]
+    for s, m in reclaimed_sightings:
+        await emit_sighting(s.org_id, "sighting.launched", {"id": str(s.id), "mission": m.key})  # type: ignore[attr-defined]
+    if body.status == "cancelled":
+        from ..missions.jira_sync import on_cancel
+
+        for m in missions:
+            await on_cancel(db, m, actor, f"Cancelled by {who}" + (f": {reason}" if reason else ""))
+    elif stage_notes:
+        from ..missions.jira_sync import on_stage_change
+
+        for m, note in stage_notes:
+            await on_stage_change(db, m, actor, note)
+
+    return {
+        "updated": len(missions),
+        "missions": [mission_json(m, apps_map.get(m.id, [])) for m in missions],
+    }
+
+
+async def _execute_batch_delete(db: AsyncSession, actor: Actor, raw_ids: list[str]) -> dict:
+    missions = await _resolve_batch_missions(db, actor, raw_ids)
+    for m in missions:
+        _creator_only(m, actor, "delete")
+        why = deletable(m)
+        if why:
+            raise HTTPException(409, f"{m.key} can't be deleted because {why}. Cancel it instead.")
+
+    from ..missions.sightings import _emit as emit_sighting
+    from ..missions.sightings import release
+    from ..services import media_storage
+    from ..services.tickets import forget_ticket
+
+    mission_ids = [m.id for m in missions]
+    uris = (await db.execute(select(MediaAsset.storage_uri).where(MediaAsset.mission_id.in_(mission_ids)))).scalars().all()
+    deleted_keys = [m.key for m in missions]
+    deleted_ids = [str(m.id) for m in missions]
+    released_sightings: list[tuple[object, str]] = []
+
+    try:
+        for m in missions:
+            s = await release(db, m, commit=False)
+            if s:
+                released_sightings.append((s, m.key))
+            await db.delete(m)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
+
+    for uri in uris:
+        try:
+            await asyncio.to_thread(media_storage.delete, uri)
+        except Exception:
+            pass
+    for m in missions:
+        await forget_ticket(m)
+    for s, key in released_sightings:
+        await emit_sighting(s.org_id, "sighting.released", {"id": str(s.id), "mission": key})  # type: ignore[attr-defined]
+
+    return {"deleted": deleted_keys, "deletedIds": deleted_ids, "count": len(deleted_keys)}
+
+
+@router.post("/batch/delete")
+async def batch_delete_missions_post(
+    body: BatchDeleteBody,
+    db: AsyncSession = Depends(get_db),
+    actor: Actor = Depends(require(Cap.CREATE_MISSION)),
+):
+    """Delete multiple eligible missions in a single atomic database transaction."""
+    return await _execute_batch_delete(db, actor, body.ids)
+
+
+@router.delete("/batch")
+async def batch_delete_missions(
+    body: BatchDeleteBody | None = Body(default=None),
+    ids: list[str] | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+    actor: Actor = Depends(require(Cap.CREATE_MISSION)),
+):
+    """Delete multiple eligible missions in a single atomic database transaction."""
+    raw_ids = body.ids if body is not None else (ids or [])
+    if not raw_ids:
+        raise HTTPException(400, "Provide at least one mission id")
+    return await _execute_batch_delete(db, actor, raw_ids)
 
 
 @router.get("/{key}")
@@ -580,6 +901,38 @@ async def restore_mission(key: str, db: AsyncSession = Depends(get_db), actor: A
     from ..missions.lifecycle import after_restore
 
     await after_restore(db, mission, actor)
+    return mission_json(mission, await mission_apps(db, mission), with_bodies=True)
+
+
+@router.post("/{key}/archive")
+async def archive_mission(key: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(require(Cap.CREATE_MISSION))):
+    """Move a mission off the active board into the Archived view."""
+    mission = await load_live_mission(db, actor, key)
+    if actor.role == Role.business and mission.created_by != actor.user.id:
+        raise HTTPException(403, f"Only board seats or the creator of {mission.key} can archive it")
+    if not mission.archived_at:
+        mission.archived_at, mission.archived_by = now_utc_naive(), actor.user.id
+        await db.commit()
+        await record(db, mission, "mission.archived", {}, actor.user, actor.role.value)
+        from ..services.tickets import set_archived
+
+        await set_archived(mission, {"at": mission.archived_at.isoformat(), "by": actor.user.name or actor.user.email})
+    return mission_json(mission, await mission_apps(db, mission), with_bodies=True)
+
+
+@router.post("/{key}/unarchive")
+async def unarchive_mission(key: str, db: AsyncSession = Depends(get_db), actor: Actor = Depends(require(Cap.CREATE_MISSION))):
+    """Bring an archived mission back onto the active board."""
+    mission = await load_live_mission(db, actor, key)
+    if actor.role == Role.business and mission.created_by != actor.user.id:
+        raise HTTPException(403, f"Only board seats or the creator of {mission.key} can unarchive it")
+    if mission.archived_at:
+        mission.archived_at = mission.archived_by = None
+        await db.commit()
+        await record(db, mission, "mission.unarchived", {}, actor.user, actor.role.value)
+        from ..services.tickets import set_archived
+
+        await set_archived(mission, None)
     return mission_json(mission, await mission_apps(db, mission), with_bodies=True)
 
 

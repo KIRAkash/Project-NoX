@@ -275,6 +275,9 @@ class Mission(Base):
     cancelled_at = Column(DateTime, nullable=True)
     cancelled_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     cancel_reason = Column(String, nullable=True)
+    # Archived during board triage: kept out of active lanes, viewable under Archived, and can be unarchived.
+    archived_at = Column(DateTime, nullable=True)
+    archived_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, default=now_utc_naive)
     updated_at = Column(DateTime, default=now_utc_naive, onupdate=now_utc_naive)
 

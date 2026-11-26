@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, CornerUpLeft, ExternalLink, Film, Lock, MoreHorizontal, Paperclip, Pencil, RefreshCw, RotateCcw, Trash2, X } from "lucide-react";
+import { Archive, ArchiveRestore, Ban, CornerUpLeft, ExternalLink, Film, Lock, MoreHorizontal, Paperclip, Pencil, RefreshCw, RotateCcw, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -110,6 +110,7 @@ export default function MissionPage() {
       </Link>
       <Header m={m} onChanged={() => void mission.reload()} />
       <CancelledBanner m={m} onChanged={() => void mission.reload()} />
+      <ArchivedBanner m={m} onChanged={() => void mission.reload()} />
       <ProceedBanner m={m} onChanged={() => void mission.reload()} onReview={() => setTab("business")} />
       <SeatBanner m={m} seat={myRole} />
       <UpdateBanner m={m} updates={updates.data ?? []} myRole={myRole} />
@@ -418,6 +419,45 @@ function CancelledBanner({ m, onChanged }: { m: Mission; onChanged: () => void }
           className="flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-sm border border-hairline px-3 text-[13px] text-ink hover:border-ink-faint disabled:opacity-50"
         >
           <RotateCcw size={13} /> {busy ? "Restoring…" : "Restore mission"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ArchivedBanner({ m, onChanged }: { m: Mission; onChanged: () => void }) {
+  const { me } = useAuth();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  if (!m.archived || m.cancelled) return null;
+  const canUnarchive = me!.role !== "business" || me!.id === m.createdBy;
+  const unarchive = async () => {
+    setBusy(true);
+    try {
+      await api(`/api/v1/missions/${m.key}/unarchive`, { method: "POST" });
+      toast(`${m.key} returned to the board`, "success");
+      onChanged();
+    } catch (e) {
+      toast(e instanceof ApiError ? e.detail : "Couldn't unarchive the mission", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const when = new Date(m.archived.at).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+  return (
+    <div className="mt-4 flex flex-col gap-3 rounded-md border border-hairline bg-deck px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-start gap-2.5 text-[13.5px]">
+        <Archive size={15} className="mt-0.5 shrink-0 text-ink-muted" />
+        <p className="text-ink">Archived on {when}. Hidden from active board lanes until unarchived.</p>
+      </div>
+      {canUnarchive && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void unarchive()}
+          className="flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-sm border border-hairline px-3 text-[13px] text-ink hover:border-ink-faint disabled:opacity-50"
+        >
+          <ArchiveRestore size={13} /> {busy ? "Unarchiving…" : "Unarchive mission"}
         </button>
       )}
     </div>
