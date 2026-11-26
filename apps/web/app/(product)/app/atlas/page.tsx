@@ -237,7 +237,9 @@ function OrgCanvas({ orgId, canManageOrgs, onChanged }: { orgId: string; canMana
             <Outline node={org} depth={0} />
           </Panel>
         )}
-        <MembersPanel orgId={orgId} />
+        <div id="members" className="scroll-mt-24">
+          <MembersPanel orgId={orgId} />
+        </div>
         {canManageOrgs && (
           <Panel title="New organization">
             <NewOrgForm onCreated={onChanged} />

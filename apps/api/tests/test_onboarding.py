@@ -153,3 +153,91 @@ def test_sources_are_grouped_labelled_and_deduplicated():
     assert groups["jira"][0]["label"] == "TWCLM project"
     assert groups["slack"][0]["label"] == "Channel for claims-intake"
     assert groups["wiki"][0]["label"] == "acme/kb-claims-intake"
+
+
+async def test_workspace_checklist_tracks_milestones_and_persists_across_sessions(db_clean, fake_nox, monkeypatch):
+    from nox_api.routers import orgs as orgs_router
+
+    monkeypatch.setattr(orgs_router, "dispatch_generation_pipeline", lambda _kb_id: None)
+
+    async with _client("founder@example.com", role="engineering") as c:
+        # 0 of 4 before charting an organization
+        initial = (await c.get("/api/v1/me/checklist")).json()
+        assert initial["completedCount"] == 0 and initial["totalCount"] == 4
+        assert initial["progressPercent"] == 0 and initial["completed"] is False and initial["dismissed"] is False
+        assert [s["key"] for s in initial["steps"]] == ["create_org", "link_connector", "invite_seat", "launch_mission"]
+
+        # 1 of 4 after charting an organization
+        org = (await c.post("/api/v1/orgs", json={"name": "Horizon Labs", "slug": "horizon"})).json()
+        team = (await c.post("/api/v1/orgs", json={"name": "Platform", "slug": "horizon-platform", "parentOrgId": org["id"]})).json()
+        step1 = (await c.get("/api/v1/me/checklist")).json()
+        assert step1["workspaceId"] == org["id"] and step1["workspaceName"] == "Horizon Labs"
+        assert step1["completedSteps"] == ["create_org"]
+        assert step1["completedCount"] == 1 and step1["progressPercent"] == 25 and step1["completed"] is False
+
+        # 2 of 4 after connecting a repository / onboarding an application in a child team
+        kb = (
+            await c.post(
+                f"/api/v1/orgs/{team['id']}/apps",
+                json={"appName": "billing-api", "sourceUrls": [{"type": "github", "url": "https://github.com/horizon/billing-api"}]},
+            )
+        ).json()
+        step2 = (await c.get("/api/v1/me/checklist")).json()
+        assert step2["completedSteps"] == ["create_org", "link_connector"]
+        assert step2["completedCount"] == 2 and step2["progressPercent"] == 50
+
+        # 3 of 4 after inviting a seat
+        assert (await c.post(f"/api/v1/orgs/{org['id']}/members", json={"email": "pm@example.com"})).status_code == 200
+        step3 = (await c.get("/api/v1/me/checklist")).json()
+        assert step3["completedSteps"] == ["create_org", "link_connector", "invite_seat"]
+        assert step3["completedCount"] == 3 and step3["progressPercent"] == 75
+
+        # 4 of 4 after launching a mission -> completed is True
+        mission = (
+            await c.post(
+                "/api/v1/missions",
+                json={"prompt": "Add invoice webhook retry backoff for failed deliveries", "appIds": [kb["id"]], "type": "feature"},
+            )
+        ).json()
+        assert mission["key"] == "NOX-1"
+        step4 = (await c.get("/api/v1/me/checklist")).json()
+        assert step4["completedSteps"] == ["create_org", "link_connector", "invite_seat", "launch_mission"]
+        assert step4["completedCount"] == 4 and step4["progressPercent"] == 100 and step4["completed"] is True
+
+    # New session for the invited teammate sees the same persisted workspace milestone progress
+    async with _client("pm@example.com", role="product") as pm:
+        shared = (await pm.get("/api/v1/me/checklist")).json()
+        assert shared["workspaceId"] == org["id"]
+        assert shared["completedCount"] == 4 and shared["completed"] is True
+
+
+async def test_workspace_checklist_dismiss_persists_and_enforces_visibility(db_clean):
+    # Unauthenticated callers get 401
+    async with _client(email=None) as anon:
+        assert (await anon.get("/api/v1/me/checklist")).status_code == 401
+        assert (await anon.post("/api/v1/me/checklist/dismiss")).status_code == 401
+        assert (await anon.delete("/api/v1/me/checklist/dismiss")).status_code == 401
+
+    # Fresh user without an org can dismiss and restore
+    async with _client("solo@example.com", role="engineering") as solo:
+        assert (await solo.post("/api/v1/me/checklist/dismiss")).json()["dismissed"] is True
+        assert (await solo.get("/api/v1/me/checklist")).json()["dismissed"] is True
+        assert (await solo.delete("/api/v1/me/checklist/dismiss")).json()["dismissed"] is False
+
+    # Workspace dismissal is scoped per user and rejects unseen orgIds with 404
+    async with _client("lead@example.com", role="engineering") as lead:
+        org = (await lead.post("/api/v1/orgs", json={"name": "Atlas Corp", "slug": "atlas-corp"})).json()
+        assert (await lead.post(f"/api/v1/orgs/{org['id']}/members", json={"email": "dev@example.com"})).status_code == 200
+        dismissed = (await lead.post("/api/v1/me/checklist/dismiss", json={"orgId": org["id"]})).json()
+        assert dismissed["dismissed"] is True and dismissed["completedCount"] == 2
+        assert (await lead.get("/api/v1/me/checklist")).json()["dismissed"] is True
+
+    async with _client("dev@example.com", role="developer") as dev:
+        # Teammate has not dismissed their own card yet
+        dev_view = (await dev.get("/api/v1/me/checklist")).json()
+        assert dev_view["workspaceId"] == org["id"] and dev_view["dismissed"] is False
+
+    async with _client("outsider@example.com", role="engineering") as outsider:
+        assert (await outsider.get(f"/api/v1/me/checklist?orgId={org['id']}")).status_code == 404
+        assert (await outsider.post("/api/v1/me/checklist/dismiss", json={"orgId": org["id"]})).status_code == 404
+        assert (await outsider.delete(f"/api/v1/me/checklist/dismiss?orgId={org['id']}")).status_code == 404

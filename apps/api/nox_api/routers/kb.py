@@ -669,7 +669,10 @@ async def add_source_to_kb(kb_id: str, request: Request, db: AsyncSession = Depe
         webhook_id=webhook_id,
         monitor_mode=monitor_mode,
     )
+    from ..services import onboarding
+
     db.add(new_monitor)
+    await onboarding.record_milestone(db, kb.org_id, "link_connector")
     await db.commit()
     await db.refresh(kb)
     

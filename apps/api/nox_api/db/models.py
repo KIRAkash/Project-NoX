@@ -169,10 +169,23 @@ class User(Base):
     estate = Column(String, nullable=True)
     # JSONB on Postgres (queries that SELECT DISTINCT users need equality on every column); plain JSON elsewhere.
     tours_seen = Column(JSON().with_variant(JSONB(), "postgresql"), nullable=False, default=list)
+    checklist_dismissed = Column(Boolean, nullable=False, default=False)
 
     memberships = relationship(
         "Membership", back_populates="user", cascade="all, delete-orphan", foreign_keys="Membership.user_id"
     )
+
+
+class WorkspaceOnboarding(Base):
+    """Completed setup milestones and user dismissals for a workspace organization."""
+
+    __tablename__ = "workspace_onboarding"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False, unique=True)
+    completed_steps = Column(JSON().with_variant(JSONB(), "postgresql"), nullable=False, default=list)
+    dismissed_by = Column(JSON().with_variant(JSONB(), "postgresql"), nullable=False, default=list)
+    created_at = Column(DateTime, default=now_utc_naive)
+    updated_at = Column(DateTime, default=now_utc_naive, onupdate=now_utc_naive)
 
 
 class Membership(Base):

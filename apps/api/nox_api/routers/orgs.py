@@ -12,6 +12,7 @@ from ..core.auth import Actor, Cap, assert_org_visible, current_actor, require, 
 from ..db.database import get_db
 from ..db.models import KnowledgeBase, Membership, Org, OrgInterfaceContract, OrgInvite, User
 from ..db.schemas import KBCreate, KBResponse, OrgCreate, OrgResponse, OrgTreeNode
+from ..services import onboarding
 from ..workers.dispatcher import dispatch_generation_pipeline
 
 router = APIRouter(prefix="/api/v1/orgs", tags=["Organizations"])
@@ -51,6 +52,7 @@ async def create_org(org: OrgCreate, db: AsyncSession = Depends(get_db), actor: 
     await db.flush()
     if not org.parent_org_id:  # sub-orgs inherit visibility from their parent
         db.add(Membership(user_id=actor.user.id, org_id=new_org.id))
+    await onboarding.record_milestone(db, new_org.id, "create_org")
     await db.commit()
     await db.refresh(new_org)
     return new_org
@@ -108,6 +110,7 @@ async def create_app_kb(org_id: str, kb: KBCreate, db: AsyncSession = Depends(ge
         source_urls=[s.model_dump() for s in kb.source_urls]
     )
     db.add(new_kb)
+    await onboarding.record_milestone(db, org.id, "link_connector")
     await db.commit()
     await db.refresh(new_kb)
     
@@ -146,12 +149,14 @@ async def invite_member(org_id: str, body: InviteRequest, db: AsyncSession = Dep
         exists = (await db.execute(select(Membership).where(Membership.user_id == user.id, Membership.org_id == org.id))).scalars().first()
         if not exists:
             db.add(Membership(user_id=user.id, org_id=org.id, invited_by=actor.user.id))
+        await onboarding.record_milestone(db, org.id, "invite_seat")
         await db.commit()
         return {"status": "member", "email": email}
     exists = (await db.execute(select(OrgInvite).where(OrgInvite.org_id == org.id, OrgInvite.email == email))).scalars().first()
     if not exists:
         db.add(OrgInvite(org_id=org.id, email=email, invited_by=actor.user.id))
-        await db.commit()
+    await onboarding.record_milestone(db, org.id, "invite_seat")
+    await db.commit()
     return {"status": "invited", "email": email}
 
 

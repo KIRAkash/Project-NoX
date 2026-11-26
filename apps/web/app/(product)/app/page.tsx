@@ -8,6 +8,7 @@ import { DeveloperHome } from "@/components/app/homes/developer";
 import { EngineeringHome } from "@/components/app/homes/engineering";
 import { ProductHome } from "@/components/app/homes/product";
 import { greeting } from "@/components/app/homes/shared";
+import { OnboardingChecklist } from "@/components/app/onboarding-checklist";
 import { PlanetCharacter } from "@/components/app/planet-character";
 import { Panel } from "@/components/app/ui";
 import { LiquidMetalLink } from "@/components/liquid-metal/liquid-metal";
@@ -67,6 +68,7 @@ export default function Home() {
         )}
       </section>
 
+      <OnboardingChecklist role={role} />
       {me!.orgs.length === 0 && <FreshStart role={role} />}
       <SeatHome role={role} />
     </div>

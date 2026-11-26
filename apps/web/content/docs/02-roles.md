@@ -24,6 +24,8 @@ The first time you reach a seat's home, a short tour points at what that seat ca
 - Each tour runs once. NoX remembers which ones you've seen across devices. **Replay the tour** in the account menu runs the current page's tour again.
 - On a phone the tour sits in a sheet at the bottom of the screen.
 
+New workspaces also see a **Workspace setup** checklist on the dashboard until all four core milestones are finished: charting your organization, connecting a repository or source connector, inviting a seat, and launching your first mission. Each item links straight to its setup screen, ticks off automatically as you complete the work, and can be dismissed at any time.
+
 Every seat uses the same address: `/app`. NoX knows your seat from the server, not from the URL, so a link to a mission works for whoever opens it. Old links that still carry a seat, such as `/app/developer/missions/NOX-1`, redirect to the same page without it.
 
 ## The four seats

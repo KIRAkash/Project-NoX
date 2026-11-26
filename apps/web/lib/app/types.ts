@@ -48,6 +48,29 @@ export type Members = {
   invites: { id: string; email: string; createdAt: string }[];
 };
 
+export type OnboardingMilestoneKey = "create_org" | "link_connector" | "invite_seat" | "launch_mission";
+
+export type OnboardingStep = {
+  key: OnboardingMilestoneKey;
+  title: string;
+  description: string;
+  href: string;
+  actionLabel: string;
+  completed: boolean;
+};
+
+export type OnboardingChecklistData = {
+  workspaceId: string | null;
+  workspaceName: string | null;
+  completedSteps: OnboardingMilestoneKey[];
+  completedCount: number;
+  totalCount: number;
+  progressPercent: number;
+  completed: boolean;
+  dismissed: boolean;
+  steps: OnboardingStep[];
+};
+
 export const SOURCE_LABEL: Record<SourceType, string> = {
   github: "GitHub repository",
   confluence: "Confluence space",

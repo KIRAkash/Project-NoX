@@ -44,6 +44,7 @@ export async function api<T = unknown>(path: string, init: RequestInit & { json?
     headers.set("Content-Type", "application/json");
     body = JSON.stringify(init.json);
   }
+  const method = (init.method || "GET").toUpperCase();
   const res = await fetch(`${API_URL}${path}`, { ...init, headers, body });
   if (!res.ok) {
     let detail = res.statusText;
@@ -55,5 +56,9 @@ export async function api<T = unknown>(path: string, init: RequestInit & { json?
     }
     throw new ApiError(res.status, detail);
   }
-  return (res.status === 204 ? undefined : await res.json()) as T;
+  const payload = (res.status === 204 ? undefined : await res.json()) as T;
+  if (method !== "GET" && typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("nox:api-mutation", { detail: { path, method } }));
+  }
+  return payload;
 }
