@@ -49,7 +49,7 @@ class Org(Base):
     name = Column(String, nullable=False)
     slug = Column(String, unique=True, index=True, nullable=False)
     github_org = Column(String, nullable=True)
-    parent_org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id"), nullable=True)
+    parent_org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.id"), nullable=True, index=True)
     created_at = Column(DateTime, default=now_utc_naive)
 
     parent = relationship("Org", remote_side=[id], back_populates="children")
