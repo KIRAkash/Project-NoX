@@ -15,23 +15,38 @@ def channel(mission: Mission | str) -> str:
     return f"mission:{mission if isinstance(mission, str) else mission.id}"
 
 
-async def record(db: AsyncSession, mission: Mission, type_: str, payload: dict | None = None,
-                 actor: User | None = None, role: str | None = None, commit: bool = True) -> MissionEvent:
+def stage_event(db: AsyncSession, mission: Mission, type_: str, payload: dict | None = None,
+                actor: User | None = None, role: str | None = None) -> MissionEvent:
+    """Add a MissionEvent to the open session without committing or firing external side effects yet."""
     payload = {**(payload or {})}
     if mission.stage is not None:
         payload.setdefault("stage", getattr(mission.stage, "value", mission.stage))
     ev = MissionEvent(mission_id=mission.id, type=type_, payload=payload, actor_id=actor.id if actor else None,
                       actor_name=(actor.name or actor.email) if actor else "NoX", acting_role=role)
     db.add(ev)
-    if commit:
-        await db.commit()
+    return ev
+
+
+async def publish_event(mission: Mission, ev: MissionEvent) -> None:
+    """Broadcast SSE, analytics, and ticket pipeline sync after a transaction has committed."""
     from ..services.tickets import sync_pipeline_quietly
 
-    await sync_pipeline_quietly(mission, type_, ev.actor_name)  # keep the Firestore ticket's pipeline in step
+    await sync_pipeline_quietly(mission, ev.type, ev.actor_name)  # keep the Firestore ticket's pipeline in step
     from ..services import analytics
 
     analytics.emit("mission_events", analytics.mission_event_row(mission, ev))
-    await get_sse_manager().broadcast(channel(mission), {"type": type_, "payload": {**(payload or {}), "actor": ev.actor_name, "actingRole": role}})
+    await get_sse_manager().broadcast(
+        channel(mission),
+        {"type": ev.type, "payload": {**(ev.payload or {}), "actor": ev.actor_name, "actingRole": ev.acting_role}},
+    )
+
+
+async def record(db: AsyncSession, mission: Mission, type_: str, payload: dict | None = None,
+                 actor: User | None = None, role: str | None = None, commit: bool = True) -> MissionEvent:
+    ev = stage_event(db, mission, type_, payload, actor, role)
+    if commit:
+        await db.commit()
+    await publish_event(mission, ev)
     return ev
 
 

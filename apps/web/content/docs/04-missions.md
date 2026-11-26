@@ -156,6 +156,20 @@ The person who started a mission can call it off. Open the **⋯** menu next to 
 
 Only the person who started the mission can cancel, restore or delete it.
 
+## Bulk triage and archiving
+
+On the **Missions** page, every row in the table and every card across the stage and priority boards has a selection checkbox:
+
+- **Select all** in the list or board header checks every visible mission and shows the total selection count.
+- **Shift+Click** selects a contiguous range of missions across rows or board columns.
+- **Escape** clears the active selection and hides the floating bulk toolbar.
+
+When one or more missions are selected, a floating toolbar opens at the bottom of the screen without covering rows or navigation:
+
+- **Archive** moves selected missions (such as finished work in **Done**) off the active board into the **Archived** filter view in a single request, and **Unarchive** brings them back.
+- **Set status** moves selected missions together to any stage on the board (and **Priority** lets the product owner set `P1`–`P4` in bulk).
+- **Delete** permanently removes selected missions in one atomic transaction when every selected mission was started by you and has not yet left the business seat.
+
 ## Priority and title
 
 The product owner sets the mission's priority (**P1** to **P4**) from the header. The title starts as the request and can be edited by the product owner or the mission's creator.

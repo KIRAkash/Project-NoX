@@ -929,22 +929,28 @@ async def mark_shipped(db: AsyncSession, mission: Mission) -> None:
         await _emit(s.org_id, "sighting.shipped", {"id": str(s.id), "mission": mission.key})
 
 
-async def release(db: AsyncSession, mission: Mission) -> None:
+async def release(db: AsyncSession, mission: Mission, *, commit: bool = True) -> Sighting | None:
     """The mission started from this sighting was cancelled or deleted: the sighting is open to start again."""
     s = await db.get(Sighting, mission.sighting_id) if mission.sighting_id else None
     if s and s.status == SightingStatus.launched and s.mission_id in (mission.id, None):
         s.status, s.mission_id, s.updated_at = SightingStatus.open, None, utcnow()
-        await db.commit()
-        await _emit(s.org_id, "sighting.released", {"id": str(s.id), "mission": mission.key})
+        if commit:
+            await db.commit()
+            await _emit(s.org_id, "sighting.released", {"id": str(s.id), "mission": mission.key})
+        return s
+    return None
 
 
-async def reclaim(db: AsyncSession, mission: Mission) -> None:
+async def reclaim(db: AsyncSession, mission: Mission, *, commit: bool = True) -> Sighting | None:
     """A cancelled mission was restored: take its sighting back, unless someone has acted on it since."""
     s = await db.get(Sighting, mission.sighting_id) if mission.sighting_id else None
     if s and s.status == SightingStatus.open and s.mission_id is None:
         s.status, s.mission_id, s.updated_at = SightingStatus.launched, mission.id, utcnow()
-        await db.commit()
-        await _emit(s.org_id, "sighting.launched", {"id": str(s.id), "mission": mission.key})
+        if commit:
+            await db.commit()
+            await _emit(s.org_id, "sighting.launched", {"id": str(s.id), "mission": mission.key})
+        return s
+    return None
 
 
 async def give_feedback(db: AsyncSession, actor: Actor, sighting_id, action: str, reason: str | None) -> dict:

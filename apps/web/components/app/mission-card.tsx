@@ -7,6 +7,7 @@ import { ROLE_BY_ID } from "@/lib/app/roles";
 import { STAGE_INDEX, STAGE_LABEL, type Mission, type MissionStage } from "@/lib/app/types";
 
 import { appHue } from "./contract-map";
+import { MissionCheckbox } from "./bulk-toolbar";
 import { OrbitArc } from "./ui";
 
 /** The colour a stage wears: the owning seat's hue for the four spec stages, then build (developer), verify, done. */
@@ -18,17 +19,33 @@ export function stageHue(stage: MissionStage): string {
 }
 
 /** `showPriority` is off where the column already says the priority (the product owner's board). */
-export function MissionCard({ m, compact = false, showPriority = true }: { m: Mission; compact?: boolean; showPriority?: boolean }) {
+export function MissionCard({
+  m,
+  compact = false,
+  showPriority = true,
+  selected = false,
+  onToggleSelect,
+}: {
+  m: Mission;
+  compact?: boolean;
+  showPriority?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (shiftKey: boolean) => void;
+}) {
   const verifying = m.stage === "verifying";
   const hue = stageHue(m.stage);
   const apps = m.apps.map((a) => a.name).join(", ");
-  return (
+  const card = (
     <Link
       href={`/app/missions/${m.key}`}
-      className="block rounded-md border border-hairline bg-[rgb(var(--well)/.72)] p-4 transition hover:border-[color:color-mix(in_srgb,var(--role)_45%,transparent)]"
+      className={`block rounded-md border p-4 transition hover:border-[color:color-mix(in_srgb,var(--role)_45%,transparent)] ${
+        selected
+          ? "border-[color:color-mix(in_srgb,var(--role)_65%,transparent)] bg-[color:color-mix(in_srgb,var(--role)_9%,rgb(var(--well)/.8))]"
+          : "border-hairline bg-[rgb(var(--well)/.72)]"
+      }`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 font-mono text-[11px] text-ink-dim">
+        <span className={`flex items-center gap-1.5 font-mono text-[11px] text-ink-dim ${onToggleSelect ? "pl-6" : ""}`}>
           {/* The stage dot is the only hue: the colour of the seat the mission is with. */}
           <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: hue }} />
           {m.key}
@@ -51,5 +68,20 @@ export function MissionCard({ m, compact = false, showPriority = true }: { m: Mi
         <span className="shrink-0"><OrbitArc current={STAGE_INDEX[m.stage]} reverse={verifying} width={72} /></span>
       </div>
     </Link>
+  );
+
+  if (!onToggleSelect) return card;
+
+  return (
+    <div className="group relative">
+      <div className="absolute left-3.5 top-3.5 z-10 flex items-center">
+        <MissionCheckbox
+          checked={selected}
+          onToggle={onToggleSelect}
+          ariaLabel={`Select ${m.key}: ${m.title}`}
+        />
+      </div>
+      {card}
+    </div>
   );
 }

@@ -162,6 +162,14 @@ async def set_cancelled(mission: Mission, cancelled: dict | None) -> None:
         logger.warning("ticket state for %s not written: %s", mission.key, e)
 
 
+async def set_archived(mission: Mission, archived: dict | None) -> None:
+    """Mark the ticket archived (or not), best-effort like the pipeline sync."""
+    try:
+        await asyncio.wait_for(store().merge(mission.key, {"archived": archived, "updatedAt": datetime.now(UTC)}), timeout=5)
+    except Exception as e:
+        logger.warning("ticket state for %s not written: %s", mission.key, e)
+
+
 async def forget_ticket(mission: Mission) -> None:
     """The mission was deleted: its ticket document goes too."""
     try:
