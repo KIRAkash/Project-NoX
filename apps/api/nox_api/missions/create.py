@@ -46,9 +46,12 @@ async def start_mission(db: AsyncSession, actor: Actor, *, prompt: str, kbs: lis
         drafting = role == creator or role in upstream_of(creator)
         db.add(SpecFile(mission_id=mission.id, role=role, status=SpecStatus.drafting if drafting else SpecStatus.empty,
                         author_id=actor.user.id if role == creator else None))
+    from ..services import onboarding
+
     captures = captures or []
     for c in captures:  # a draft capture moves into the mission's org, where everyone on the mission can see it
         c.mission_id, c.org_id = mission.id, mission.org_id
+    await onboarding.record_milestone(db, mission.org_id, "launch_mission")
     await db.commit()
     created = {"key": mission.key, "prompt": mission.prompt}
     if sighting_id:

@@ -1,9 +1,10 @@
 """The signed-in user: profile, picked role, the orgs they can see, and their first run (welcome choice, tours)."""
 
 from typing import Literal
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +22,10 @@ class RoleUpdate(BaseModel):
 
 class EstateChoice(BaseModel):
     estate: Literal["demo", "fresh"]
+
+
+class ChecklistDismissBody(BaseModel):
+    org_id: UUID | None = Field(default=None, alias="orgId")
 
 
 async def _me_payload(db: AsyncSession, user: User) -> dict:
@@ -101,6 +106,36 @@ async def replay_tour(key: str, user: User = Depends(current_user), db: AsyncSes
     user.tours_seen = [k for k in (user.tours_seen or []) if k != key]
     await db.commit()
     return {"toursSeen": list(user.tours_seen or [])}
+
+
+@router.get("/checklist")
+async def get_checklist(
+    org_id: UUID | None = Query(default=None, alias="orgId"),
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Setup checklist progress and milestone completion for the caller's workspace."""
+    return await onboarding.checklist_status(db, user, org_id=org_id)
+
+
+@router.post("/checklist/dismiss")
+async def dismiss_checklist_route(
+    body: ChecklistDismissBody | None = None,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Hide the workspace setup checklist for the caller."""
+    return await onboarding.dismiss_checklist(db, user, org_id=body.org_id if body else None, dismissed=True)
+
+
+@router.delete("/checklist/dismiss")
+async def restore_checklist_route(
+    org_id: UUID | None = Query(default=None, alias="orgId"),
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Restore a previously dismissed workspace setup checklist."""
+    return await onboarding.dismiss_checklist(db, user, org_id=org_id, dismissed=False)
 
 
 @router.get("/agents")
