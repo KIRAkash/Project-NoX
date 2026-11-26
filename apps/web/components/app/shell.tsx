@@ -15,27 +15,25 @@ import { Planet } from "./planet";
 import { NoxMark } from "./nox-mark";
 import { ThemeToggle } from "./theme-toggle";
 import { TourProvider, useTour } from "./tour/tour";
-import { ToastProvider, usePopover, useToast } from "./ui";
+import { usePopover, useToast } from "./ui";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { me } = useAuth();
   if (!me?.role) return null;
   const role = ROLE_BY_ID[me.role];
   return (
-    <ToastProvider>
-      {/* `data-seat` sets the seat's colour (`--role`) and texture in globals.css: warm and airy, board, blueprint or terminal. */}
-      <div data-seat={role.id} className="seat-shell min-h-screen lg:pl-[232px]">
-        <TourProvider>
-          <Sidebar role={role} />
-          <div className="flex min-h-screen flex-col">
-            {me.inDemo && <DemoRibbon />}
-            <TopBar role={role} />
-            <main className="seat-main relative flex-1 px-4 pb-28 pt-6 sm:px-8 lg:pb-12">{children}</main>
-          </div>
-          <BottomNav role={role} />
-        </TourProvider>
-      </div>
-    </ToastProvider>
+    /* `data-seat` sets the seat's colour (`--role`) and texture in globals.css: warm and airy, board, blueprint or terminal. */
+    <div data-seat={role.id} className="seat-shell min-h-screen lg:pl-[232px]">
+      <TourProvider>
+        <Sidebar role={role} />
+        <div className="flex min-h-screen flex-col">
+          {me.inDemo && <DemoRibbon />}
+          <TopBar role={role} />
+          <main className="seat-main relative flex-1 px-4 pb-28 pt-6 sm:px-8 lg:pb-12">{children}</main>
+        </div>
+        <BottomNav role={role} />
+      </TourProvider>
+    </div>
   );
 }
 

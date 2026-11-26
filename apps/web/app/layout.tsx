@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Outfit, DM_Sans, JetBrains_Mono } from "next/font/google";
+import { ToastProvider, ToastViewport } from "@/components/app/toast";
 import { ThemeProvider } from "@/lib/app/theme";
 import "./globals.css";
 
@@ -64,7 +65,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {`try{if('scrollRestoration' in history){history.scrollRestoration='manual';}window.scrollTo(0,0);}catch(e){}`}
         </Script>
         <ThemeProvider>
-          {children}
+          <ToastProvider withViewport={false}>
+            {children}
+            <ToastViewport />
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

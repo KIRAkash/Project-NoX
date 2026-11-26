@@ -188,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Tours update locally first so a finished tour never starts again on this page, then tell the server.
   const markTourSeen = useCallback((key: string) => {
     setMe((cur) => (cur && !cur.toursSeen.includes(key) ? { ...cur, toursSeen: [...cur.toursSeen, key] } : cur));
-    void api(`/api/v1/me/tours/${encodeURIComponent(key)}`, { method: "PUT" }).catch(() => {
+    void api(`/api/v1/me/tours/${encodeURIComponent(key)}`, { method: "PUT", suppressToast: true }).catch(() => {
       /* best effort: at worst the tour offers itself once more next visit */
     });
   }, []);
