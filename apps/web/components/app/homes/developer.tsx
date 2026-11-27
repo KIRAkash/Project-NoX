@@ -10,23 +10,44 @@ import { EmptyState, Panel } from "@/components/app/ui";
 import type { RoleDef } from "@/lib/app/roles";
 import { STAGE_LABEL, type Mission } from "@/lib/app/types";
 import { useApi } from "@/lib/app/use-api";
+import { useWorkspaceStage } from "@/lib/app/workspace-stage";
 
-import { AtlasPanel, MissionPanel, NoxCommand } from "./shared";
+import { AtlasPanel, MissionPanel, NoxCommand, SeatStageToggle } from "./shared";
 import { C, legible } from "@/lib/app/palette";
 import { useHomeTour } from "@/components/app/tour/tour";
 
-type Token = { id: string; name: string; createdAt: string; lastUsedAt: string | null };
+export type CliToken = { id: string; name: string; createdAt: string; lastUsedAt: string | null };
 
 /**
  * The build bay: the developer builds with their own coding agent. So the home is a build queue with the exact
  * `/nox NOX-n` command to paste, the pull requests in flight, and — until the CLI has signed in — how to set it up.
  */
 export function DeveloperHome({ role }: { role: RoleDef }) {
+  const { hasMissions, showAllPanels } = useWorkspaceStage();
   const waiting = useApi<Mission[]>("/api/v1/missions?view=waiting");
   const all = useApi<Mission[]>("/api/v1/missions?view=all");
-  const tokens = useApi<Token[]>("/api/v1/me/tokens");
+  const tokens = useApi<CliToken[]>("/api/v1/me/tokens");
   const prs = (all.data ?? []).flatMap((m) => m.links.filter((l) => l.system === "github_pr").map((l) => ({ m, l })));
+  const liveHasMissions = hasMissions || Boolean(all.data?.length || waiting.data?.length);
+  const expanded = liveHasMissions || showAllPanels;
   useHomeTour(role.id, !waiting.loading && !all.loading && !tokens.loading);
+
+  if (!expanded) {
+    return (
+      <div className="mt-10 space-y-5">
+        <div className="grid items-start gap-5 lg:grid-cols-3">
+          <AtlasPanel role={role} title="Your applications" className="lg:col-span-2" tour="your-apps" />
+          <CliPanel tokens={tokens.data} loading={tokens.loading} hasMissions={liveHasMissions} />
+        </div>
+        {!all.loading && (
+          <SeatStageToggle
+            role={role}
+            hiddenSummary="Build queue, pull requests, and verification panels are"
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="mt-10 space-y-5">
@@ -54,7 +75,7 @@ export function DeveloperHome({ role }: { role: RoleDef }) {
             <EmptyState role={role} line="Nothing in the queue. Missions land here once the engineering design is approved." />
           )}
         </Panel>
-        <CliPanel tokens={tokens.data} loading={tokens.loading} />
+        <CliPanel tokens={tokens.data} loading={tokens.loading} hasMissions={liveHasMissions} />
       </div>
 
       <SightingsPanel role={role} />
@@ -82,17 +103,32 @@ export function DeveloperHome({ role }: { role: RoleDef }) {
               })}
             </ul>
           ) : (
-            <EmptyState line="No pull requests linked yet. `nox pr NOX-n` links one and runs the guard." />
+            <EmptyState line="No pull requests linked yet. Link a pull request from the CLI once a mission is in build." />
           )}
         </Panel>
         <MissionPanel title="Verify first" view="back" empty="After you mark a mission completed, your verification checklist lights up here first." role={role} tour="verify-first" />
         <AtlasPanel role={role} title="Your applications" tour="your-apps" />
       </div>
+
+      {!liveHasMissions && !all.loading && (
+        <SeatStageToggle
+          role={role}
+          hiddenSummary="Build queue, pull requests, and verification panels are"
+        />
+      )}
     </div>
   );
 }
 
-function CliPanel({ tokens, loading }: { tokens: Token[] | null; loading: boolean }) {
+export function CliPanel({
+  tokens,
+  loading,
+  hasMissions = false,
+}: {
+  tokens: CliToken[] | null;
+  loading: boolean;
+  hasMissions?: boolean;
+}) {
   const connected = Boolean(tokens?.length);
   const last = tokens?.map((t) => t.lastUsedAt).filter(Boolean).sort().pop();
   return (
@@ -113,19 +149,31 @@ function CliPanel({ tokens, loading }: { tokens: Token[] | null; loading: boolea
             <div className="text-ink-dim">$ nox whoami</div>
             <div className="text-verify">✓ signed in · {tokens!.length} token{tokens!.length > 1 ? "s" : ""}</div>
             {last && <div className="text-ink-dim">last call {new Date(last).toLocaleString()}</div>}
-            <div className="mt-2 text-ink-dim">$ nox missions --view waiting</div>
-            <div className="text-ink-dim">
-              then in your agent: <span className="text-[color:var(--sky-ink)]">/nox NOX-n</span>
-            </div>
+            {hasMissions ? (
+              <>
+                <div className="mt-2 text-ink-dim">$ nox missions --view waiting</div>
+                <div className="text-ink-dim">
+                  then in your agent: <span className="text-[color:var(--sky-ink)]">/nox NOX-n</span>
+                </div>
+              </>
+            ) : (
+              <div className="mt-2 text-ink-dim"># mission commands appear once your first mission starts</div>
+            )}
           </>
         ) : (
           <>
             <div className="text-ink-dim"># not signed in yet</div>
-            <div className="text-ink">$ packages/nox-cli/install.sh</div>
+            {hasMissions && <div className="text-ink">$ packages/nox-cli/install.sh</div>}
             <div className="text-ink">$ nox login</div>
             <div className="text-ink">$ nox init antigravity</div>
-            <div className="mt-1 text-ink-dim">then in your agent:</div>
-            <div className="text-[color:var(--sky-ink)]">&gt; /nox NOX-n</div>
+            {hasMissions ? (
+              <>
+                <div className="mt-1 text-ink-dim">then in your agent:</div>
+                <div className="text-[color:var(--sky-ink)]">&gt; /nox NOX-n</div>
+              </>
+            ) : (
+              <div className="mt-1 text-ink-dim"># open cli → for install steps</div>
+            )}
           </>
         )}
       </div>

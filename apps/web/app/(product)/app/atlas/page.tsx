@@ -18,7 +18,7 @@ import { useApi } from "@/lib/app/use-api";
 import { C } from "@/lib/app/palette";
 
 export default function AtlasPage() {
-  const { me } = useAuth();
+  const { me, chooseRole } = useAuth();
   const caps = me!.capabilities;
   const role = ROLE_BY_ID[me!.role!];
 
@@ -27,7 +27,30 @@ export default function AtlasPage() {
       <div className="mx-auto max-w-shell">
         <PageHeader eyebrow="Atlas" title="Not part of this seat" />
         <Panel title="Atlas" className="mt-8">
-          <EmptyState line="The atlas — onboarding applications and their knowledge bases — belongs to product, engineering and development. Switch roles to explore it." />
+          <EmptyState line="The atlas — onboarding applications and their knowledge bases — belongs to product, engineering and development. Switch roles to explore it.">
+            <div className="flex flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => void chooseRole("engineering")}
+                className="inline-flex h-9 items-center rounded-sm border border-hairline px-3.5 text-[13px] font-medium text-ink hover:border-[color:var(--role)]"
+              >
+                Switch to Engineering lead
+              </button>
+              <button
+                type="button"
+                onClick={() => void chooseRole("developer")}
+                className="inline-flex h-9 items-center rounded-sm border border-hairline px-3.5 text-[13px] text-ink-muted hover:text-ink"
+              >
+                Switch to Developer
+              </button>
+              <Link
+                href="/app"
+                className="inline-flex h-9 items-center rounded-sm px-3 text-[13px] text-ink-dim hover:text-ink"
+              >
+                ← Back to Home
+              </Link>
+            </div>
+          </EmptyState>
         </Panel>
       </div>
     );
@@ -420,6 +443,7 @@ function slugify(s: string) {
 }
 
 function NewOrgForm({ parentId, onCreated, onCancel }: { parentId?: string; onCreated: () => void; onCancel?: () => void }) {
+  const { refreshMe } = useAuth();
   const toast = useToast();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -430,6 +454,7 @@ function NewOrgForm({ parentId, onCreated, onCancel }: { parentId?: string; onCr
     setError(null);
     try {
       await api("/api/v1/orgs", { method: "POST", json: { name: name.trim(), slug: slugify(name), parentOrgId: parentId ?? null } });
+      void refreshMe();
       toast(`${name.trim()} added to the atlas`, "success");
       setName("");
       onCreated();

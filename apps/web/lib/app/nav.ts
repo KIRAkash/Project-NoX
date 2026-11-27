@@ -29,8 +29,19 @@ const SEAT_NAV: Record<RoleId, string[]> = {
   developer: ["home", "missions", "sightings", "atlas", "specs", "cli", "impact"],
 };
 
+/** Top-level destinations shown on brand-new workspaces before the first mission starts; the rest group under More. */
+export const PRIMARY_NAV_KEYS = new Set(["home", "missions", "atlas"]);
+
 export function navFor(role: RoleId): NavItem[] {
-  return SEAT_NAV[role].map((k) => (k === "missions" ? { ...ITEM.missions, label: ROLE_BY_ID[role].missionsLabel } : ITEM[k]));
+  return SEAT_NAV[role].map((k) => (k === "missions" ? { ...ITEM[k], label: ROLE_BY_ID[role].missionsLabel } : ITEM[k]));
+}
+
+export function navGroupsFor(role: RoleId): { primary: NavItem[]; secondary: NavItem[] } {
+  const all = navFor(role);
+  return {
+    primary: all.filter((item) => PRIMARY_NAV_KEYS.has(item.key)),
+    secondary: all.filter((item) => !PRIMARY_NAV_KEYS.has(item.key)),
+  };
 }
 
 /** The single most important action on each role's home. */

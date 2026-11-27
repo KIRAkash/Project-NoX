@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -12,6 +12,7 @@ import type { RoleDef } from "@/lib/app/roles";
 import type { Mission, MissionStage, Org, OrgMap } from "@/lib/app/types";
 import { useApi } from "@/lib/app/use-api";
 import { C, legible } from "@/lib/app/palette";
+import { useWorkspaceStage } from "@/lib/app/workspace-stage";
 
 type Kb = { id: string; appName: string; status: KbStatus; prUrl?: string | null };
 type Integration = { name: string; required: boolean; configured: boolean; ok: boolean; detail: string };
@@ -19,6 +20,43 @@ type Integration = { name: string; required: boolean; configured: boolean; ok: b
 export function greeting(): string {
   const h = new Date().getHours();
   return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+}
+
+/**
+ * Skippable one-click bar shown on seat homes when zero missions exist, letting users expand or collapse
+ * post-mission queues at any time.
+ */
+export function SeatStageToggle({
+  role,
+  hiddenSummary,
+}: {
+  role: RoleDef;
+  hiddenSummary: string;
+}) {
+  const { showAllPanels, setShowAllPanels, setMoreNavOpen } = useWorkspaceStage();
+  const toggle = () => {
+    const next = !showAllPanels;
+    setShowAllPanels(next);
+    if (next) setMoreNavOpen(true);
+  };
+  return (
+    <div
+      data-testid="seat-stage-toggle"
+      className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-hairline bg-[rgb(var(--void-rgb)/.4)] px-4 py-2.5 text-[12.5px] text-ink-muted"
+    >
+      <span>{showAllPanels ? "Full seat layout expanded." : `${hiddenSummary} hidden until your first mission starts.`}</span>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={showAllPanels}
+        className="inline-flex items-center gap-1.5 font-semibold hover:underline"
+        style={{ color: role.ink }}
+      >
+        {showAllPanels ? <EyeOff size={13} aria-hidden /> : <Eye size={13} aria-hidden />}
+        {showAllPanels ? "Hide empty queues" : "Show full seat layout"}
+      </button>
+    </div>
+  );
 }
 
 /** One mission list from `GET /missions?view=…`, as compact cards. */

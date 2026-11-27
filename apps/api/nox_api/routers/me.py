@@ -4,12 +4,12 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.auth import ACCESS, current_user, visible_org_ids
 from ..db.database import get_db
-from ..db.models import Org, Role, User
+from ..db.models import KBStatus, KnowledgeBase, Mission, Org, Role, User
 from ..services import onboarding
 
 router = APIRouter(prefix="/api/v1/me", tags=["Me"])
@@ -28,6 +28,31 @@ async def _me_payload(db: AsyncSession, user: User) -> dict:
 
     visible = await visible_org_ids(db, user)
     orgs = (await db.execute(select(Org).where(Org.id.in_(visible)).order_by(Org.name))).scalars().all() if visible else []
+    if visible:
+        app_count = (
+            await db.execute(select(func.count(KnowledgeBase.id)).where(KnowledgeBase.org_id.in_(visible)))
+        ).scalar_one()
+        published_wikis = (
+            await db.execute(
+                select(func.count(KnowledgeBase.id)).where(
+                    KnowledgeBase.org_id.in_(visible),
+                    KnowledgeBase.status == KBStatus.published,
+                )
+            )
+        ).scalar_one()
+        mission_count = (
+            await db.execute(
+                select(func.count(Mission.id)).where(
+                    Mission.org_id.in_(visible),
+                    Mission.cancelled_at.is_(None),
+                )
+            )
+        ).scalar_one()
+    else:
+        app_count = 0
+        published_wikis = 0
+        mission_count = 0
+
     return {
         "id": str(user.id),
         "email": user.email,
@@ -37,6 +62,12 @@ async def _me_payload(db: AsyncSession, user: User) -> dict:
         "capabilities": sorted(c.value for c in ACCESS[user.last_role]) if user.last_role else [],
         "aiBackend": backend(),  # "local" hides video and voice capture (NoX Local reads images only)
         "orgs": [{"id": str(o.id), "name": o.name, "slug": o.slug, "parentOrgId": str(o.parent_org_id) if o.parent_org_id else None} for o in orgs],
+        "readiness": {
+            "orgs": len(orgs),
+            "apps": app_count,
+            "publishedWikis": published_wikis,
+            "missions": mission_count,
+        },
         # First run: the welcome screen shows until `onboarded`; tours run once each (keys in services/onboarding.py).
         "onboarded": user.onboarded_at is not None,
         "estate": user.estate,
