@@ -61,8 +61,11 @@ function writeProgress(key: string, index: number | null) {
 /** The first visible element carrying this anchor (the sidebar and the bottom nav both carry nav anchors). */
 export function findTarget(name: string): HTMLElement | null {
   for (const el of Array.from(document.querySelectorAll<HTMLElement>(`[data-tour="${name}"]`))) {
+    if (!el.isConnected || el.closest("[hidden], [aria-hidden='true']")) continue;
+    const style = getComputedStyle(el);
+    if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") continue;
     const r = el.getBoundingClientRect();
-    if (r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden") return el;
+    if (r.width > 0 && r.height > 0 && el.getClientRects().length > 0) return el;
   }
   return null;
 }
@@ -209,7 +212,10 @@ function TourOverlay({ tour, onIndex, onEnd }: { tour: Active; onIndex: (i: numb
     (dir: 1 | -1) => {
       let i = tour.index + dir;
       while (i >= 0 && i < tour.steps.length && !present(tour.steps[i])) i += dir; // its anchor left the page
-      if (i < 0) return;
+      if (i < 0) {
+        onEnd(false);
+        return;
+      }
       if (i >= tour.steps.length) onEnd(true);
       else onIndex(i);
     },
@@ -250,7 +256,12 @@ function TourOverlay({ tour, onIndex, onEnd }: { tour: Active; onIndex: (i: numb
           go(1);
           return;
         }
+        const style = getComputedStyle(target);
         const r = target.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0 || style.display === "none" || style.visibility === "hidden") {
+          go(1);
+          return;
+        }
         const next = { top: r.top, left: r.left, width: r.width, height: r.height };
         if (!sameRect(prev, next)) {
           prev = next;
@@ -411,10 +422,11 @@ function TourOverlay({ tour, onIndex, onEnd }: { tour: Active; onIndex: (i: numb
   );
 
   return (
-    <div className="tour-layer fixed inset-0 z-[60]" data-tour-active="">
-      {blockers.map((style, i) => (
-        <div key={i} className="fixed" style={style} aria-hidden />
-      ))}
+    <div className={`tour-layer fixed inset-0 z-[60] ${waiting ? "pointer-events-none" : ""}`} data-tour-active="">
+      {!waiting &&
+        blockers.map((style, i) => (
+          <div key={i} className="fixed" style={style} aria-hidden />
+        ))}
       {/* One element draws both the dimmed page (its huge shadow) and the ring around the target. */}
       <div
         aria-hidden
@@ -477,5 +489,5 @@ export function useHomeTour(role: RoleId, ready: boolean) {
   const fresh = (me?.orgs.length ?? 0) === 0;
   const key = fresh ? "fresh" : `home:${role}`;
   const steps = useMemo(() => (fresh ? freshTour(role) : homeTour(role)), [fresh, role]);
-  usePageTour(key, steps, ready);
+  usePageTour(key, steps, ready && Boolean(me));
 }

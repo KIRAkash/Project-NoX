@@ -9,8 +9,9 @@ import { EmptyState, Panel } from "@/components/app/ui";
 import type { RoleDef } from "@/lib/app/roles";
 import { STAGE_LABEL, type Mission } from "@/lib/app/types";
 import { useApi } from "@/lib/app/use-api";
+import { useWorkspaceStage } from "@/lib/app/workspace-stage";
 
-import { AtlasPanel, ConnectorHealth, MissionPanel, useRootOrgMap } from "./shared";
+import { AtlasPanel, ConnectorHealth, MissionPanel, SeatStageToggle, useRootOrgMap } from "./shared";
 import { useHomeTour } from "@/components/app/tour/tour";
 
 /**
@@ -19,14 +20,64 @@ import { useHomeTour } from "@/components/app/tour/tour";
  * of where that mission is — the blast radius — then the design reviews and the health of the estate.
  */
 export function EngineeringHome({ role }: { role: RoleDef }) {
+  const { hasApps, hasMissions, showAllPanels } = useWorkspaceStage();
   const { root, map, loading } = useRootOrgMap();
   const all = useApi<Mission[]>("/api/v1/missions?view=all");
   const open = (all.data ?? []).filter((m) => m.stage !== "done");
+  const liveHasMissions = hasMissions || Boolean(all.data?.length);
+  const liveHasApps = hasApps || Boolean(map.data?.apps.length);
+  const expanded = liveHasMissions || showAllPanels;
 
   const lit: Record<string, string> = {};
   for (const m of [...open].reverse()) for (const a of m.apps) lit[a.id] = stageHue(m.stage);
   const touched = new Set(Object.keys(lit));
   useHomeTour(role.id, !loading && !all.loading);
+
+  if (!expanded) {
+    return (
+      <div className="mt-10 space-y-5">
+        <div className="grid items-start gap-5 lg:grid-cols-3">
+          {liveHasApps ? (
+            <Panel
+              title={root ? `Blast radius · ${root.name}` : "Blast radius"}
+              className="lg:col-span-2"
+              tour="blast-radius"
+              action={
+                <Link href="/app/atlas" className="text-[12px] hover:underline" style={{ color: role.ink }}>
+                  Open atlas →
+                </Link>
+              }
+            >
+              {loading && !map.data ? (
+                <p className="text-[13px] text-ink-faint">Mapping contracts…</p>
+              ) : map.data?.apps.length ? (
+                <>
+                  <ContractMap map={map.data} lit={lit} />
+                  <p className="mt-3 text-[12px] text-ink-dim">
+                    {touched.size} of {map.data.apps.length} applications are changing in open missions.
+                  </p>
+                </>
+              ) : (
+                <EmptyState role={role} line="No applications mapped yet. Once knowledge bases are built, their contracts draw the map." />
+              )}
+            </Panel>
+          ) : (
+            <AtlasPanel role={role} title="Knowledge bases" className="lg:col-span-2" tour="knowledge-bases" />
+          )}
+          <div className="space-y-5">
+            {liveHasApps && <AtlasPanel role={role} title="Knowledge bases" tour="knowledge-bases" />}
+            <ConnectorHealth tour="connectors" />
+          </div>
+        </div>
+        {!all.loading && (
+          <SeatStageToggle
+            role={role}
+            hiddenSummary="Design review, build, and scope-check queues are"
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="mt-10 space-y-5">
@@ -81,6 +132,13 @@ export function EngineeringHome({ role }: { role: RoleDef }) {
         <MissionPanel title="Back for a scope check" view="back" empty="Shipped missions come back here for a scope check against your design." tour="scope-check" />
         <AtlasPanel role={role} title="Knowledge bases" tour="knowledge-bases" />
       </div>
+
+      {!liveHasMissions && !all.loading && (
+        <SeatStageToggle
+          role={role}
+          hiddenSummary="Design review, build, and scope-check queues are"
+        />
+      )}
     </div>
   );
 }

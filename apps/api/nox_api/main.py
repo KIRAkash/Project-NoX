@@ -15,6 +15,7 @@ from .core.logging import RequestIdMiddleware, configure_logging
 from .db.database import engine, init_db
 from .interop import a2a, mcp_server
 from .routers import (
+    activity,
     cli,
     integrations,
     jira,
@@ -104,6 +105,7 @@ app.include_router(sightings.router)
 app.include_router(sightings.org_router)
 app.include_router(sightings.internal_router)
 app.include_router(specs.router)
+app.include_router(activity.router)
 
 # MCP at exactly /mcp and A2A under /a2a/ask; both refuse requests without a NoX token (interop/).
 app.router.routes.append(Route("/mcp", mcp_server.gate, methods=["GET", "POST", "DELETE"]))

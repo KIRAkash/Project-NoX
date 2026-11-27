@@ -1,15 +1,16 @@
 "use client";
 
-import { Bell, Command, Compass, LogIn, LogOut, Repeat, Search, SquareTerminal } from "lucide-react";
+import { AlignLeft, Bell, ChevronDown, Command, Compass, LogIn, LogOut, MoreHorizontal, Repeat, Search, SquareTerminal } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAuth } from "@/lib/app/auth";
-import { navFor } from "@/lib/app/nav";
+import { navFor, navGroupsFor, type NavItem } from "@/lib/app/nav";
 import { C, tint } from "@/lib/app/palette";
 import { ROLE_BY_ID, type RoleDef } from "@/lib/app/roles";
 import { useApi } from "@/lib/app/use-api";
+import { WorkspaceStageProvider, useWorkspaceStage } from "@/lib/app/workspace-stage";
 
 import { Planet } from "./planet";
 import { NoxMark } from "./nox-mark";
@@ -23,23 +24,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const role = ROLE_BY_ID[me.role];
   return (
     <ToastProvider>
-      {/* `data-seat` sets the seat's colour (`--role`) and texture in globals.css: warm and airy, board, blueprint or terminal. */}
-      <div data-seat={role.id} className="seat-shell min-h-screen lg:pl-[232px]">
-        <TourProvider>
-          <Sidebar role={role} />
-          <div className="flex min-h-screen flex-col">
-            {me.inDemo && <DemoRibbon />}
-            <TopBar role={role} />
-            <main className="seat-main relative flex-1 px-4 pb-28 pt-6 sm:px-8 lg:pb-12">{children}</main>
-          </div>
-          <BottomNav role={role} />
-        </TourProvider>
-      </div>
+      <WorkspaceStageProvider>
+        {/* `data-seat` sets the seat's colour (`--role`) and texture in globals.css: warm and airy, board, blueprint or terminal. */}
+        <div data-seat={role.id} className="seat-shell min-h-screen lg:pl-[232px]">
+          <TourProvider>
+            <Sidebar role={role} />
+            <div className="flex min-h-screen flex-col">
+              {me.inDemo && <DemoRibbon />}
+              <TopBar role={role} />
+              <main className="seat-main relative flex-1 px-4 pb-28 pt-6 sm:px-8 lg:pb-12">{children}</main>
+            </div>
+            <BottomNav role={role} />
+          </TourProvider>
+        </div>
+      </WorkspaceStageProvider>
     </ToastProvider>
   );
 }
 
 function useActive(role: RoleDef) {
+  void role;
   const pathname = usePathname();
   return (path: string) => {
     const full = `/app${path}`;
@@ -47,8 +51,34 @@ function useActive(role: RoleDef) {
   };
 }
 
+function SidebarLink({ item, active, role }: { item: NavItem; active: boolean; role: RoleDef }) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={`/app${item.path}`}
+      data-tour={`nav-${item.key}`}
+      aria-current={active ? "page" : undefined}
+      className={`relative flex h-10 items-center gap-3 rounded-sm px-3 text-[14px] transition ${
+        active ? "bg-[rgb(var(--line)/.08)] text-ink" : "text-ink-muted hover:bg-[rgb(var(--line)/.05)] hover:text-ink"
+      }`}
+    >
+      {active && <span className="absolute left-0 top-2 bottom-2 w-[2px] rounded-full" style={{ background: role.ink }} />}
+      <Icon size={17} strokeWidth={1.6} style={active ? { color: role.ink } : undefined} />
+      {item.label}
+    </Link>
+  );
+}
+
 function Sidebar({ role }: { role: RoleDef }) {
   const isActive = useActive(role);
+  const { hasMissions, moreNavOpen, setMoreNavOpen } = useWorkspaceStage();
+  const { primary, secondary } = useMemo(() => navGroupsFor(role.id), [role.id]);
+  const secondaryActive = secondary.some((item) => isActive(item.path));
+
+  useEffect(() => {
+    if (secondaryActive) setMoreNavOpen(true);
+  }, [secondaryActive, setMoreNavOpen]);
+
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[232px] flex-col border-r border-hairline bg-hull lg:flex">
       <Link href="/app" className="flex h-[72px] flex-col justify-center px-6">
@@ -58,25 +88,40 @@ function Sidebar({ role }: { role: RoleDef }) {
         </span>
       </Link>
       <nav aria-label="Main" className="mt-4 flex flex-col gap-1 px-3">
-        {navFor(role.id).map((item) => {
-          const active = isActive(item.path);
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.key}
-              href={`/app${item.path}`}
-              data-tour={`nav-${item.key}`}
-              aria-current={active ? "page" : undefined}
-              className={`relative flex h-10 items-center gap-3 rounded-sm px-3 text-[14px] transition ${
-                active ? "bg-[rgb(var(--line)/.08)] text-ink" : "text-ink-muted hover:bg-[rgb(var(--line)/.05)] hover:text-ink"
-              }`}
-            >
-              {active && <span className="absolute left-0 top-2 bottom-2 w-[2px] rounded-full" style={{ background: role.ink }} />}
-              <Icon size={17} strokeWidth={1.6} style={active ? { color: role.ink } : undefined} />
-              {item.label}
-            </Link>
-          );
-        })}
+        {hasMissions ? (
+          navFor(role.id).map((item) => <SidebarLink key={item.key} item={item} active={isActive(item.path)} role={role} />)
+        ) : (
+          <>
+            {primary.map((item) => (
+              <SidebarLink key={item.key} item={item} active={isActive(item.path)} role={role} />
+            ))}
+            {secondary.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setMoreNavOpen((o) => !o)}
+                  aria-expanded={moreNavOpen}
+                  className="flex h-10 items-center justify-between rounded-sm px-3 text-[13.5px] text-ink-muted transition hover:bg-[rgb(var(--line)/.05)] hover:text-ink"
+                >
+                  <span className="flex items-center gap-3">
+                    <AlignLeft size={16} strokeWidth={1.6} className="text-ink-faint" />
+                    <span>
+                      More <span className="text-ink-faint">({secondary.length})</span>
+                    </span>
+                  </span>
+                  <ChevronDown size={15} className={`text-ink-faint transition-transform ${moreNavOpen ? "rotate-180" : ""}`} />
+                </button>
+                {moreNavOpen && (
+                  <div className="flex flex-col gap-0.5 pl-2">
+                    {secondary.map((item) => (
+                      <SidebarLink key={item.key} item={item} active={isActive(item.path)} role={role} />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
       </nav>
       <div className="mt-auto px-6 pb-6">
         <Link href="/choose-role" data-tour="seat-switch" className="flex items-center gap-3 rounded-md border border-hairline p-3 hover:border-[rgb(var(--line)/.3)]">
@@ -95,9 +140,15 @@ function Sidebar({ role }: { role: RoleDef }) {
 
 function BottomNav({ role }: { role: RoleDef }) {
   const isActive = useActive(role);
+  const { hasMissions } = useWorkspaceStage();
+  const { primary, secondary } = useMemo(() => navGroupsFor(role.id), [role.id]);
+  const moreMenu = usePopover();
+  const secondaryActive = secondary.some((item) => isActive(item.path));
+  const items = hasMissions ? navFor(role.id) : primary;
+
   return (
     <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 flex border-t border-hairline bg-hull lg:hidden">
-      {navFor(role.id).map((item) => {
+      {items.map((item) => {
         const active = isActive(item.path);
         const Icon = item.icon;
         return (
@@ -114,6 +165,41 @@ function BottomNav({ role }: { role: RoleDef }) {
           </Link>
         );
       })}
+      {!hasMissions && secondary.length > 0 && (
+        <div className="relative flex flex-1" data-popover>
+          <button
+            type="button"
+            onClick={moreMenu.toggle}
+            aria-expanded={moreMenu.open}
+            className="flex min-h-[58px] flex-1 flex-col items-center justify-center gap-1 text-[10.5px]"
+            style={{ color: secondaryActive || moreMenu.open ? role.ink : "var(--ink-faint)" }}
+          >
+            <MoreHorizontal size={18} strokeWidth={1.6} />
+            More ({secondary.length})
+          </button>
+          {moreMenu.open && (
+            <div className="absolute bottom-[62px] right-2 w-[196px] overflow-hidden rounded-md border border-hairline bg-deck py-1 shadow-2xl">
+              {secondary.map((item) => {
+                const active = isActive(item.path);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.key}
+                    href={`/app${item.path}`}
+                    onClick={() => moreMenu.setOpen(false)}
+                    aria-current={active ? "page" : undefined}
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] text-ink-muted hover:bg-[rgb(var(--line)/.06)] hover:text-ink"
+                    style={active ? { color: role.ink } : undefined}
+                  >
+                    <Icon size={16} strokeWidth={1.6} />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </nav>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { AlertTriangle, Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -14,8 +14,9 @@ import { VoiceInput } from "@/components/app/voice-input";
 import { LiquidMetalButton } from "@/components/liquid-metal/liquid-metal";
 import { api, ApiError } from "@/lib/app/api";
 import { useAuth } from "@/lib/app/auth";
+import { useMissionDraft, type DraftMissionType } from "@/lib/app/mission-draft";
 import { ROLE_BY_ID } from "@/lib/app/roles";
-import type { MediaCapture, Mission, Sighting } from "@/lib/app/types";
+import type { Mission, Sighting } from "@/lib/app/types";
 
 type Suggestion = { id: string; name: string; status: string; score: number };
 
@@ -27,25 +28,27 @@ const PLACEHOLDER: Record<string, string> = {
 };
 
 export default function NewMissionPage() {
-  const { me } = useAuth();
+  const { me, refreshMe } = useAuth();
   const role = ROLE_BY_ID[me!.role!];
   const router = useRouter();
   const toast = useToast();
-  const [prompt, setPrompt] = useState("");
-  const [type, setType] = useState("feature");
+  const hasSightingParam = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("sighting");
+  const [sighting, setSighting] = useState<Sighting | null>(null);
+  const { prompt, setPrompt, type, setType, jiraKey, setJiraKey, captures, mediaIds, hasSavedDraft, addCapture, updateCapture, removeCapture, clearDraft } =
+    useMissionDraft(me?.id, { skipPersistence: hasSightingParam || Boolean(sighting) });
   const [apps, setApps] = useState<Suggestion[]>([]);
+  const [appsLoaded, setAppsLoaded] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
-  const [jiraKey, setJiraKey] = useState<string | null>(null);
   const [importKey, setImportKey] = useState("");
   const [importing, setImporting] = useState(false);
   const touched = useRef(false);
-  // Show NoX: draft captures made before the mission exists (only their uploader sees them until launch).
-  const [captures, setCaptures] = useState<MediaCapture[]>([]);
-  const [hidden, setHidden] = useState<string[]>([]); // originals of marked-up screenshots: sent, not shown
+  const initialFetchDone = useRef(false);
   const grounded = captures.flatMap((c) => (c.status === "ready" ? c.apps ?? [] : []));
-  // Edit first on a sighting: the form starts filled in from it, and the mission records where it came from.
-  const [sighting, setSighting] = useState<Sighting | null>(null);
+
+  useEffect(() => {
+    if (jiraKey && !importKey) setImportKey(jiraKey);
+  }, [jiraKey, importKey]);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("sighting");
@@ -54,11 +57,14 @@ export default function NewMissionPage() {
       .then((s) => {
         setSighting(s);
         setPrompt(s.view.request);
-        setType(s.view.missionType);
+        const sightingType: DraftMissionType =
+          s.view.missionType === "bug" || s.view.missionType === "change" ? s.view.missionType : "feature";
+        setType(sightingType);
         touched.current = true;
         setPicked(s.apps.map((a) => a.id));
       })
       .catch(() => toast("That sighting isn't available any more", "error"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once for ?sighting= query parameter
   }, [toast]);
 
   const importFromJira = async (e: React.FormEvent) => {
@@ -78,15 +84,27 @@ export default function NewMissionPage() {
 
   useEffect(() => {
     const text = prompt.trim();
+    const delay = !initialFetchDone.current ? 0 : text.length >= 12 ? 600 : 0;
+    initialFetchDone.current = true;
     const t = setTimeout(async () => {
       try {
-        const res = await api<Suggestion[]>("/api/v1/missions/suggest-apps", { method: "POST", json: { prompt: text.length >= 3 ? text : "app" } });
+        const res = await api<Suggestion[]>("/api/v1/missions/suggest-apps", {
+          method: "POST",
+          json: { prompt: text.length >= 3 ? text : "app" },
+        });
         setApps(res);
-        if (!touched.current && res[0]?.score > 0) setPicked([res[0].id]);
+        setAppsLoaded(true);
+        if (!touched.current) {
+          if (res.length === 1) {
+            setPicked([res[0].id]);
+          } else if (res[0]?.score > 0) {
+            setPicked([res[0].id]);
+          }
+        }
       } catch {
-        /* suggestions are optional */
+        setAppsLoaded(true);
       }
-    }, text.length >= 12 ? 600 : 0);
+    }, delay);
     return () => clearTimeout(t);
   }, [prompt]);
 
@@ -105,12 +123,6 @@ export default function NewMissionPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-rank when the grounding changes, not on every re-render
   }, [JSON.stringify(grounded), apps.length]);
 
-  const onCapture = (c: MediaCapture, extra: string[] = []) => {
-    setCaptures((xs) => [...xs, c]);
-    setHidden((h) => [...h, ...extra]);
-  };
-  const updateCapture = (c: MediaCapture) => setCaptures((xs) => xs.map((x) => (x.id === c.id ? c : x)));
-
   const toggle = (id: string) => {
     touched.current = true;
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -120,8 +132,9 @@ export default function NewMissionPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      const mediaIds = [...captures.filter((c) => c.status !== "withheld").map((c) => c.id), ...hidden];
       const m = await api<Mission>("/api/v1/missions", { method: "POST", json: { prompt: prompt.trim(), appIds: picked, type, jiraKey: jiraKey ?? undefined, mediaIds, sightingId: sighting?.id } });
+      if (!sighting) clearDraft();
+      void refreshMe();
       toast(`${m.key} started. NoX is drafting`, "success");
       router.push(`/app/missions/${m.key}`);
     } catch (err) {
@@ -146,7 +159,22 @@ export default function NewMissionPage() {
         <button type="submit" disabled={importing || !/^[A-Za-z][A-Za-z0-9]+-\d+$/.test(importKey.trim())} className="h-9 rounded-sm border border-hairline px-3 text-ink hover:border-ink-faint disabled:opacity-40">
           {importing ? "Importing…" : "Import"}
         </button>
-        {jiraKey && <span className="font-mono text-[12px] text-[color:var(--role)]">linked: {jiraKey}</span>}
+        {jiraKey && (
+          <span className="inline-flex items-center gap-1.5 font-mono text-[12px] text-[color:var(--role)]">
+            linked: {jiraKey}
+            <button
+              type="button"
+              onClick={() => {
+                setJiraKey(null);
+                setImportKey("");
+              }}
+              aria-label="Unlink Jira ticket"
+              className="text-ink-dim hover:text-ink"
+            >
+              ×
+            </button>
+          </span>
+        )}
       </form>
       {sighting && (
         <p className="mt-5 rounded-sm border border-hairline bg-[rgb(var(--line)/.04)] p-3 text-[13px] text-ink-muted">
@@ -156,7 +184,20 @@ export default function NewMissionPage() {
         </p>
       )}
       <form onSubmit={create} className="mt-5 space-y-5">
-        <Panel title="The request">
+        <Panel
+          title="The request"
+          action={
+            hasSavedDraft && !sighting ? (
+              <span
+                data-testid="draft-saved-badge"
+                className="inline-flex items-center gap-1.5 text-[11.5px] text-ink-muted"
+              >
+                <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-verify" />
+                Draft saved locally
+              </span>
+            ) : undefined
+          }
+        >
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -170,7 +211,7 @@ export default function NewMissionPage() {
           />
           <VoiceInput value={prompt} onChange={setPrompt} label="Or say it out loud" accent className="mt-2 w-full justify-end" />
           <div className="mt-4 border-t border-hairline pt-4">
-            <CaptureBar global accent onMedia={onCapture} />
+            <CaptureBar global accent onMedia={(c, extra = []) => addCapture(c, extra)} />
             {captures.length > 0 && (
               <ul className="mt-4 space-y-3" aria-label="What you showed NoX">
                 {visibleCaptures(captures).map((c) => (
@@ -179,9 +220,9 @@ export default function NewMissionPage() {
                       capture={c}
                       onChange={(next) => {
                         updateCapture(next);
-                        if (next.status === "ready" && next.kindOfRequest === "bug") setType((t) => (t === "feature" ? "bug" : t));
+                        if (next.status === "ready" && next.kindOfRequest === "bug" && type === "feature") setType("bug");
                       }}
-                      onDeleted={(id) => setCaptures((xs) => xs.filter((x) => x.id !== id))}
+                      onDeleted={removeCapture}
                       onUseRequest={(sentence) => setPrompt(sentence)}
                     />
                   </li>
@@ -190,11 +231,13 @@ export default function NewMissionPage() {
             )}
           </div>
           <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="Type">
-            {[
-              ["feature", "Something new"],
-              ["bug", "Something broken"],
-              ["change", "A change"],
-            ].map(([v, label]) => (
+            {(
+              [
+                ["feature", "Something new"],
+                ["bug", "Something broken"],
+                ["change", "A change"],
+              ] as const
+            ).map(([v, label]) => (
               <button
                 key={v}
                 type="button"
@@ -243,7 +286,12 @@ export default function NewMissionPage() {
               })}
             </ul>
           ) : (
-            <p className="text-[13px] text-ink-faint">No applications in your orbit yet. They&rsquo;re onboarded from the atlas.</p>
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-hairline bg-[rgb(var(--line)/.04)] p-3 text-[13px] text-ink-muted">
+              <span>No applications in your orbit yet. Onboard one in Atlas before starting a mission.</span>
+              <Link href="/app/atlas" className="font-semibold hover:underline" style={{ color: role.ink }}>
+                Open Atlas →
+              </Link>
+            </div>
           )}
           <p className="mt-3 text-[12px] text-ink-faint">The first one you pick is where the spec files are kept.</p>
         </Panel>
@@ -254,8 +302,44 @@ export default function NewMissionPage() {
           </p>
         )}
 
-        <div className="flex justify-end">
-          <LiquidMetalButton type="submit" hue={role.hue} disabled={busy || prompt.trim().length < 8 || !picked.length} className="h-11 rounded-sm px-6 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {appsLoaded && apps.length === 0 ? (
+            <div
+              data-testid="new-mission-disabled-helper"
+              className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-sm border px-3.5 py-2 text-[12.5px]"
+              style={{
+                borderColor: "color-mix(in srgb, var(--role) 40%, transparent)",
+                background: "color-mix(in srgb, var(--role) 11%, transparent)",
+              }}
+            >
+              <AlertTriangle size={14} className="shrink-0 text-[color:var(--role)]" aria-hidden />
+              <span className="text-ink-muted">
+                <strong className="font-semibold text-ink">No applications in Atlas yet:</strong> Onboard an application to enable Start mission.
+              </span>
+              <Link href="/app/atlas" className="font-semibold hover:underline" style={{ color: role.ink }}>
+                Open Atlas →
+              </Link>
+            </div>
+          ) : appsLoaded && !picked.length ? (
+            <p data-testid="new-mission-disabled-helper" className="text-[13px] text-ink-muted">
+              Select at least one application above, or{" "}
+              <Link href="/app/atlas" className="font-semibold hover:underline" style={{ color: role.ink }}>
+                open Atlas →
+              </Link>
+            </p>
+          ) : prompt.trim().length < 8 ? (
+            <p data-testid="new-mission-disabled-helper" className="text-[13px] text-ink-faint">
+              Describe the change (at least 8 characters) to enable Start mission.
+            </p>
+          ) : (
+            <span />
+          )}
+          <LiquidMetalButton
+            type="submit"
+            hue={role.hue}
+            disabled={busy || prompt.trim().length < 8 || !picked.length}
+            className="h-11 shrink-0 rounded-sm px-6 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+          >
             {busy ? "Starting…" : "Start mission"}
           </LiquidMetalButton>
         </div>

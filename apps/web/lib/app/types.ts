@@ -212,6 +212,22 @@ export type MissionUpdate = {
 
 export type MissionEvent = { id: string; type: string; payload: Record<string, unknown>; actor: string | null; role: string | null; createdAt: string };
 
+export type ActivityItem = {
+  id: string;
+  kind: "mission" | "kb";
+  type: string;
+  actor: string | null;
+  role: string | null;
+  targetKey: string;
+  targetTitle: string;
+  kbId?: string;
+  href: string;
+  orgId: string;
+  orgName?: string | null;
+  payload: Record<string, unknown>;
+  createdAt: string;
+};
+
 /** A mission's ticket document in Firestore: its pipeline, where it is on it, and who it's assigned to. */
 export type PipelineStep = { id: string; kind: "seat" | "build" | "verify"; role: string; label: string; status: "done" | "current" | "pending" };
 export type Person = { id: string; name: string | null; email: string | null; photoUrl: string | null };

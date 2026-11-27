@@ -21,7 +21,7 @@ const TYPES: SourceType[] = ["github", "confluence", "jira", "notion", "slack", 
 let nextKey = 1;
 
 export default function OnboardPage() {
-  const { me } = useAuth();
+  const { me, refreshMe } = useAuth();
   const role = ROLE_BY_ID[me!.role!];
   const router = useRouter();
   const toast = useToast();
@@ -82,6 +82,7 @@ export default function OnboardPage() {
         method: "POST",
         json: { appName: name.trim(), sourceUrls: filled.map((r) => ({ type: r.type, url: r.url.trim() })) },
       });
+      await refreshMe();
       toast(`${kb.appName} launched. Building its knowledge base`, "success");
       router.push(`/app/atlas/apps/${kb.id}`);
     } catch (e) {

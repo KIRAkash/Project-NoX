@@ -11,7 +11,15 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { api, ApiError, configureApi } from "./api";
 import { firebaseAuth, firebaseConfigured, googleProvider } from "./firebase";
+import { clearAllMissionDrafts } from "./mission-draft";
 import type { RoleId } from "./roles";
+
+export type ReadinessSummary = {
+  orgs: number;
+  apps: number;
+  publishedWikis: number;
+  missions: number;
+};
 
 export type Me = {
   id: string;
@@ -23,6 +31,8 @@ export type Me = {
   /** "local" is NoX Local (Gemma): it reads images only, so video and voice capture are hidden. */
   aiBackend?: "enterprise" | "api_key" | "local";
   orgs: { id: string; name: string; slug: string; parentOrgId: string | null }[];
+  /** Counts of visible organizations, applications, published wikis, and missions. */
+  readiness?: ReadinessSummary;
   /** First run: false until the welcome screen is answered. */
   onboarded: boolean;
   /** What they chose on the welcome screen (or switched to later from the account menu). */
@@ -47,6 +57,7 @@ type AuthState = {
   signInWithGoogle: () => Promise<void>;
   signInDev: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshMe: () => Promise<void>;
   chooseRole: (role: RoleId) => Promise<Me>;
   chooseEstate: (estate: Estate) => Promise<Me>;
   markTourSeen: (key: string) => void;
@@ -157,9 +168,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [loadMe],
   );
 
+  const refreshMe = useCallback(async () => {
+    try {
+      const data = await api<Me>("/api/v1/me");
+      roleRef.current = data.role;
+      setMe(data);
+    } catch {
+      /* keep current session state if background refresh fails */
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
     devEmail.current = null;
     roleRef.current = null;
+    clearAllMissionDrafts();
     try {
       window.localStorage.removeItem(DEV_KEY);
     } catch {
@@ -199,8 +221,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<AuthState>(
-    () => ({ status, me, error, devAuth: DEV_AUTH, signInWithGoogle, signInDev, signOut, chooseRole, chooseEstate, markTourSeen, replayTour }),
-    [status, me, error, signInWithGoogle, signInDev, signOut, chooseRole, chooseEstate, markTourSeen, replayTour],
+    () => ({
+      status,
+      me,
+      error,
+      devAuth: DEV_AUTH,
+      signInWithGoogle,
+      signInDev,
+      signOut,
+      refreshMe,
+      chooseRole,
+      chooseEstate,
+      markTourSeen,
+      replayTour,
+    }),
+    [status, me, error, signInWithGoogle, signInDev, signOut, refreshMe, chooseRole, chooseEstate, markTourSeen, replayTour],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -9,8 +9,9 @@ import { EmptyState, type KbStatus, Panel } from "@/components/app/ui";
 import type { RoleDef } from "@/lib/app/roles";
 import { STAGE_LABEL, type Mission } from "@/lib/app/types";
 import { useApi } from "@/lib/app/use-api";
+import { useWorkspaceStage } from "@/lib/app/workspace-stage";
 
-import { MissionPanel } from "./shared";
+import { AtlasPanel, MissionPanel, SeatStageToggle } from "./shared";
 import { legible } from "@/lib/app/palette";
 import { useHomeTour } from "@/components/app/tour/tour";
 
@@ -21,6 +22,7 @@ import { useHomeTour } from "@/components/app/tour/tour";
  * second "waiting" list repeating it.
  */
 export function ProductHome({ role }: { role: RoleDef }) {
+  const { hasMissions, showAllPanels } = useWorkspaceStage();
   const all = useApi<Mission[]>("/api/v1/missions?view=all");
   const kbs = useApi<{ id: string; status: KbStatus }[]>("/api/v1/kb");
   const missions = all.data ?? [];
@@ -28,7 +30,33 @@ export function ProductHome({ role }: { role: RoleDef }) {
   const open = missions.filter((m) => m.stage !== "done");
   const reload = () => void all.reload();
   const inOrbit = kbs.data?.filter((k) => k.status === "published").length ?? 0;
+  const liveHasMissions = hasMissions || missions.length > 0;
+  const expanded = liveHasMissions || showAllPanels;
   useHomeTour(role.id, !all.loading);
+
+  if (!expanded) {
+    return (
+      <div className="mt-10 space-y-5">
+        <div className="grid items-start gap-5 lg:grid-cols-3">
+          <Panel title="Triage" className="lg:col-span-2" tour="triage">
+            {all.loading && !all.data ? (
+              <p className="text-[13px] text-ink-faint">Loading…</p>
+            ) : (
+              <EmptyState role={role} line="Nothing to triage yet. Start a mission above or onboard applications in the Atlas." />
+            )}
+          </Panel>
+          <AtlasPanel role={role} title="Applications" />
+        </div>
+
+        {!all.loading && (
+          <SeatStageToggle
+            role={role}
+            hiddenSummary="Acceptance, sightings, and roadmap panels are"
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="mt-10 space-y-5">
@@ -106,6 +134,13 @@ export function ProductHome({ role }: { role: RoleDef }) {
           Open the atlas →
         </Link>
       </p>
+
+      {!liveHasMissions && !all.loading && (
+        <SeatStageToggle
+          role={role}
+          hiddenSummary="Acceptance, sightings, and roadmap panels are"
+        />
+      )}
     </div>
   );
 }

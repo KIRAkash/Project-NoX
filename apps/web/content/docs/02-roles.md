@@ -105,7 +105,7 @@ Each seat has a short navigation of its own. The missions entry takes the seat's
 | **Engineering lead** | Home · Design reviews · Sightings · Atlas · Activity · Impact |
 | **Developer** | Home · Build queue · Sightings · Atlas · CLI · Impact |
 
-**Atlas** holds organizations, teams, applications, knowledge bases, the contract map and connectors. **Specs** is the library of spec files across missions, and **Activity** the organization-wide feed (both pages are in place; the cross-mission views are on the [roadmap](/docs/roadmap)). **CLI** shows how to connect the `nox` CLI and the tokens it has signed in with.
+**Atlas** holds organizations, teams, applications, knowledge bases, the contract map and connectors. **Specs** is the library of spec files across missions (cross-mission search is on the [roadmap](/docs/roadmap)), and **Activity** streams the live feed of mission changes and knowledge-base builds across your organizations. **CLI** shows how to connect the `nox` CLI and the tokens it has signed in with. Until your first mission starts, secondary links sit under **More** so fresh workspaces stay focused on setup.
 
 The command palette in the top bar (`⌘K`) jumps to any page or action from anywhere.
 
